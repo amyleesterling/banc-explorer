@@ -1,0 +1,50 @@
+# BANC Explorer — Be the Fly
+
+**BANC Explorer** is a public-facing, interactive way to explore how behavior is organized across the adult fruit fly brain and ventral nerve cord.
+
+The first experience, **Be the Fly: Walking Lab**, lets visitors steer a small fly toward an odor source while a synchronized circuit story shows how sensory feedback, ascending neurons, descending pathways, local ventral nerve cord circuits, and motor output work together.
+
+Repository: [github.com/amyleesterling/banc-explorer](https://github.com/amyleesterling/banc-explorer)
+
+> The current prototype presents connectome-derived explanatory pathways. BANC is a wiring diagram, not a recording of neural activity; animated signal sequences are clearly framed as interpretation rather than measured firing.
+
+## Current prototype
+
+- Keyboard and touch-friendly walking and steering controls
+- Animated fly arena with an odor target
+- Holographic body art direction ready for a web-optimized NeuroMechFly model
+- Synchronized four-stage circuit explainer
+- Color-coded sensory, ascending, descending, VNC, and motor roles
+- Scientific confidence and interpretation language
+- A Neuroglancer-ready viewer panel for future BANC neuron scenes
+- Responsive layout for desktop and mobile
+
+## Planned next steps
+
+1. Replace the lightweight hologram preview with a web-optimized NeuroMechFly body model, custom Fresnel/scan shader, and recorded walking kinematics.
+2. Connect curated BANC segment IDs and camera states to the viewer.
+3. Add author-reviewed walking and steering circuit stories with evidence labels.
+4. Add free exploration through Neuroglancer and Codex links.
+5. Extend the same behavior system into a flight simulator.
+
+## Scientific sources
+
+- Bates, Phelps, Kim, Yang et al. **Distributed control circuits across a brain-and-cord connectome.** *Nature* (2026). [Read the paper](https://www.nature.com/articles/s41586-026-10735-w)
+- [BANC dataset in Codex](https://codex.flywire.ai/?dataset=banc)
+- [Neuroglancer](https://github.com/google/neuroglancer)
+- [NeuroMechFly / FlyGym](https://neuromechfly.org/)
+
+## Run locally
+
+Requires Node.js 22.13 or newer.
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the local address shown in the terminal.
+
+## Project status
+
+Early public prototype. Circuit selections, annotations, contributor credits, data licensing, and final visual assets will be reviewed before launch.
