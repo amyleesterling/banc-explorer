@@ -80,6 +80,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .metric small { font-size: 8px; letter-spacing: .13em; opacity: .6; }
 .metric strong { font-family: Georgia, serif; font-size: 17px; }
 .viewer-button { color: #dce3d4; border-color: rgba(220,227,212,.4); cursor: pointer; }
+.viewer-button.active { color: var(--acid); border-color: rgba(216,236,113,.65); }
 
 .arena-wrap, .circuit-canvas-wrap { min-height: 500px; position: relative; overflow: hidden; }
 .arena-wrap canvas, .circuit-canvas-wrap canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
@@ -107,6 +108,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .circuit-canvas-wrap:before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background-image: linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px); background-size: 26px 26px; }
 .viewer-badge { position: absolute; z-index: 2; top: 15px; left: 15px; display: flex; align-items: center; gap: 7px; font-size: 8px; letter-spacing: .13em; color: #9aaba1; }
 .viewer-badge span { width: 6px; height: 6px; border-radius: 50%; background: #ffc857; }
+.resident-key { position: absolute; z-index: 2; top: 16px; right: 15px; color: #66776e; font-size: 7px; font-weight: 800; letter-spacing: .1em; }
 .circuit-label { position: absolute; z-index: 2; font-size: 8px; line-height: 1.4; letter-spacing: .1em; color: #71827a; }
 .brain-label { right: 11%; top: 14%; }
 .cord-label { left: 9%; bottom: 17%; }
@@ -160,6 +162,18 @@ h1 em { color: var(--moss); font-weight: 400; }
 .coming-soon button { margin-top: 16px; color: #8e9b94; border: 1px solid #4f6057; padding: 11px; background: transparent; font-size: 8px; letter-spacing: .1em; }
 footer { min-height: 76px; margin: 0 4vw; display: flex; justify-content: space-between; align-items: center; font-size: 9px; letter-spacing: .1em; color: #6f7c74; }
 
+.neuroglancer-modal { position: fixed; inset: 18px; z-index: 50; display: grid; grid-template-rows: 64px minmax(0, 1fr) 30px; overflow: hidden; border: 1px solid rgba(216,236,113,.48); background: #070d0b; color: #e5eadb; box-shadow: 0 24px 90px rgba(0,0,0,.62); }
+.neuroglancer-modal:before { content: ''; position: fixed; inset: 0; z-index: -1; background: rgba(5,11,9,.78); backdrop-filter: blur(7px); }
+.neuroglancer-modal iframe { width: 100%; height: 100%; display: block; border: 0; background: #070d0b; }
+.neuroglancer-modal-bar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 20px; border-bottom: 1px solid rgba(229,234,219,.17); background: #101a16; }
+.neuroglancer-modal-bar > div { display: flex; align-items: center; gap: 16px; }
+.neuroglancer-modal-bar span { display: flex; align-items: center; gap: 8px; color: #9cad9f; font-size: 8px; font-weight: 800; letter-spacing: .13em; }
+.neuroglancer-modal-bar span i { width: 6px; height: 6px; border-radius: 50%; background: #68d6c4; box-shadow: 0 0 10px #68d6c4; }
+.neuroglancer-modal-bar strong { font-family: Georgia, serif; font-size: 16px; font-weight: 400; }
+.neuroglancer-modal-bar a, .neuroglancer-modal-bar button { border: 1px solid rgba(229,234,219,.34); border-radius: 999px; background: transparent; color: #dfe7db; padding: 9px 13px; font-size: 8px; font-weight: 800; letter-spacing: .09em; cursor: pointer; }
+.neuroglancer-modal-bar a { color: var(--acid); border-color: rgba(216,236,113,.35); }
+.neuroglancer-modal > p { display: flex; align-items: center; margin: 0; padding: 0 20px; border-top: 1px solid rgba(229,234,219,.12); color: #6f8177; font-size: 7px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+
 @media (max-width: 900px) {
   .nav-links a { display: none; }
   .hero { grid-template-columns: 1fr; }
@@ -192,6 +206,10 @@ footer { min-height: 76px; margin: 0 4vw; display: flex; justify-content: space-
   .action-circuit-heading { display: grid; }
   .action-circuit-heading small { max-width: none; text-align: left; }
   .neuron-grid { grid-template-columns: 1fr; }
+  .resident-key { display: none; }
+  .neuroglancer-modal { inset: 0; grid-template-rows: 72px minmax(0, 1fr) 28px; border: 0; }
+  .neuroglancer-modal-bar { padding: 0 11px; }
+  .neuroglancer-modal-bar strong, .neuroglancer-modal-bar a { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

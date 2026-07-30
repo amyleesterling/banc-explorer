@@ -14,7 +14,9 @@ type CircuitNode = {
   muted?: boolean;
 };
 
-const WALKING_FIGURE_URL = "https://ng.banc.community/2025a/figure-5c";
+const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
+const WALKING_SCENE_URL = "https://ng.banc.community/2026a/walking";
+const STEERING_SCENE_URL = "https://ng.banc.community/2026a/walking-steering";
 const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
 
@@ -49,8 +51,8 @@ const CIRCUITS: Record<CircuitMode, {
     title: "Walking drive meets local control",
     summary: "A published BANC pathway shows proprioceptive and threat modules modulating DNg100 walking drive; the front-leg scene reveals the larger local sensorimotor loop.",
     evidence: "BANC FIG. 5c · CONNECTOME-SUPPORTED",
-    viewerUrl: WALKING_FIGURE_URL,
-    viewerLabel: "OPEN WALKING PATHWAY",
+    viewerUrl: WALKING_SCENE_URL,
+    viewerLabel: "OPEN WALKING NEURONS",
     nodes: WALKING_NODES,
   },
   left: {
@@ -58,8 +60,8 @@ const CIRCUITS: Record<CircuitMode, {
     title: "A bilateral steering comparison",
     summary: "Left DNa02 and DNa01 are highlighted as high- and low-gain steering types. Their functional roles are experimentally characterized and their cell types are matched into BANC.",
     evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
-    viewerUrl: STEERING_CODEX_URL,
-    viewerLabel: "OPEN STEERING TYPES",
+    viewerUrl: STEERING_SCENE_URL,
+    viewerLabel: "OPEN STEERING NEURONS",
     nodes: steeringNodes("LEFT"),
   },
   right: {
@@ -67,8 +69,8 @@ const CIRCUITS: Record<CircuitMode, {
     title: "A bilateral steering comparison",
     summary: "Right DNa02 and DNa01 are highlighted as high- and low-gain steering types. Their functional roles are experimentally characterized and their cell types are matched into BANC.",
     evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
-    viewerUrl: STEERING_CODEX_URL,
-    viewerLabel: "OPEN STEERING TYPES",
+    viewerUrl: STEERING_SCENE_URL,
+    viewerLabel: "OPEN STEERING NEURONS",
     nodes: steeringNodes("RIGHT"),
   },
 };
@@ -112,7 +114,22 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [steps, setSteps] = useState(0);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
+  const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
+
+  useEffect(() => {
+    if (!viewerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setViewerOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [viewerOpen]);
 
   const updateAction = useCallback((next: Action) => {
     actionRef.current = next;
@@ -379,6 +396,57 @@ export default function Home() {
         [spineX - 70, height * 0.52], [spineX + 72, height * 0.51],
         [spineX, height * 0.4], [spineX, height * 0.28],
       ];
+
+      // Keep the full explanatory circuit resident in neutral grey. The active
+      // overlay is just a material/color change, so steering never waits on I/O.
+      const modeDirection = circuitMode === "left" ? -1 : circuitMode === "right" ? 1 : 0;
+      const tracePath = (index: number) => {
+        const side = index % 2 === 0 ? -1 : 1;
+        const spread = 28 + (index % 5) * 13;
+        const startX = spineX + side * (16 + (index % 3) * 12);
+        const startY = height * (0.135 + (index % 4) * 0.013);
+        const endX = spineX + side * spread;
+        const endY = height * (0.86 - (index % 3) * 0.035);
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.bezierCurveTo(
+          spineX + side * (44 + index * 1.5),
+          height * 0.31,
+          spineX - side * (18 + (index % 4) * 8),
+          height * 0.61,
+          endX,
+          endY,
+        );
+        ctx.moveTo(spineX + side * 30, height * 0.39);
+        ctx.quadraticCurveTo(spineX + side * (70 + index * 2), height * 0.48, spineX + side * (84 + (index % 4) * 8), height * 0.54);
+      };
+
+      ctx.lineCap = "round";
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(206, 218, 208, .13)";
+      for (let index = 0; index < 12; index++) {
+        tracePath(index);
+        ctx.stroke();
+      }
+
+      const activationGradient = ctx.createLinearGradient(spineX, height * 0.1, spineX, height * 0.9);
+      activationGradient.addColorStop(0, circuitMode === "walk" ? "#ffc857" : "#d8ec71");
+      activationGradient.addColorStop(0.48, circuitMode === "walk" ? "#8ac7ff" : "#ffc857");
+      activationGradient.addColorStop(1, "#68d6c4");
+      ctx.strokeStyle = activationGradient;
+      ctx.lineWidth = 2.2;
+      ctx.shadowColor = circuitMode === "walk" ? "#8ac7ff" : "#ffc857";
+      ctx.shadowBlur = 12;
+      ctx.globalAlpha = isPlaying ? 0.78 + Math.sin(time / 180) * 0.16 : 0.72;
+      for (let index = 0; index < 12; index++) {
+        const side = index % 2 === 0 ? -1 : 1;
+        const selected = modeDirection === 0 ? index % 3 === 0 : side === modeDirection && index % 3 !== 1;
+        if (!selected) continue;
+        tracePath(index);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
       ctx.strokeStyle = "rgba(223, 230, 202, .16)";
       ctx.lineWidth = 1.25;
       for (let i = 0; i < points.length - 1; i++) {
@@ -451,7 +519,7 @@ export default function Home() {
       stopped = true;
       cancelAnimationFrame(animation);
     };
-  }, [stage, isPlaying]);
+  }, [stage, isPlaying, circuitMode]);
 
   const nudge = (next: Action) => {
     updateAction(next);
@@ -520,11 +588,14 @@ export default function Home() {
         <div className="circuit-panel">
           <header className="panel-heading dark-heading">
             <div><span>02</span><p>CONNECTOME LENS</p></div>
-            <a className="viewer-button" href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">{activeCircuit.viewerLabel} ↗</a>
+            <button className={`viewer-button${viewerOpen ? " active" : ""}`} type="button" onClick={() => setViewerOpen((value) => !value)}>
+              INTERACTIVE 3D ↗
+            </button>
           </header>
           <div className="circuit-canvas-wrap">
-            <canvas ref={circuitRef} aria-label="Animated explanatory diagram of walking signals traveling through the fly nervous system" />
-            <div className="viewer-badge"><span /> EXPLANATORY PATHWAY</div>
+            <canvas ref={circuitRef} aria-label="Resident explanatory neuron overlay with selected pathways changing from grey to color" />
+            <div className="viewer-badge"><span /> RESIDENT CIRCUIT · ZERO RELOAD</div>
+            <div className="resident-key">GREY = LOADED · COLOR = SELECTED</div>
             <div className="circuit-label brain-label">CENTRAL<br/>BRAIN</div>
             <div className="circuit-label cord-label">LOCAL<br/>CONTROL</div>
           </div>
@@ -555,7 +626,11 @@ export default function Home() {
               </div>
               <div className="circuit-links">
                 <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">{activeCircuit.viewerLabel} ↗</a>
-                {circuitMode === "walk" && <a href={FRONT_LEG_LOOP_URL} target="_blank" rel="noreferrer">OPEN 1,160-NEURON FRONT-LEG LOOP ↗</a>}
+                {circuitMode === "walk" ? (
+                  <><a href={WALKING_FIGURE_URL} target="_blank" rel="noreferrer">OPEN FIG. 5c PATHWAY ↗</a><a href={FRONT_LEG_LOOP_URL} target="_blank" rel="noreferrer">OPEN 1,160-NEURON FRONT-LEG LOOP ↗</a></>
+                ) : (
+                  <a href={STEERING_CODEX_URL} target="_blank" rel="noreferrer">INSPECT DNa01 + DNa02 IN CODEX ↗</a>
+                )}
               </div>
               <p className="activity-caveat">The controls select relevant anatomy; glow and timing are explanatory, not measured neural activity.</p>
             </div>
@@ -601,6 +676,27 @@ export default function Home() {
         <span>BANC EXPLORER · PUBLIC PROTOTYPE</span>
         <span>Built to explore, not to overclaim.</span>
       </footer>
+
+      {viewerOpen && (
+        <div className="neuroglancer-modal" role="dialog" aria-modal="true" aria-label={`${activeCircuit.eyebrow} Neuroglancer inspector`}>
+          <div className="neuroglancer-modal-bar">
+            <div>
+              <span><i /> INTERACTIVE MORPHOLOGY INSPECTOR</span>
+              <strong>{activeCircuit.eyebrow}</strong>
+            </div>
+            <div>
+              <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">OPEN IN NEW TAB ↗</a>
+              <button type="button" onClick={() => setViewerOpen(false)} aria-label="Close Neuroglancer inspector">CLOSE ×</button>
+            </div>
+          </div>
+          <iframe
+            src={activeCircuit.viewerUrl}
+            title={`${activeCircuit.eyebrow} interactive Neuroglancer scene`}
+            allowFullScreen
+          />
+          <p>Official BANC scene · loads only when opened · press Escape to close</p>
+        </div>
+      )}
     </main>
   );
 }

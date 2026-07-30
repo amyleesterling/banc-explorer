@@ -15,9 +15,11 @@ Live site: [amyleesterling.github.io/banc-explorer](https://amyleesterling.githu
 - Keyboard and touch-friendly walking and steering controls
 - Animated fly arena with an odor target
 - A web-optimized, 69-segment NeuroMechFly body with a custom hologram shader
-- Synchronized four-stage circuit explainer
+- Synchronized four-stage circuit explainer with a zero-reload grey-to-color activation overlay
 - Action-driven, named neuron selections for forward walking and left/right steering
 - Published BANC Figure 5c, front-leg sensorimotor-loop, and DNa01/DNa02 viewer links
+- On-demand, expanded Neuroglancer inspector for walking and walking-steering clusters
+- Thorax-centered turning with corrected left/right visual handedness
 - Color-coded sensory, ascending, descending, VNC, and motor roles
 - Scientific confidence and interpretation language
 - Evidence labels that distinguish BANC connectivity, experimentally characterized function, and explanatory animation
@@ -26,7 +28,7 @@ Live site: [amyleesterling.github.io/banc-explorer](https://amyleesterling.githu
 ## Planned next steps
 
 1. Coauthor-review the first walking and steering neuron selections and explanatory copy.
-2. Add compact in-page morphology previews for the selected BANC cell types.
+2. Replace the resident circuit prototype with decimated real neuron skeletons or transparent morphology renders while preserving instant grey-to-color action feedback.
 3. Add more leg modules and action-specific Neuroglancer scenes.
 4. Replace the procedural tripod gait with recorded walking kinematics.
 5. Extend the same behavior system into a flight simulator.

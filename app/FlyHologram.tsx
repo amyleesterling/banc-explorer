@@ -228,12 +228,13 @@ export function FlyHologram({
         modelRoot.add(pulse);
 
         const bounds = new THREE.Box3().setFromObject(modelRoot);
-        const center = bounds.getCenter(new THREE.Vector3());
-        modelRoot.position.sub(center);
+        const thoraxPivot = objects.get("c_thorax")?.getWorldPosition(new THREE.Vector3())
+          ?? bounds.getCenter(new THREE.Vector3());
+        modelRoot.position.sub(thoraxPivot);
         modelPivot.scale.setScalar(0.72);
         modelPivot.userData.pulse = pulse;
         modelPivot.userData.curve = neuralCurve;
-        modelPivot.userData.center = center;
+        modelPivot.userData.pivot = thoraxPivot;
         setStatus("ready");
       } catch (error) {
         console.error(error);
@@ -270,7 +271,7 @@ export function FlyHologram({
       lastFrame = timeMs;
       const time = timeMs / 1000;
       const moving = actionRef.current !== "rest";
-      const turn = actionRef.current === "left" ? 1 : actionRef.current === "right" ? -1 : 0;
+      const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
       const stride = moving ? 0.24 : 0.025;
 
       for (const [name, object] of animatedSegments) {
@@ -292,7 +293,8 @@ export function FlyHologram({
         const viewHeight = camera.userData.viewHeight as number ?? 6.8;
         modelPivot.position.x = (motion.x - 0.5) * viewWidth * 0.76;
         modelPivot.position.y = (0.5 - motion.y) * viewHeight * 0.72;
-        modelPivot.rotation.z = motion.angle;
+        // Arena coordinates use a downward-positive Y axis; Three.js uses upward-positive Y.
+        modelPivot.rotation.z = -motion.angle;
       }
       modelPivot.position.z = Math.sin(time * 2.2) * 0.025;
       materialList.forEach((material) => { material.uniforms.uTime.value = time; });
@@ -301,8 +303,8 @@ export function FlyHologram({
 
       const pulse = modelPivot.userData.pulse as THREE.Mesh | undefined;
       const curve = modelPivot.userData.curve as THREE.CatmullRomCurve3 | undefined;
-      const center = modelPivot.userData.center as THREE.Vector3 | undefined;
-      if (pulse && curve && center) pulse.position.copy(curve.getPoint((time * 0.22) % 1)).sub(center);
+      const pivot = modelPivot.userData.pivot as THREE.Vector3 | undefined;
+      if (pulse && curve && pivot) pulse.position.copy(curve.getPoint((time * 0.22) % 1)).sub(pivot);
 
       renderer.render(scene, camera);
     }
