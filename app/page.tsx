@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
+import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
 type Action = "rest" | "forward" | "left" | "right";
 type CircuitMode = "walk" | "left" | "right";
@@ -17,6 +18,7 @@ type CircuitNode = {
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
 const WALKING_SCENE_URL = "https://ng.banc.community/2026a/walking";
 const STEERING_SCENE_URL = "https://ng.banc.community/2026a/walking-steering";
+const INTERACTIVE_NEURON_URL = `https://spelunker.cave-explorer.org/#!${encodeURIComponent(JSON.stringify(walkingSteeringNeuroglancer))}`;
 const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
 
@@ -103,7 +105,6 @@ function roundedRect(
 
 export default function Home() {
   const arenaRef = useRef<HTMLCanvasElement>(null);
-  const circuitRef = useRef<HTMLCanvasElement>(null);
   const flyRef = useRef({ x: 0.34, y: 0.58, angle: -0.28 });
   const keysRef = useRef(new Set<string>());
   const frameRef = useRef<number | null>(null);
@@ -365,162 +366,6 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    const canvas = circuitRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let animation = 0;
-    let stopped = false;
-    let lastDraw = 0;
-    const render = (time: number) => {
-      if (isPlaying && time - lastDraw < 30) {
-        animation = requestAnimationFrame(render);
-        return;
-      }
-      lastDraw = time;
-      const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
-      if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
-        canvas.width = Math.floor(width * ratio);
-        canvas.height = Math.floor(height * ratio);
-      }
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-
-      const spineX = width * 0.5;
-      const points = [
-        [spineX - 86, height * 0.83], [spineX + 78, height * 0.84],
-        [spineX - 92, height * 0.68], [spineX + 88, height * 0.67],
-        [spineX - 70, height * 0.52], [spineX + 72, height * 0.51],
-        [spineX, height * 0.4], [spineX, height * 0.28],
-      ];
-
-      // Keep the full explanatory circuit resident in neutral grey. The active
-      // overlay is just a material/color change, so steering never waits on I/O.
-      const modeDirection = circuitMode === "left" ? -1 : circuitMode === "right" ? 1 : 0;
-      const tracePath = (index: number) => {
-        const side = index % 2 === 0 ? -1 : 1;
-        const spread = 28 + (index % 5) * 13;
-        const startX = spineX + side * (16 + (index % 3) * 12);
-        const startY = height * (0.135 + (index % 4) * 0.013);
-        const endX = spineX + side * spread;
-        const endY = height * (0.86 - (index % 3) * 0.035);
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.bezierCurveTo(
-          spineX + side * (44 + index * 1.5),
-          height * 0.31,
-          spineX - side * (18 + (index % 4) * 8),
-          height * 0.61,
-          endX,
-          endY,
-        );
-        ctx.moveTo(spineX + side * 30, height * 0.39);
-        ctx.quadraticCurveTo(spineX + side * (70 + index * 2), height * 0.48, spineX + side * (84 + (index % 4) * 8), height * 0.54);
-      };
-
-      ctx.lineCap = "round";
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(206, 218, 208, .13)";
-      for (let index = 0; index < 12; index++) {
-        tracePath(index);
-        ctx.stroke();
-      }
-
-      const activationGradient = ctx.createLinearGradient(spineX, height * 0.1, spineX, height * 0.9);
-      activationGradient.addColorStop(0, circuitMode === "walk" ? "#ffc857" : "#d8ec71");
-      activationGradient.addColorStop(0.48, circuitMode === "walk" ? "#8ac7ff" : "#ffc857");
-      activationGradient.addColorStop(1, "#68d6c4");
-      ctx.strokeStyle = activationGradient;
-      ctx.lineWidth = 2.2;
-      ctx.shadowColor = circuitMode === "walk" ? "#8ac7ff" : "#ffc857";
-      ctx.shadowBlur = 12;
-      ctx.globalAlpha = isPlaying ? 0.78 + Math.sin(time / 180) * 0.16 : 0.72;
-      for (let index = 0; index < 12; index++) {
-        const side = index % 2 === 0 ? -1 : 1;
-        const selected = modeDirection === 0 ? index % 3 === 0 : side === modeDirection && index % 3 !== 1;
-        if (!selected) continue;
-        tracePath(index);
-        ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = "rgba(223, 230, 202, .16)";
-      ctx.lineWidth = 1.25;
-      for (let i = 0; i < points.length - 1; i++) {
-        for (let j = i + 1; j < points.length; j++) {
-          if ((i + j) % 3 !== 0) continue;
-          ctx.beginPath();
-          ctx.moveTo(points[i][0], points[i][1]);
-          ctx.quadraticCurveTo(spineX + (i - j) * 7, height * 0.48, points[j][0], points[j][1]);
-          ctx.stroke();
-        }
-      }
-
-      ctx.strokeStyle = "rgba(255,255,255,.12)";
-      ctx.lineWidth = 20;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(spineX, height * 0.78);
-      ctx.lineTo(spineX, height * 0.23);
-      ctx.stroke();
-
-      SIGNAL_STAGES.forEach((signal, index) => {
-        const active = index <= stage;
-        const y = height * (0.79 - index * 0.17);
-        const x = spineX + (index % 2 === 0 ? -1 : 1) * (54 + index * 7);
-        ctx.strokeStyle = active ? signal.color : "rgba(255,255,255,.18)";
-        ctx.fillStyle = active ? signal.color : "#53605a";
-        ctx.lineWidth = active ? 2.4 : 1;
-        ctx.shadowColor = active ? signal.color : "transparent";
-        ctx.shadowBlur = active ? 16 : 0;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.bezierCurveTo(spineX + (index % 2 ? 40 : -40), y - 36, spineX, y - 25, spineX, y - 55);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(x, y, active ? 5 : 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      });
-
-      if (isPlaying) {
-        const progress = ((time / 1150) % 1);
-        const y = height * (0.79 - (stage + progress) * 0.17);
-        ctx.fillStyle = SIGNAL_STAGES[stage].color;
-        ctx.shadowColor = SIGNAL_STAGES[stage].color;
-        ctx.shadowBlur = 18;
-        ctx.beginPath();
-        ctx.arc(spineX, y, 4.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = "rgba(223,230,202,.42)";
-      ctx.fillStyle = "rgba(223,230,202,.06)";
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.ellipse(spineX, height * 0.16, 62, 45, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = "rgba(223,230,202,.7)";
-      ctx.font = "500 10px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("BRAIN", spineX, height * 0.16 + 4);
-      ctx.fillText("VENTRAL NERVE CORD", spineX, height * 0.92);
-      ctx.textAlign = "left";
-
-      if (!stopped && isPlaying) animation = requestAnimationFrame(render);
-    };
-    animation = requestAnimationFrame(render);
-    return () => {
-      stopped = true;
-      cancelAnimationFrame(animation);
-    };
-  }, [stage, isPlaying, circuitMode]);
-
   const nudge = (next: Action) => {
     updateAction(next);
     const fly = flyRef.current;
@@ -588,16 +433,24 @@ export default function Home() {
         <div className="circuit-panel">
           <header className="panel-heading dark-heading">
             <div><span>02</span><p>CONNECTOME LENS</p></div>
-            <button className={`viewer-button${viewerOpen ? " active" : ""}`} type="button" onClick={() => setViewerOpen((value) => !value)}>
-              INTERACTIVE 3D ↗
+            <button className="viewer-button" type="button" onClick={() => setViewerOpen(true)}>
+              EXPAND 3D ↗
             </button>
           </header>
           <div className="circuit-canvas-wrap">
-            <canvas ref={circuitRef} aria-label="Resident explanatory neuron overlay with selected pathways changing from grey to color" />
-            <div className="viewer-badge"><span /> RESIDENT CIRCUIT · ZERO RELOAD</div>
-            <div className="resident-key">GREY = LOADED · COLOR = SELECTED</div>
-            <div className="circuit-label brain-label">CENTRAL<br/>BRAIN</div>
-            <div className="circuit-label cord-label">LOCAL<br/>CONTROL</div>
+            <div
+              className={`inline-neuroglancer${viewerOpen ? " expanded" : ""}`}
+              role={viewerOpen ? "dialog" : "region"}
+              aria-modal={viewerOpen || undefined}
+              aria-label="Interactive BANC walking and steering neurons"
+            >
+              <div className="neuroglancer-expand-bar">
+                <div><span><i /> INTERACTIVE MORPHOLOGY</span><strong>73 WALKING + STEERING NEURONS</strong></div>
+                <div><a href={INTERACTIVE_NEURON_URL} target="_blank" rel="noreferrer">OPEN IN NEW TAB ↗</a><button type="button" onClick={() => setViewerOpen(false)} aria-label="Close expanded neuron viewer">CLOSE ×</button></div>
+              </div>
+              <iframe src={INTERACTIVE_NEURON_URL} title="Interactive 3D BANC walking and steering neuron view" allowFullScreen />
+              <div className="neuroglancer-inline-footer"><span><i /> LIVE BANC MORPHOLOGY · DRAG TO ROTATE</span><span>73 CELLS · LEFT/RIGHT PANELS HIDDEN</span></div>
+            </div>
           </div>
           <div className="signal-story">
             <div className="signal-topline">
@@ -677,26 +530,6 @@ export default function Home() {
         <span>Built to explore, not to overclaim.</span>
       </footer>
 
-      {viewerOpen && (
-        <div className="neuroglancer-modal" role="dialog" aria-modal="true" aria-label={`${activeCircuit.eyebrow} Neuroglancer inspector`}>
-          <div className="neuroglancer-modal-bar">
-            <div>
-              <span><i /> INTERACTIVE MORPHOLOGY INSPECTOR</span>
-              <strong>{activeCircuit.eyebrow}</strong>
-            </div>
-            <div>
-              <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">OPEN IN NEW TAB ↗</a>
-              <button type="button" onClick={() => setViewerOpen(false)} aria-label="Close Neuroglancer inspector">CLOSE ×</button>
-            </div>
-          </div>
-          <iframe
-            src={activeCircuit.viewerUrl}
-            title={`${activeCircuit.eyebrow} interactive Neuroglancer scene`}
-            allowFullScreen
-          />
-          <p>Official BANC scene · loads only when opened · press Escape to close</p>
-        </div>
-      )}
     </main>
   );
 }
