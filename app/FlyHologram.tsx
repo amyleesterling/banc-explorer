@@ -35,6 +35,8 @@ type HologramMaterial = THREE.ShaderMaterial & {
   };
 };
 
+const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 const vertexShader = /* glsl */ `
   varying vec3 vNormal;
   varying vec3 vViewDirection;
@@ -113,6 +115,7 @@ export function FlyHologram({
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+    const container: HTMLDivElement = host;
 
     let disposed = false;
     let animationFrame = 0;
@@ -124,7 +127,7 @@ export function FlyHologram({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.domElement.setAttribute("aria-label", "Interactive holographic NeuroMechFly model in a walking arena");
     renderer.domElement.setAttribute("role", "img");
-    host.appendChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0xdfe3c9, 0.055);
@@ -167,12 +170,12 @@ export function FlyHologram({
 
     async function loadModel() {
       try {
-        const manifestResponse = await fetch("/neuromechfly/manifest.json");
+        const manifestResponse = await fetch(`${assetBase}/neuromechfly/manifest.json`);
         if (!manifestResponse.ok) throw new Error("NeuroMechFly manifest unavailable");
         const manifest = await manifestResponse.json() as Manifest;
         const uniqueMeshes = [...new Set(manifest.segments.map((segment) => segment.mesh))];
         const loaded = await Promise.all(uniqueMeshes.map(async (meshName) => {
-          const geometry = await loader.loadAsync(`/neuromechfly/mesh/${meshName}`);
+          const geometry = await loader.loadAsync(`${assetBase}/neuromechfly/mesh/${meshName}`);
           geometry.computeVertexNormals();
           return [meshName, geometry] as const;
         }));
@@ -241,8 +244,8 @@ export function FlyHologram({
     void loadModel();
 
     function resize() {
-      const width = Math.max(host.clientWidth, 1);
-      const height = Math.max(host.clientHeight, 1);
+      const width = Math.max(container.clientWidth, 1);
+      const height = Math.max(container.clientHeight, 1);
       renderer.setSize(width, height, false);
       const viewHeight = 6.8;
       const viewWidth = viewHeight * (width / height);
@@ -256,7 +259,7 @@ export function FlyHologram({
     }
 
     const observer = new ResizeObserver(resize);
-    observer.observe(host);
+    observer.observe(container);
     resize();
 
     const tripodA = new Set(["lf", "rm", "lh"]);
@@ -309,7 +312,7 @@ export function FlyHologram({
       disposed = true;
       cancelAnimationFrame(animationFrame);
       observer.disconnect();
-      host.removeChild(renderer.domElement);
+      container.removeChild(renderer.domElement);
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) object.geometry.dispose();
       });

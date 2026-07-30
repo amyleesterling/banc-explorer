@@ -6,13 +6,15 @@ The first experience, **Be the Fly: Walking Lab**, lets visitors steer a small f
 
 Repository: [github.com/amyleesterling/banc-explorer](https://github.com/amyleesterling/banc-explorer)
 
+Live site: [amyleesterling.github.io/banc-explorer](https://amyleesterling.github.io/banc-explorer/)
+
 > The current prototype presents connectome-derived explanatory pathways. BANC is a wiring diagram, not a recording of neural activity; animated signal sequences are clearly framed as interpretation rather than measured firing.
 
 ## Current prototype
 
 - Keyboard and touch-friendly walking and steering controls
 - Animated fly arena with an odor target
-- Holographic body art direction ready for a web-optimized NeuroMechFly model
+- A web-optimized, 69-segment NeuroMechFly body with a custom hologram shader
 - Synchronized four-stage circuit explainer
 - Color-coded sensory, ascending, descending, VNC, and motor roles
 - Scientific confidence and interpretation language
@@ -21,10 +23,10 @@ Repository: [github.com/amyleesterling/banc-explorer](https://github.com/amylees
 
 ## Planned next steps
 
-1. Replace the lightweight hologram preview with a web-optimized NeuroMechFly body model, custom Fresnel/scan shader, and recorded walking kinematics.
-2. Connect curated BANC segment IDs and camera states to the viewer.
-3. Add author-reviewed walking and steering circuit stories with evidence labels.
-4. Add free exploration through Neuroglancer and Codex links.
+1. Connect curated BANC segment IDs and camera states to the viewer.
+2. Add author-reviewed walking and steering circuit stories with evidence labels.
+3. Add free exploration through Neuroglancer and Codex links.
+4. Replace the procedural tripod gait with recorded walking kinematics.
 5. Extend the same behavior system into a flight simulator.
 
 ## Scientific sources
