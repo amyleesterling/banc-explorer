@@ -16,16 +16,18 @@ Live site: [amyleesterling.github.io/banc-explorer](https://amyleesterling.githu
 - Animated fly arena with an odor target
 - A web-optimized, 69-segment NeuroMechFly body with a custom hologram shader
 - Synchronized four-stage circuit explainer
+- Action-driven, named neuron selections for forward walking and left/right steering
+- Published BANC Figure 5c, front-leg sensorimotor-loop, and DNa01/DNa02 viewer links
 - Color-coded sensory, ascending, descending, VNC, and motor roles
 - Scientific confidence and interpretation language
-- A Neuroglancer-ready viewer panel for future BANC neuron scenes
+- Evidence labels that distinguish BANC connectivity, experimentally characterized function, and explanatory animation
 - Responsive layout for desktop and mobile
 
 ## Planned next steps
 
-1. Connect curated BANC segment IDs and camera states to the viewer.
-2. Add author-reviewed walking and steering circuit stories with evidence labels.
-3. Add free exploration through Neuroglancer and Codex links.
+1. Coauthor-review the first walking and steering neuron selections and explanatory copy.
+2. Add compact in-page morphology previews for the selected BANC cell types.
+3. Add more leg modules and action-specific Neuroglancer scenes.
 4. Replace the procedural tripod gait with recorded walking kinematics.
 5. Extend the same behavior system into a flight simulator.
 

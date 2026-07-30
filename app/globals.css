@@ -116,6 +116,24 @@ h1 em { color: var(--moss); font-weight: 400; }
 .signal-story h2 { margin: 8px 0 3px; font-family: Georgia, serif; font-weight: 400; letter-spacing: -.03em; font-size: 25px; }
 .signal-story h2 span { font-family: Arial, sans-serif; font-size: 10px; margin-right: 8px; letter-spacing: .08em; }
 .signal-story > p { margin: 0; color: #9aaba1; font-size: 11px; line-height: 1.4; }
+.action-circuit { margin-top: 15px; padding: 14px; border: 1px solid rgba(229,234,219,.16); background: rgba(4,12,9,.28); }
+.action-circuit-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.action-circuit-heading > div { display: grid; gap: 4px; }
+.action-circuit-heading span, .action-circuit-heading small { font-size: 7px; font-weight: 800; letter-spacing: .12em; color: #8ea097; }
+.action-circuit-heading strong { font-family: Georgia, serif; font-size: 17px; font-weight: 400; color: #e7ecdf; }
+.action-circuit-heading small { max-width: 155px; color: #d8ec71; line-height: 1.45; text-align: right; }
+.action-circuit > p { margin: 9px 0 11px; color: #93a39a; font-size: 9px; line-height: 1.45; }
+.neuron-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.neuron-card { min-width: 0; display: grid; grid-template-columns: 8px minmax(0, 1fr); column-gap: 8px; align-items: center; padding: 8px; border: 1px solid rgba(229,234,219,.12); background: rgba(255,255,255,.025); }
+.neuron-card > i { width: 6px; height: 6px; border-radius: 50%; grid-row: 1 / 3; }
+.neuron-card > div { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 7px; }
+.neuron-card strong { overflow: hidden; text-overflow: ellipsis; color: #e7ecdf; font-size: 8px; letter-spacing: .04em; white-space: nowrap; }
+.neuron-card span { color: #73847b; font-size: 6px; letter-spacing: .08em; white-space: nowrap; }
+.neuron-card p { grid-column: 2; margin: 3px 0 0; color: #91a198; font-size: 7px; line-height: 1.3; }
+.neuron-card.muted { opacity: .43; }
+.circuit-links { display: flex; flex-wrap: wrap; gap: 7px 15px; margin-top: 11px; }
+.circuit-links a { padding-bottom: 3px; border-bottom: 1px solid rgba(216,236,113,.55); color: #d8ec71; font-size: 7px; font-weight: 800; letter-spacing: .09em; }
+.action-circuit .activity-caveat { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid rgba(229,234,219,.1); color: #71827a; font-size: 7px; }
 .stage-track { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 14px; }
 .stage-track button { border: 0; border-top: 2px solid #3d4a44; padding: 7px 0 0; background: none; color: #5f7067; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-align: left; cursor: pointer; }
 .stage-track button span { display: none; }
@@ -171,6 +189,9 @@ footer { min-height: 76px; margin: 0 4vw; display: flex; justify-content: space-
   .how-section { margin: 0 20px; padding: 75px 0; grid-template-columns: 1fr; }
   .coming-soon { grid-column: auto; }
   footer { margin: 0 20px; gap: 25px; }
+  .action-circuit-heading { display: grid; }
+  .action-circuit-heading small { max-width: none; text-align: left; }
+  .neuron-grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

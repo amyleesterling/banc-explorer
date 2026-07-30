@@ -4,6 +4,74 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
 
 type Action = "rest" | "forward" | "left" | "right";
+type CircuitMode = "walk" | "left" | "right";
+
+type CircuitNode = {
+  name: string;
+  area: string;
+  role: string;
+  color: string;
+  muted?: boolean;
+};
+
+const WALKING_FIGURE_URL = "https://ng.banc.community/2025a/figure-5c";
+const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
+const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
+
+const WALKING_NODES: CircuitNode[] = [
+  { name: "DNg100", area: "BRAIN → VNC", role: "pro-walking descending type", color: "#ffc857" },
+  { name: "AN09B029_b", area: "LEG → BRAIN", role: "proprioceptive context", color: "#8ac7ff" },
+  { name: "AN02A002", area: "VNC → BRAIN", role: "inhibitory walking feedback", color: "#68d6c4" },
+  { name: "T1 LOCAL LOOP", area: "FRONT LEG VNC", role: "sensory → intrinsic → motor", color: "#ff7f6e" },
+];
+
+function steeringNodes(side: "LEFT" | "RIGHT"): CircuitNode[] {
+  const otherSide = side === "LEFT" ? "RIGHT" : "LEFT";
+  return [
+    { name: `DNa02 · ${side}`, area: "BRAIN → VNC", role: "high-gain ipsilateral steering", color: "#ffc857" },
+    { name: `DNa01 · ${side}`, area: "BRAIN → VNC", role: "low-gain ipsilateral steering", color: "#d8ec71" },
+    { name: `DNa02 · ${otherSide}`, area: "OTHER SIDE", role: "bilateral comparison", color: "#71827a", muted: true },
+    { name: `DNa01 · ${otherSide}`, area: "OTHER SIDE", role: "bilateral comparison", color: "#5d6b64", muted: true },
+  ];
+}
+
+const CIRCUITS: Record<CircuitMode, {
+  eyebrow: string;
+  title: string;
+  summary: string;
+  evidence: string;
+  viewerUrl: string;
+  viewerLabel: string;
+  nodes: CircuitNode[];
+}> = {
+  walk: {
+    eyebrow: "FORWARD WALK · SELECTED",
+    title: "Walking drive meets local control",
+    summary: "A published BANC pathway shows proprioceptive and threat modules modulating DNg100 walking drive; the front-leg scene reveals the larger local sensorimotor loop.",
+    evidence: "BANC FIG. 5c · CONNECTOME-SUPPORTED",
+    viewerUrl: WALKING_FIGURE_URL,
+    viewerLabel: "OPEN WALKING PATHWAY",
+    nodes: WALKING_NODES,
+  },
+  left: {
+    eyebrow: "STEER LEFT · SELECTED",
+    title: "A bilateral steering comparison",
+    summary: "Left DNa02 and DNa01 are highlighted as high- and low-gain steering types. Their functional roles are experimentally characterized and their cell types are matched into BANC.",
+    evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
+    viewerUrl: STEERING_CODEX_URL,
+    viewerLabel: "OPEN STEERING TYPES",
+    nodes: steeringNodes("LEFT"),
+  },
+  right: {
+    eyebrow: "STEER RIGHT · SELECTED",
+    title: "A bilateral steering comparison",
+    summary: "Right DNa02 and DNa01 are highlighted as high- and low-gain steering types. Their functional roles are experimentally characterized and their cell types are matched into BANC.",
+    evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
+    viewerUrl: STEERING_CODEX_URL,
+    viewerLabel: "OPEN STEERING TYPES",
+    nodes: steeringNodes("RIGHT"),
+  },
+};
 
 const SIGNAL_STAGES = [
   { label: "SENSE", color: "#68d6c4", detail: "Leg proprioceptors report stance and motion." },
@@ -43,13 +111,16 @@ export default function Home() {
   const [stage, setStage] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [steps, setSteps] = useState(0);
+  const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
+  const activeCircuit = CIRCUITS[circuitMode];
 
   const updateAction = useCallback((next: Action) => {
     actionRef.current = next;
     setAction(next);
     if (next !== "rest") {
+      setCircuitMode(next === "forward" ? "walk" : next);
       setIsPlaying(true);
-      setStage((current) => (current + 1) % SIGNAL_STAGES.length);
+      setStage(next === "forward" ? 3 : 2);
     }
   }, []);
 
@@ -123,6 +194,8 @@ export default function Home() {
         actionRef.current = nextAction;
         setAction(nextAction);
         if (nextAction !== "rest") {
+          setCircuitMode(nextAction === "forward" ? "walk" : nextAction);
+          setStage(nextAction === "forward" ? 3 : 2);
           setIsPlaying(true);
           setSteps((value) => value + 1);
         }
@@ -447,7 +520,7 @@ export default function Home() {
         <div className="circuit-panel">
           <header className="panel-heading dark-heading">
             <div><span>02</span><p>CONNECTOME LENS</p></div>
-            <a className="viewer-button" href="https://ng.banc.community/2026a/figure-5c" target="_blank" rel="noreferrer">NEUROGLANCER ↗</a>
+            <a className="viewer-button" href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">{activeCircuit.viewerLabel} ↗</a>
           </header>
           <div className="circuit-canvas-wrap">
             <canvas ref={circuitRef} aria-label="Animated explanatory diagram of walking signals traveling through the fly nervous system" />
@@ -462,6 +535,30 @@ export default function Home() {
             </div>
             <h2><span style={{ color: SIGNAL_STAGES[stage].color }}>{String(stage + 1).padStart(2, "0")}</span> {SIGNAL_STAGES[stage].label}</h2>
             <p>{SIGNAL_STAGES[stage].detail}</p>
+            <div className="action-circuit" aria-live="polite">
+              <div className="action-circuit-heading">
+                <div>
+                  <span>{activeCircuit.eyebrow}</span>
+                  <strong>{activeCircuit.title}</strong>
+                </div>
+                <small>{activeCircuit.evidence}</small>
+              </div>
+              <p>{activeCircuit.summary}</p>
+              <div className="neuron-grid" aria-label={`${activeCircuit.eyebrow} neuron selection`}>
+                {activeCircuit.nodes.map((node) => (
+                  <div className={`neuron-card${node.muted ? " muted" : ""}`} key={node.name}>
+                    <i style={{ backgroundColor: node.color, boxShadow: `0 0 12px ${node.color}` }} />
+                    <div><strong>{node.name}</strong><span>{node.area}</span></div>
+                    <p>{node.role}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="circuit-links">
+                <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">{activeCircuit.viewerLabel} ↗</a>
+                {circuitMode === "walk" && <a href={FRONT_LEG_LOOP_URL} target="_blank" rel="noreferrer">OPEN 1,160-NEURON FRONT-LEG LOOP ↗</a>}
+              </div>
+              <p className="activity-caveat">The controls select relevant anatomy; glow and timing are explanatory, not measured neural activity.</p>
+            </div>
             <div className="stage-track" role="group" aria-label="Circuit stages">
               {SIGNAL_STAGES.map((item, index) => (
                 <button
