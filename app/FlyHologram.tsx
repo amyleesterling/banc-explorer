@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
-type EscapeState = "ground" | "takeoff" | "gone";
+type EscapeState = "ground" | "eating" | "takeoff" | "flight" | "landing";
 
 export type FlyMotion = {
   x: number;
@@ -102,7 +102,7 @@ export function FlyHologram({
   const hostRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef(action);
   const escapeStateRef = useRef<EscapeState>(escapeState);
-  const takeoffStartedRef = useRef<number | null>(null);
+  const phaseStartedRef = useRef<number | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
@@ -112,10 +112,10 @@ export function FlyHologram({
   useEffect(() => {
     const previous = escapeStateRef.current;
     escapeStateRef.current = escapeState;
-    if (escapeState === "takeoff" && previous !== "takeoff") {
-      takeoffStartedRef.current = performance.now() / 1000;
-    } else if (escapeState === "ground") {
-      takeoffStartedRef.current = null;
+    if (escapeState === "ground") {
+      phaseStartedRef.current = null;
+    } else if (escapeState !== previous) {
+      phaseStartedRef.current = performance.now() / 1000;
     }
   }, [escapeState]);
 
@@ -322,6 +322,7 @@ export function FlyHologram({
     });
     // Align the fruit with the reachable edge of the fly's normalized arena.
     target.position.set(2.65, 1.56, 0);
+    target.visible = false;
     scene.add(target);
 
     const scentDots: Array<[number, number, number, number]> = [
@@ -440,7 +441,9 @@ export function FlyHologram({
       const frameDelta = Math.min((timeMs - lastFrame) / 1000, 0.08);
       lastFrame = timeMs;
       const time = timeMs / 1000;
-      const flying = escapeStateRef.current !== "ground";
+      const sceneState = escapeStateRef.current;
+      const flying = sceneState === "takeoff" || sceneState === "flight" || sceneState === "landing";
+      const eating = sceneState === "eating";
       const moving = !flying && actionRef.current !== "rest";
       const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
       const gaitDirection = actionRef.current === "backward" ? -1 : 1;
@@ -493,15 +496,27 @@ export function FlyHologram({
         modelPivot.rotation.z = -motion.angle;
         modelPivot.scale.setScalar(0.38);
 
-        if (flying && takeoffStartedRef.current !== null) {
-          const rawProgress = escapeStateRef.current === "gone"
-            ? 1
-            : Math.min(1, Math.max(0, (time - takeoffStartedRef.current) / 1.45));
-          const lift = 1 - (1 - rawProgress) ** 3;
-          modelPivot.position.x -= viewWidth * 0.42 * lift;
-          modelPivot.position.y += viewHeight * (0.2 * lift + 0.75 * lift * lift);
-          modelPivot.rotation.z -= 0.34 * lift;
-          modelPivot.scale.setScalar(0.38 * (1 - lift * 0.42));
+        if (eating) {
+          const nibble = Math.sin(time * 10.5);
+          modelPivot.position.y += nibble * 0.025;
+          modelPivot.rotation.z += nibble * 0.018;
+          modelPivot.scale.setScalar(0.38 * (1 + Math.max(0, nibble) * 0.018));
+        }
+
+        if (flying && phaseStartedRef.current !== null) {
+          const phaseAge = Math.max(0, time - phaseStartedRef.current);
+          const takeoff = Math.min(1, phaseAge / 0.9);
+          const landing = Math.min(1, phaseAge / 1.05);
+          const lift = sceneState === "takeoff"
+            ? 1 - (1 - takeoff) ** 3
+            : sceneState === "landing"
+              ? (1 - landing) ** 2
+              : 1;
+          const cruise = sceneState === "flight" ? Math.sin(time * 2.6) : 0;
+          modelPivot.position.x += viewWidth * cruise * 0.004;
+          modelPivot.position.y += viewHeight * cruise * 0.006;
+          modelPivot.rotation.z -= 0.18 * lift + cruise * 0.06;
+          modelPivot.scale.setScalar(0.38 * (1 + lift * 0.1));
         }
       }
       modelPivot.position.z = Math.sin(time * 2.2) * 0.025;
@@ -531,7 +546,7 @@ export function FlyHologram({
     <div
       className="fly-hologram"
       ref={hostRef}
-      style={{ backgroundImage: `url("${assetBase}/peachdrop-garden.webp")` }}
+      style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}
     >
       {status !== "ready" && (
         <div className={`model-status ${status}`} role="status">

@@ -6,8 +6,8 @@ import { FlyHologram } from "./FlyHologram";
 import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
-type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat";
-type WorldState = "seeking" | "eating" | "threat" | "takeoff" | "safe";
+type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "heading";
+type WorldState = "seeking" | "eating" | "threat" | "takeoff" | "heading" | "landing";
 
 type CircuitNode = {
   name: string;
@@ -25,17 +25,27 @@ const INTERACTIVE_NEURON_URL = `https://spelunker.cave-explorer.org/#!${encodeUR
 const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
 const MDN_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+MDN&dataset=banc";
+const EPG_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+EPG&dataset=banc";
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const FOOD_TARGET = { x: 0.88, y: 0.18 };
 const FOOD_CONTACT_RADIUS = 0.095;
+const FLOWER_TARGET = { x: 0.2, y: 0.72 };
+const FLOWER_CONTACT_RADIUS = 0.105;
+const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
+  left: `${50 + (x - 0.5) * 76}%`,
+  top: `${50 + (y - 0.5) * 72}%`,
+});
+const FOOD_SCREEN = toScreenPosition(FOOD_TARGET);
+const FLOWER_SCREEN = toScreenPosition(FLOWER_TARGET);
 
-const STATIC_NEURON_LAYERS: Record<CircuitMode, { src: string; label: string; detail: string; accent: string }> = {
+const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; detail: string; accent: string }> = {
   walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", detail: "6 WALKING CELLS LIT", accent: "#ff1493" },
   backward: { src: `${assetBase}/banc-backward.webp`, label: "MOONWALK", detail: "4 MDNs LIT", accent: "#ff1493" },
   left: { src: `${assetBase}/banc-turn-left.webp`, label: "STEER LEFT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
   right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
   eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", detail: "6 FEEDING CELLS LIT", accent: "#ffc857" },
   threat: { src: `${assetBase}/banc-threat-walk.webp`, label: "THREAT RESPONSE", detail: "5 RESPONSE CELLS LIT", accent: "#ff6b5f" },
+  heading: { label: "EPG HEADING", detail: "45 EPG CELLS · COMPASS", accent: "#b98fca" },
 };
 
 const WALKING_NODES: CircuitNode[] = [
@@ -126,6 +136,17 @@ const CIRCUITS: Record<CircuitMode, {
       { name: "WALKING CONTEXT", area: "BRAIN + VNC", role: "gray cells provide anatomical context", color: "#71827a", muted: true },
     ],
   },
+  heading: {
+    eyebrow: "FLIGHT HEADING · SELECTED",
+    title: "A compass in the fly brain",
+    summary: "EPG neurons maintain the fly's heading as it turns.",
+    evidence: "BANC v888 · 45 EPG CELLS",
+    viewerUrl: EPG_CODEX_URL,
+    viewerLabel: "OPEN EPG CELLS IN CODEX",
+    nodes: [
+      { name: "EPG × 45", area: "ELLIPSOID BODY", role: "heading-direction compass", color: "#b98fca" },
+    ],
+  },
 };
 
 const SIGNAL_STAGES = [
@@ -162,12 +183,14 @@ export default function Home() {
   const lastRef = useRef(0);
   const actionRef = useRef<Action>("rest");
   const worldStateRef = useRef<WorldState>("seeking");
+  const warningTimerRef = useRef<number | null>(null);
   const threatTimerRef = useRef<number | null>(null);
   const takeoffTimerRef = useRef<number | null>(null);
-  const safeTimerRef = useRef<number | null>(null);
+  const headingTimerRef = useRef<number | null>(null);
   const resetTimerRef = useRef<number | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
+  const [spiderWarning, setSpiderWarning] = useState(false);
   const [stage, setStage] = useState(0);
   const [steps, setSteps] = useState(0);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
@@ -176,21 +199,29 @@ export default function Home() {
   const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
   const activeSignal = worldState === "eating"
     ? { label: "EAT", color: "#ffc857", detail: "Feeding-scene exemplars glow when the fly reaches the fruit." }
-    : worldState === "threat" || worldState === "takeoff"
-      ? { label: "ESCAPE", color: "#ff6b5f", detail: "Response exemplars remain highlighted during the illustrative takeoff." }
-      : worldState === "safe"
-        ? { label: "SAFE", color: "#68d6c4", detail: "The fly has opened a safe gap while the response selection remains visible." }
+    : worldState === "threat"
+      ? { label: "ESCAPE", color: "#c86f78", detail: "Escape response." }
+      : worldState === "takeoff"
+        ? { label: "TAKEOFF", color: "#b77892", detail: "Wings accelerate." }
+      : worldState === "heading"
+        ? { label: "EPG COMPASS", color: "#8a6697", detail: "Heading stays online." }
+      : worldState === "landing"
+        ? { label: "LANDING", color: "#5f8d7c", detail: "Touching down." }
         : action === "backward"
           ? { label: "MOONWALK", color: "#ff1493", detail: "Moonwalker Descending Neurons switch the fly into reverse." }
           : SIGNAL_STAGES[stage];
   const worldCopy = worldState === "eating"
-    ? { title: "Snack found!", detail: "A feeding selection is now glowing in the connectome lens." }
+    ? spiderWarning
+      ? { title: "Watch out for the spider!", detail: "Keep moving." }
+      : { title: "Snack found!", detail: "Feeding neurons are glowing." }
     : worldState === "threat"
-      ? { title: "Spider!", detail: "Threat response engaged—prepare for takeoff." }
+      ? { title: "Spider!", detail: "Get airborne." }
       : worldState === "takeoff"
-        ? { title: "Takeoff!", detail: "Wings accelerate and the fly launches clear of danger." }
-      : worldState === "safe"
-        ? { title: "Escaped!", detail: "The fly is airborne; the response selection remains visible for inspection." }
+        ? { title: "Takeoff!", detail: "Wings up." }
+      : worldState === "heading"
+        ? { title: "Fly to the flower", detail: "Steer with the arrow keys." }
+      : worldState === "landing"
+        ? { title: "Landing", detail: "Safe patch ahead." }
         : action === "rest"
           ? { title: "Find the fallen fruit", detail: "A 3 mm journey through a giant garden." }
           : action === "forward"
@@ -202,10 +233,12 @@ export default function Home() {
     ? { title: "SNACK FOUND", detail: "TASTING THE FRUIT" }
     : worldState === "threat"
       ? { title: "SPIDER ALERT", detail: "MOVE AWAY FROM DANGER" }
-      : worldState === "takeoff"
+    : worldState === "takeoff"
         ? { title: "AIRBORNE", detail: "LAUNCHING FROM DANGER" }
-      : worldState === "safe"
-        ? { title: "ESCAPED", detail: "RESPONSE SELECTION VISIBLE" }
+      : worldState === "heading"
+        ? { title: "LAND HERE", detail: "STEER TO THE FLOWER" }
+      : worldState === "landing"
+        ? { title: "SAFE PATCH", detail: "TOUCHING DOWN" }
         : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
 
   useEffect(() => {
@@ -225,47 +258,60 @@ export default function Home() {
   const triggerEating = useCallback(() => {
     if (worldStateRef.current !== "seeking") return;
     worldStateRef.current = "eating";
-    actionRef.current = "rest";
-    keysRef.current.clear();
     setWorldState("eating");
-    setAction("rest");
     setCircuitMode("eat");
     setStage(0);
+    setSpiderWarning(false);
+    if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
     if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
-    threatTimerRef.current = window.setTimeout(() => {
+    warningTimerRef.current = window.setTimeout(() => {
       if (worldStateRef.current !== "eating") return;
-      worldStateRef.current = "threat";
-      setWorldState("threat");
-      setCircuitMode("threat");
-      takeoffTimerRef.current = window.setTimeout(() => {
-        if (worldStateRef.current !== "threat") return;
-        worldStateRef.current = "takeoff";
-        setWorldState("takeoff");
-        safeTimerRef.current = window.setTimeout(() => {
-          if (worldStateRef.current !== "takeoff") return;
-          worldStateRef.current = "safe";
-          setWorldState("safe");
-          resetTimerRef.current = window.setTimeout(() => {
-            flyRef.current = { x: 0.28, y: 0.68, angle: -0.32 };
-            keysRef.current.clear();
-            actionRef.current = "rest";
-            worldStateRef.current = "seeking";
-            setAction("rest");
-            setWorldState("seeking");
-            setCircuitMode("walk");
-            setStage(0);
-            setSteps(0);
-          }, 1800);
-        }, 1550);
-      }, 850);
-    }, 2400);
+      setSpiderWarning(true);
+      threatTimerRef.current = window.setTimeout(() => {
+        if (worldStateRef.current !== "eating") return;
+        worldStateRef.current = "threat";
+        keysRef.current.clear();
+        actionRef.current = "rest";
+        setAction("rest");
+        setSpiderWarning(false);
+        setWorldState("threat");
+        setCircuitMode("threat");
+        takeoffTimerRef.current = window.setTimeout(() => {
+          if (worldStateRef.current !== "threat") return;
+          worldStateRef.current = "takeoff";
+          setWorldState("takeoff");
+          setCircuitMode("heading");
+          headingTimerRef.current = window.setTimeout(() => {
+            if (worldStateRef.current !== "takeoff") return;
+            worldStateRef.current = "heading";
+            setWorldState("heading");
+          }, 850);
+        }, 700);
+      }, 1200);
+    }, 2600);
+  }, []);
+
+  const triggerLanding = useCallback(() => {
+    if (worldStateRef.current !== "heading") return;
+    worldStateRef.current = "landing";
+    keysRef.current.clear();
+    actionRef.current = "rest";
+    setAction("rest");
+    setWorldState("landing");
+    resetTimerRef.current = window.setTimeout(() => {
+      worldStateRef.current = "seeking";
+      setWorldState("seeking");
+      setCircuitMode("walk");
+      setStage(0);
+    }, 1100);
   }, []);
 
   const updateAction = useCallback((next: Action) => {
-    if (worldStateRef.current !== "seeking") return;
+    const currentState = worldStateRef.current;
+    if (currentState !== "seeking" && currentState !== "eating" && currentState !== "heading") return;
     actionRef.current = next;
     setAction(next);
-    if (next !== "rest" && worldStateRef.current === "seeking") {
+    if (next !== "rest" && currentState === "seeking") {
       setCircuitMode(next === "forward" ? "walk" : next);
       setStage(next === "forward" || next === "backward" ? 3 : 2);
     }
@@ -276,7 +322,8 @@ export default function Home() {
       const key = event.key.toLowerCase();
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "s", "a", "d"].includes(key)) {
         event.preventDefault();
-        if (worldStateRef.current !== "seeking") return;
+        const currentState = worldStateRef.current;
+        if (currentState !== "seeking" && currentState !== "eating" && currentState !== "heading") return;
         keysRef.current.add(key);
       }
     };
@@ -326,10 +373,13 @@ export default function Home() {
         fly.angle += dt * 2.25;
         nextAction = "right";
       }
+      const currentState = worldStateRef.current;
+      const interactiveFlight = currentState === "heading";
       const direction = Number(forward) - Number(backward);
       if (direction !== 0) {
-        fly.x += Math.cos(fly.angle) * dt * 0.12 * direction;
-        fly.y += Math.sin(fly.angle) * dt * 0.16 * direction;
+        const flightBoost = interactiveFlight ? 1.45 : 1;
+        fly.x += Math.cos(fly.angle) * dt * 0.12 * direction * flightBoost;
+        fly.y += Math.sin(fly.angle) * dt * 0.16 * direction * flightBoost;
         nextAction = direction < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
       }
       fly.x = Math.max(0.1, Math.min(0.9, fly.x));
@@ -338,7 +388,11 @@ export default function Home() {
       if (worldStateRef.current === "seeking" && foodDistance <= FOOD_CONTACT_RADIUS) {
         triggerEating();
       }
-      if (worldStateRef.current !== "seeking") nextAction = "rest";
+      const flowerDistance = Math.hypot(fly.x - FLOWER_TARGET.x, fly.y - FLOWER_TARGET.y);
+      if (worldStateRef.current === "heading" && flowerDistance <= FLOWER_CONTACT_RADIUS) {
+        triggerLanding();
+      }
+      if (worldStateRef.current !== "seeking" && worldStateRef.current !== "eating" && worldStateRef.current !== "heading") nextAction = "rest";
       if (nextAction !== actionRef.current) {
         actionRef.current = nextAction;
         setAction(nextAction);
@@ -493,12 +547,13 @@ export default function Home() {
     frameRef.current = requestAnimationFrame(render);
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
       if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
       if (takeoffTimerRef.current) window.clearTimeout(takeoffTimerRef.current);
-      if (safeTimerRef.current) window.clearTimeout(safeTimerRef.current);
+      if (headingTimerRef.current) window.clearTimeout(headingTimerRef.current);
       if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
     };
-  }, [triggerEating]);
+  }, [triggerEating, triggerLanding]);
 
   const nudge = (next: Action) => {
     updateAction(next);
@@ -555,19 +610,38 @@ export default function Home() {
             <FlyHologram
               motionRef={flyRef}
               action={action}
-              escapeState={worldState === "takeoff" ? "takeoff" : worldState === "safe" ? "gone" : "ground"}
+              escapeState={worldState === "eating" ? "eating" : worldState === "takeoff" ? "takeoff" : worldState === "heading" ? "flight" : worldState === "landing" ? "landing" : "ground"}
             />
-            <div className={`odor-label ${worldState}`}><span /><div><strong>{targetCopy.title}</strong><small>{targetCopy.detail}</small></div></div>
-            {(worldState === "threat" || worldState === "takeoff" || worldState === "safe") && (
+            <img
+              className={`snack-fruit${worldState === "eating" ? " found" : ""}`}
+              style={FOOD_SCREEN}
+              src={`${assetBase}/droso-peach.webp`}
+              alt="Glowing slice of peach"
+            />
+            {worldState !== "takeoff" && worldState !== "heading" && worldState !== "landing" && (
+              <div className={`odor-label ${worldState}`}><span /><div><strong>{targetCopy.title}</strong><small>{targetCopy.detail}</small></div></div>
+            )}
+            {(worldState === "takeoff" || worldState === "heading" || worldState === "landing") && (
+              <div
+                className={`landing-flower ${worldState}`}
+                style={FLOWER_SCREEN}
+                role="img"
+                aria-label="Flower landing target"
+              >
+                <span className="flower-petals"><i /><i /><i /><i /><i /><b /></span>
+                <strong>{targetCopy.title}</strong>
+              </div>
+            )}
+            {(worldState === "threat" || worldState === "takeoff" || worldState === "heading") && (
               <img
-                className={`spider-threat${worldState === "safe" ? " retreating" : ""}`}
+                className={`spider-threat${worldState === "heading" ? " retreating" : ""}`}
                 src={`${assetBase}/mint-spider.webp`}
                 alt=""
                 aria-hidden="true"
               />
             )}
             {worldState !== "seeking" && (
-              <div className={`world-event ${worldState}`} role="status" aria-live="polite">
+              <div className={`world-event ${worldState}${spiderWarning ? " warning" : ""}`} role="status" aria-live="polite">
                 <strong>{worldCopy.title}</strong><span>{worldCopy.detail}</span>
               </div>
             )}
@@ -580,10 +654,10 @@ export default function Home() {
               <span>{worldCopy.detail}</span>
             </div>
             <div className="key-controls" aria-label="Fly movement controls">
-              <button onClick={() => nudge("left")} disabled={worldState !== "seeking"} aria-label="Steer left">←<kbd>A</kbd></button>
-              <button onClick={() => nudge("forward")} disabled={worldState !== "seeking"} aria-label="Walk forward">↑<kbd>W</kbd></button>
-              <button onClick={() => nudge("backward")} disabled={worldState !== "seeking"} aria-label="Walk backward with Moonwalker Descending Neurons">↓<kbd>S</kbd></button>
-              <button onClick={() => nudge("right")} disabled={worldState !== "seeking"} aria-label="Steer right">→<kbd>D</kbd></button>
+              <button onClick={() => nudge("left")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer left">←<kbd>A</kbd></button>
+              <button onClick={() => nudge("forward")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
+              <button onClick={() => nudge("backward")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Slow or reverse in flight" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
+              <button onClick={() => nudge("right")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer right">→<kbd>D</kbd></button>
             </div>
           </div>
         </div>
@@ -597,13 +671,19 @@ export default function Home() {
           </header>
           <div className="circuit-canvas-wrap">
             <div
-              className="neuron-render-stage"
+              className={`neuron-render-stage${circuitMode === "heading" ? " heading" : ""}`}
               role="img"
-              aria-label={`BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
+              aria-label={circuitMode === "heading" ? "Illustrative EPG heading ring; 45 BANC EPG cells available in Codex" : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
               style={{ "--layer-accent": activeNeuronLayer.accent } as CSSProperties}
             >
               <img className="neuron-context-layer" src={`${assetBase}/banc-context-base.webp`} alt="" aria-hidden="true" />
-              <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />
+              {activeNeuronLayer.src && <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />}
+              {circuitMode === "heading" && (
+                <div className="epg-compass" aria-hidden="true">
+                  <div className="epg-ring"><span /></div>
+                  <strong>EPG</strong>
+                </div>
+              )}
               <div className="neuron-render-glow" aria-hidden="true" />
               <div className="neuron-render-label">
                 <span><i /> BANC NEURONS</span>
@@ -622,18 +702,11 @@ export default function Home() {
               </div>
             )}
           </div>
-          <div className="signal-story">
-            <div className="signal-topline">
-              <span>FLY ACTION</span>
-            </div>
-            <h2 style={{ color: activeSignal.color }}>{activeSignal.label}</h2>
-            <p>{activeSignal.detail}</p>
-            <div className="action-circuit" aria-live="polite">
-              <strong>{activeCircuit.title}</strong>
-              <p>{activeCircuit.summary}</p>
-              <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THIS CIRCUIT ↗</a>
-              <small>Illustrative selection—not measured neural activity.</small>
-            </div>
+          <div className={`signal-story mode-${circuitMode}`} aria-live="polite">
+            <div className="signal-topline"><span>NOW SHOWING</span></div>
+            <h2>{activeSignal.label}</h2>
+            <p>{activeCircuit.summary}</p>
+            <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE ↗</a>
           </div>
         </div>
       </section>
@@ -657,10 +730,10 @@ export default function Home() {
           </div>
         </div>
         <div className="coming-soon">
-          <span>COMING NEXT</span>
+          <span>NOW PLAYABLE</span>
           <strong>TAKE FLIGHT</strong>
-          <p>From six legs to two wings: steer through open air.</p>
-          <button type="button" disabled>FLIGHT LAB · IN DEVELOPMENT</button>
+          <p>Find the snack, escape the spider, and steer to the flower.</p>
+          <button type="button" onClick={() => document.querySelector(".lab-shell")?.scrollIntoView({ behavior: "smooth" })}>ENTER FLIGHT COURSE ↑</button>
         </div>
       </section>
 
