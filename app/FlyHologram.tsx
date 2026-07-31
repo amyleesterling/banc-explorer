@@ -40,14 +40,11 @@ const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const vertexShader = /* glsl */ `
   varying vec3 vNormal;
   varying vec3 vViewDirection;
-  varying vec3 vWorldPosition;
 
   void main() {
-    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
     vNormal = normalize(normalMatrix * normal);
     vViewDirection = normalize(-viewPosition.xyz);
-    vWorldPosition = worldPosition.xyz;
     gl_Position = projectionMatrix * viewPosition;
   }
 `;
@@ -58,18 +55,13 @@ const fragmentShader = /* glsl */ `
   uniform float uOpacity;
   varying vec3 vNormal;
   varying vec3 vViewDirection;
-  varying vec3 vWorldPosition;
 
   void main() {
-    float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewDirection))), 2.3);
-    float scanWave = sin((vWorldPosition.x - uTime * 0.36) * 28.0);
-    float scan = pow(max(0.0, scanWave), 18.0);
-    float microGrid = step(0.965, sin(vWorldPosition.y * 74.0) * 0.5 + 0.5) * 0.09;
-    float breathing = 0.92 + sin(uTime * 1.7) * 0.08;
-    vec3 hot = vec3(0.86, 0.95, 0.44);
-    vec3 color = uTint * (0.42 + rim * 1.7) + hot * scan * 0.7 + uTint * microGrid;
-    float alpha = (0.09 + rim * 0.58 + scan * 0.24 + microGrid) * uOpacity * breathing;
-    gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.92));
+    float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewDirection))), 2.0);
+    float breathing = 0.95 + sin(uTime * 1.7) * 0.05;
+    vec3 color = uTint * (0.72 + rim * 0.9);
+    float alpha = (0.22 + rim * 0.52) * uOpacity * breathing;
+    gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.88));
   }
 `;
 
@@ -379,33 +371,11 @@ export function FlyHologram({
           else modelRoot.add(object);
         }
 
-        const neuralPoints = [
-          new THREE.Vector3(-1.68, 0, 1.34),
-          new THREE.Vector3(-0.95, 0, 1.38),
-          new THREE.Vector3(-0.15, 0, 1.44),
-          new THREE.Vector3(0.55, 0, 1.43),
-          new THREE.Vector3(0.95, 0, 1.39),
-        ];
-        const neuralCurve = new THREE.CatmullRomCurve3(neuralPoints);
-        const neuralGeometry = new THREE.TubeGeometry(neuralCurve, 50, 0.018, 6, false);
-        const neuralMaterial = new THREE.MeshBasicMaterial({ color: 0xd8ec71, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending });
-        const neuralTrace = new THREE.Mesh(neuralGeometry, neuralMaterial);
-        modelRoot.add(neuralTrace);
-        const pulse = new THREE.Mesh(
-          new THREE.SphereGeometry(0.055, 12, 8),
-          new THREE.MeshBasicMaterial({ color: 0xfff8ae, blending: THREE.AdditiveBlending }),
-        );
-        pulse.userData.curve = neuralCurve;
-        modelRoot.add(pulse);
-
         const bounds = new THREE.Box3().setFromObject(modelRoot);
         const thoraxPivot = objects.get("c_thorax")?.getWorldPosition(new THREE.Vector3())
           ?? bounds.getCenter(new THREE.Vector3());
         modelRoot.position.sub(thoraxPivot);
         modelPivot.scale.setScalar(0.38);
-        modelPivot.userData.pulse = pulse;
-        modelPivot.userData.curve = neuralCurve;
-        modelPivot.userData.pivot = thoraxPivot;
         setStatus("ready");
       } catch (error) {
         console.error(error);
@@ -471,11 +441,6 @@ export function FlyHologram({
       materialList.forEach((material) => { material.uniforms.uTime.value = time; });
       targetRing.scale.setScalar(1 + Math.sin(time * 2.4) * 0.055);
       targetMaterial.opacity = 0.55 + Math.sin(time * 2.4) * 0.12;
-
-      const pulse = modelPivot.userData.pulse as THREE.Mesh | undefined;
-      const curve = modelPivot.userData.curve as THREE.CatmullRomCurve3 | undefined;
-      const pivot = modelPivot.userData.pivot as THREE.Vector3 | undefined;
-      if (pulse && curve && pivot) pulse.position.copy(curve.getPoint((time * 0.22) % 1)).sub(pivot);
 
       renderer.render(scene, camera);
     }
