@@ -65,7 +65,7 @@ const CIRCUITS: Record<CircuitMode, {
   walk: {
     eyebrow: "FORWARD WALK · SELECTED",
     title: "Walking drive meets local control",
-    summary: "A published BANC pathway shows proprioceptive and threat modules modulating DNg100 walking drive; the front-leg scene reveals the larger local sensorimotor loop.",
+    summary: "Walking drive is coordinated with body feedback and local leg circuits.",
     evidence: "BANC FIG. 5c · CONNECTOME-SUPPORTED",
     viewerUrl: WALKING_SCENE_URL,
     viewerLabel: "OPEN WALKING NEURONS",
@@ -74,7 +74,7 @@ const CIRCUITS: Record<CircuitMode, {
   left: {
     eyebrow: "STEER LEFT · SELECTED",
     title: "A bilateral steering comparison",
-    summary: "Left DNa02 and DNa01 are highlighted as high- and low-gain steering types. Their functional roles are experimentally characterized and their cell types are matched into BANC.",
+    summary: "Left DNa01 and DNa02 are highlighted for steering.",
     evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
     viewerUrl: STEERING_SCENE_URL,
     viewerLabel: "OPEN STEERING NEURONS",
@@ -83,7 +83,7 @@ const CIRCUITS: Record<CircuitMode, {
   right: {
     eyebrow: "STEER RIGHT · SELECTED",
     title: "A bilateral steering comparison",
-    summary: "Right DNa02 and DNa01 are highlighted as high- and low-gain steering types. Their functional roles are experimentally characterized and their cell types are matched into BANC.",
+    summary: "Right DNa01 and DNa02 are highlighted for steering.",
     evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
     viewerUrl: STEERING_SCENE_URL,
     viewerLabel: "OPEN STEERING NEURONS",
@@ -92,7 +92,7 @@ const CIRCUITS: Record<CircuitMode, {
   eat: {
     eyebrow: "FEEDING · SELECTED",
     title: "The snack recruits a feeding ensemble",
-    summary: "Six exemplars from the official BANC v888 feeding scene are highlighted when the fly reaches the fruit. The selection is anatomical context, not a recording of neural activity.",
+    summary: "Six cells from the official BANC feeding scene are highlighted.",
     evidence: "OFFICIAL BANC v888 FEEDING SCENE",
     viewerUrl: FEEDING_SCENE_URL,
     viewerLabel: "OPEN FEEDING SCENE",
@@ -104,7 +104,7 @@ const CIRCUITS: Record<CircuitMode, {
   threat: {
     eyebrow: "THREAT RESPONSE · SELECTED",
     title: "Escape pathways join the walking context",
-    summary: "Five descending response exemplars are highlighted with the gray nervous-system context while the fly moves away from the spider. This is a response selection, not a claim of threat detection.",
+    summary: "Five response neurons are highlighted as the fly escapes.",
     evidence: "BANC EXEMPLARS · RESPONSE, NOT DETECTION",
     viewerUrl: WALKING_FIGURE_URL,
     viewerLabel: "OPEN BANC WALKING PATHWAY",
@@ -567,11 +567,10 @@ export default function Home() {
               <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />
               <div className="neuron-render-glow" aria-hidden="true" />
               <div className="neuron-render-label">
-                <span><i /> CONNECTOME-SUPPORTED SELECTION</span>
+                <span><i /> BANC NEURONS</span>
                 <strong>{activeNeuronLayer.label}</strong>
-                <small>GRAY = CONTEXT · COLOR = SELECTED CIRCUIT</small>
               </div>
-              <div className="neuron-render-count"><span>92-CELL CONTEXT</span><strong>{activeNeuronLayer.detail}</strong></div>
+              <div className="neuron-render-count"><strong>{activeNeuronLayer.detail}</strong></div>
             </div>
             {viewerOpen && (
               <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">
@@ -586,49 +585,15 @@ export default function Home() {
           </div>
           <div className="signal-story">
             <div className="signal-topline">
-              <span>NOW SHOWING</span>
-              <span>DRIVEN BY THE FLY</span>
+              <span>FLY ACTION</span>
             </div>
-            <h2><span style={{ color: activeSignal.color }}>{String(stage + 1).padStart(2, "0")}</span> {activeSignal.label}</h2>
+            <h2 style={{ color: activeSignal.color }}>{activeSignal.label}</h2>
             <p>{activeSignal.detail}</p>
             <div className="action-circuit" aria-live="polite">
-              <div className="action-circuit-heading">
-                <div>
-                  <span>{activeCircuit.eyebrow}</span>
-                  <strong>{activeCircuit.title}</strong>
-                </div>
-                <small>{activeCircuit.evidence}</small>
-              </div>
+              <strong>{activeCircuit.title}</strong>
               <p>{activeCircuit.summary}</p>
-              <div className="neuron-grid" aria-label={`${activeCircuit.eyebrow} neuron selection`}>
-                {activeCircuit.nodes.map((node) => (
-                  <div className={`neuron-card${node.muted ? " muted" : ""}`} key={node.name}>
-                    <i style={{ backgroundColor: node.color, boxShadow: `0 0 12px ${node.color}` }} />
-                    <div><strong>{node.name}</strong><span>{node.area}</span></div>
-                    <p>{node.role}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="circuit-links">
-                <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">{activeCircuit.viewerLabel} ↗</a>
-                {circuitMode === "walk" ? (
-                  <><a href={WALKING_FIGURE_URL} target="_blank" rel="noreferrer">OPEN FIG. 5c PATHWAY ↗</a><a href={FRONT_LEG_LOOP_URL} target="_blank" rel="noreferrer">OPEN 1,160-NEURON FRONT-LEG LOOP ↗</a></>
-                ) : (
-                  <a href={STEERING_CODEX_URL} target="_blank" rel="noreferrer">INSPECT DNa01 + DNa02 IN CODEX ↗</a>
-                )}
-              </div>
-              <p className="activity-caveat">The controls select relevant anatomy; glow and timing are explanatory, not measured neural activity.</p>
-            </div>
-            <div className="stage-track" role="group" aria-label="Circuit stages">
-              {SIGNAL_STAGES.map((item, index) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className={index === stage ? "active" : index < stage ? "seen" : ""}
-                  onClick={() => setStage(index)}
-                  aria-label={`Show ${item.label.toLowerCase()} stage`}
-                ><span style={{ backgroundColor: item.color }} />{item.label}</button>
-              ))}
+              <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THIS CIRCUIT ↗</a>
+              <small>Illustrative selection—not measured neural activity.</small>
             </div>
           </div>
         </div>
