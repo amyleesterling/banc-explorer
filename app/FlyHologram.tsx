@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
 type Action = "rest" | "forward" | "left" | "right";
+type EscapeState = "ground" | "takeoff" | "gone";
 
 export type FlyMotion = {
   x: number;
@@ -92,17 +93,31 @@ function materialFor(name: string, materials: Record<string, HologramMaterial>) 
 export function FlyHologram({
   motionRef,
   action,
+  escapeState,
 }: {
   motionRef: RefObject<FlyMotion>;
   action: Action;
+  escapeState: EscapeState;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef(action);
+  const escapeStateRef = useRef<EscapeState>(escapeState);
+  const takeoffStartedRef = useRef<number | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     actionRef.current = action;
   }, [action]);
+
+  useEffect(() => {
+    const previous = escapeStateRef.current;
+    escapeStateRef.current = escapeState;
+    if (escapeState === "takeoff" && previous !== "takeoff") {
+      takeoffStartedRef.current = performance.now() / 1000;
+    } else if (escapeState === "ground") {
+      takeoffStartedRef.current = null;
+    }
+  }, [escapeState]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -425,7 +440,8 @@ export function FlyHologram({
       const frameDelta = Math.min((timeMs - lastFrame) / 1000, 0.08);
       lastFrame = timeMs;
       const time = timeMs / 1000;
-      const moving = actionRef.current !== "rest";
+      const flying = escapeStateRef.current !== "ground";
+      const moving = !flying && actionRef.current !== "rest";
       const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
       const easing = Math.min(1, frameDelta * 8);
       displayedStride += ((moving ? 0.24 : 0.025) - displayedStride) * easing;
@@ -449,7 +465,7 @@ export function FlyHologram({
       // back onto their exact authored poses between bursts.
       const wingCycle = (time - animationStart) % 5.8;
       const wingWindow = wingCycle - 1.35;
-      const wingEnvelope = turn === 0 && wingWindow >= 0 && wingWindow < 0.72
+      const wingEnvelope = !flying && turn === 0 && wingWindow >= 0 && wingWindow < 0.72
         ? Math.sin((wingWindow / 0.72) * Math.PI) ** 2
         : 0;
       for (const [name, object] of wingSegments) {
@@ -459,9 +475,11 @@ export function FlyHologram({
         const side = name.startsWith("l") ? 1 : -1;
         const phase = name.startsWith("l") ? 0 : 0.65;
         const flutter = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(wingWindow * 34 + phase));
-        const flick = wingEnvelope * flutter;
+        const flick = flying
+          ? 0.36 + Math.sin(time * 48 + phase) * 0.14
+          : wingEnvelope * flutter;
         object.rotateZ(side * flick);
-        object.rotateX(flick * 0.24);
+        object.rotateX(flick * (flying ? 0.42 : 0.24));
       }
 
       const motion = motionRef.current;
@@ -472,6 +490,18 @@ export function FlyHologram({
         modelPivot.position.y = (0.5 - motion.y) * viewHeight * 0.72;
         // Arena coordinates use a downward-positive Y axis; Three.js uses upward-positive Y.
         modelPivot.rotation.z = -motion.angle;
+        modelPivot.scale.setScalar(0.38);
+
+        if (flying && takeoffStartedRef.current !== null) {
+          const rawProgress = escapeStateRef.current === "gone"
+            ? 1
+            : Math.min(1, Math.max(0, (time - takeoffStartedRef.current) / 1.45));
+          const lift = 1 - (1 - rawProgress) ** 3;
+          modelPivot.position.x -= viewWidth * 0.42 * lift;
+          modelPivot.position.y += viewHeight * (0.2 * lift + 0.75 * lift * lift);
+          modelPivot.rotation.z -= 0.34 * lift;
+          modelPivot.scale.setScalar(0.38 * (1 - lift * 0.42));
+        }
       }
       modelPivot.position.z = Math.sin(time * 2.2) * 0.025;
       materialList.forEach((material) => { material.uniforms.uTime.value = time; });

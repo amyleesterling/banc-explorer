@@ -7,7 +7,7 @@ import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.js
 
 type Action = "rest" | "forward" | "left" | "right";
 type CircuitMode = "walk" | "left" | "right" | "eat" | "threat";
-type WorldState = "seeking" | "eating" | "threat" | "safe";
+type WorldState = "seeking" | "eating" | "threat" | "takeoff" | "safe";
 
 type CircuitNode = {
   name: string;
@@ -27,7 +27,6 @@ const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const FOOD_TARGET = { x: 0.88, y: 0.18 };
 const FOOD_CONTACT_RADIUS = 0.095;
-const SAFE_DISTANCE = 0.22;
 
 const STATIC_NEURON_LAYERS: Record<CircuitMode, { src: string; label: string; detail: string; accent: string }> = {
   walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", detail: "6 WALKING CELLS LIT", accent: "#ff1493" },
@@ -151,6 +150,8 @@ export default function Home() {
   const actionRef = useRef<Action>("rest");
   const worldStateRef = useRef<WorldState>("seeking");
   const threatTimerRef = useRef<number | null>(null);
+  const takeoffTimerRef = useRef<number | null>(null);
+  const safeTimerRef = useRef<number | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [stage, setStage] = useState(0);
@@ -161,17 +162,19 @@ export default function Home() {
   const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
   const activeSignal = worldState === "eating"
     ? { label: "EAT", color: "#ffc857", detail: "Feeding-scene exemplars glow when the fly reaches the fruit." }
-    : worldState === "threat"
-      ? { label: "ESCAPE", color: "#ff6b5f", detail: "Descending response exemplars appear as the fly moves away from danger." }
+    : worldState === "threat" || worldState === "takeoff"
+      ? { label: "ESCAPE", color: "#ff6b5f", detail: "Response exemplars remain highlighted during the illustrative takeoff." }
       : worldState === "safe"
         ? { label: "SAFE", color: "#68d6c4", detail: "The fly has opened a safe gap while the response selection remains visible." }
         : SIGNAL_STAGES[stage];
   const worldCopy = worldState === "eating"
     ? { title: "Snack found!", detail: "A feeding selection is now glowing in the connectome lens." }
     : worldState === "threat"
-      ? { title: "Spider! Walk away", detail: "Turn, then move forward to open a safe gap." }
+      ? { title: "Spider!", detail: "Threat response engaged—prepare for takeoff." }
+      : worldState === "takeoff"
+        ? { title: "Takeoff!", detail: "Wings accelerate and the fly launches clear of danger." }
       : worldState === "safe"
-        ? { title: "Safe for now", detail: "You escaped—the response cells remain highlighted for inspection." }
+        ? { title: "Escaped!", detail: "The fly is airborne; the response selection remains visible for inspection." }
         : action === "rest"
           ? { title: "Find the fallen fruit", detail: "A 3 mm journey through a giant garden." }
           : action === "forward"
@@ -181,8 +184,10 @@ export default function Home() {
     ? { title: "SNACK FOUND", detail: "TASTING THE FRUIT" }
     : worldState === "threat"
       ? { title: "SPIDER ALERT", detail: "MOVE AWAY FROM DANGER" }
+      : worldState === "takeoff"
+        ? { title: "AIRBORNE", detail: "LAUNCHING FROM DANGER" }
       : worldState === "safe"
-        ? { title: "SAFE DISTANCE", detail: "RESPONSE SELECTION VISIBLE" }
+        ? { title: "ESCAPED", detail: "RESPONSE SELECTION VISIBLE" }
         : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
 
   useEffect(() => {
@@ -214,18 +219,21 @@ export default function Home() {
       worldStateRef.current = "threat";
       setWorldState("threat");
       setCircuitMode("threat");
+      takeoffTimerRef.current = window.setTimeout(() => {
+        if (worldStateRef.current !== "threat") return;
+        worldStateRef.current = "takeoff";
+        setWorldState("takeoff");
+        safeTimerRef.current = window.setTimeout(() => {
+          if (worldStateRef.current !== "takeoff") return;
+          worldStateRef.current = "safe";
+          setWorldState("safe");
+        }, 1550);
+      }, 850);
     }, 2400);
   }, []);
 
-  const markSafe = useCallback(() => {
-    if (worldStateRef.current !== "threat") return;
-    worldStateRef.current = "safe";
-    setWorldState("safe");
-    setCircuitMode("threat");
-  }, []);
-
   const updateAction = useCallback((next: Action) => {
-    if (worldStateRef.current === "eating") return;
+    if (worldStateRef.current !== "seeking") return;
     actionRef.current = next;
     setAction(next);
     if (next !== "rest" && worldStateRef.current === "seeking") {
@@ -239,7 +247,7 @@ export default function Home() {
       const key = event.key.toLowerCase();
       if (["arrowup", "arrowleft", "arrowright", "w", "a", "d"].includes(key)) {
         event.preventDefault();
-        if (worldStateRef.current === "eating") return;
+        if (worldStateRef.current !== "seeking") return;
         keysRef.current.add(key);
       }
     };
@@ -299,10 +307,7 @@ export default function Home() {
       if (worldStateRef.current === "seeking" && foodDistance <= FOOD_CONTACT_RADIUS) {
         triggerEating();
       }
-      if (worldStateRef.current === "eating") nextAction = "rest";
-      if (worldStateRef.current === "threat" && foodDistance >= SAFE_DISTANCE) {
-        markSafe();
-      }
+      if (worldStateRef.current !== "seeking") nextAction = "rest";
       if (nextAction !== actionRef.current) {
         actionRef.current = nextAction;
         setAction(nextAction);
@@ -458,8 +463,10 @@ export default function Home() {
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
+      if (takeoffTimerRef.current) window.clearTimeout(takeoffTimerRef.current);
+      if (safeTimerRef.current) window.clearTimeout(safeTimerRef.current);
     };
-  }, [markSafe, triggerEating]);
+  }, [triggerEating]);
 
   const nudge = (next: Action) => {
     updateAction(next);
@@ -508,9 +515,13 @@ export default function Home() {
           </header>
           <div className="arena-wrap">
             <canvas ref={arenaRef} className="arena-motion-canvas" aria-hidden="true" />
-            <FlyHologram motionRef={flyRef} action={action} />
+            <FlyHologram
+              motionRef={flyRef}
+              action={action}
+              escapeState={worldState === "takeoff" ? "takeoff" : worldState === "safe" ? "gone" : "ground"}
+            />
             <div className={`odor-label ${worldState}`}><span /><div><strong>{targetCopy.title}</strong><small>{targetCopy.detail}</small></div></div>
-            {(worldState === "threat" || worldState === "safe") && (
+            {(worldState === "threat" || worldState === "takeoff" || worldState === "safe") && (
               <div className={`spider-threat${worldState === "safe" ? " retreating" : ""}`} aria-hidden="true">
                 <span className="spider-leg leg-one" /><span className="spider-leg leg-two" />
                 <span className="spider-leg leg-three" /><span className="spider-leg leg-four" />
@@ -531,9 +542,9 @@ export default function Home() {
               <span>{worldCopy.detail}</span>
             </div>
             <div className="key-controls" aria-label="Fly movement controls">
-              <button onClick={() => nudge("left")} disabled={worldState === "eating"} aria-label="Steer left">←<kbd>A</kbd></button>
-              <button onClick={() => nudge("forward")} disabled={worldState === "eating"} aria-label="Walk forward">↑<kbd>W</kbd></button>
-              <button onClick={() => nudge("right")} disabled={worldState === "eating"} aria-label="Steer right">→<kbd>D</kbd></button>
+              <button onClick={() => nudge("left")} disabled={worldState !== "seeking"} aria-label="Steer left">←<kbd>A</kbd></button>
+              <button onClick={() => nudge("forward")} disabled={worldState !== "seeking"} aria-label="Walk forward">↑<kbd>W</kbd></button>
+              <button onClick={() => nudge("right")} disabled={worldState !== "seeking"} aria-label="Steer right">→<kbd>D</kbd></button>
             </div>
           </div>
         </div>

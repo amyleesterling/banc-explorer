@@ -97,12 +97,12 @@ h1 em { color: var(--moss); font-weight: 400; }
 .odor-label strong { font-size: 8px; }
 .odor-label small { color: #748078; font-size: 6px; letter-spacing: .09em; }
 .odor-label.eating > span { background: #ffc857; box-shadow: 0 0 0 4px rgba(255,200,87,.24); }
-.odor-label.threat > span { background: #ff6b5f; box-shadow: 0 0 0 4px rgba(255,107,95,.23); }
+.odor-label.threat > span, .odor-label.takeoff > span { background: #ff6b5f; box-shadow: 0 0 0 4px rgba(255,107,95,.23); }
 .odor-label.safe > span { background: #68d6c4; box-shadow: 0 0 0 4px rgba(104,214,196,.22); }
 .world-event { position: absolute; z-index: 6; left: 50%; top: 13%; width: min(310px, 62%); transform: translateX(-50%); display: grid; gap: 3px; padding: 10px 14px; border: 1px solid rgba(123,62,98,.26); border-radius: 10px; background: rgba(255,245,225,.93); color: #3a413b; text-align: center; box-shadow: 0 10px 30px rgba(90,48,72,.16); pointer-events: none; animation: event-arrive .38s ease-out both; }
 .world-event strong { font-family: Georgia, serif; font-size: 16px; font-weight: 400; }
 .world-event span { color: #69766d; font-size: 7px; font-weight: 800; letter-spacing: .06em; }
-.world-event.threat { border-color: rgba(255,107,95,.5); background: rgba(255,235,218,.95); }
+.world-event.threat, .world-event.takeoff { border-color: rgba(255,107,95,.5); background: rgba(255,235,218,.95); }
 .world-event.safe { border-color: rgba(104,214,196,.48); background: rgba(226,251,230,.95); }
 @keyframes event-arrive { from { opacity: 0; transform: translate(-50%, -8px) scale(.96); } }
 .spider-threat { position: absolute; z-index: 5; right: 8%; top: 25%; width: 58px; height: 58px; pointer-events: none; filter: drop-shadow(0 7px 7px rgba(72,37,62,.2)); animation: spider-arrive .7s cubic-bezier(.2,.8,.2,1) both, spider-bob 1.1s .7s ease-in-out infinite alternate; }
