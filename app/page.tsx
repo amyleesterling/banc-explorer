@@ -152,6 +152,7 @@ export default function Home() {
   const threatTimerRef = useRef<number | null>(null);
   const takeoffTimerRef = useRef<number | null>(null);
   const safeTimerRef = useRef<number | null>(null);
+  const resetTimerRef = useRef<number | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [stage, setStage] = useState(0);
@@ -227,6 +228,17 @@ export default function Home() {
           if (worldStateRef.current !== "takeoff") return;
           worldStateRef.current = "safe";
           setWorldState("safe");
+          resetTimerRef.current = window.setTimeout(() => {
+            flyRef.current = { x: 0.28, y: 0.68, angle: -0.32 };
+            keysRef.current.clear();
+            actionRef.current = "rest";
+            worldStateRef.current = "seeking";
+            setAction("rest");
+            setWorldState("seeking");
+            setCircuitMode("walk");
+            setStage(0);
+            setSteps(0);
+          }, 1800);
         }, 1550);
       }, 850);
     }, 2400);
@@ -465,6 +477,7 @@ export default function Home() {
       if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
       if (takeoffTimerRef.current) window.clearTimeout(takeoffTimerRef.current);
       if (safeTimerRef.current) window.clearTimeout(safeTimerRef.current);
+      if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
     };
   }, [triggerEating]);
 
