@@ -414,14 +414,14 @@ export default function Home() {
           <div className="arena-wrap">
             <canvas ref={arenaRef} className="arena-motion-canvas" aria-hidden="true" />
             <FlyHologram motionRef={flyRef} action={action} />
-            <div className="odor-label"><span /><div><strong>SNACK</strong><small>FOLLOW THE GOLDEN SCENT</small></div></div>
-            <div className="world-label"><span>FORAGING PATCH 01</span><strong>THE CLOVER COURT</strong></div>
-            <div className="arena-tip"><span className="holo-status" /> TINY GARDEN · NMF HOLOGRAM</div>
+            <div className="odor-label"><span /><div><strong>RIPE FRUIT</strong><small>FOLLOW THE YEASTY SCENT</small></div></div>
+            <div className="world-label"><span>FERMENTATION PATCH 01</span><strong>PEACHDROP GARDEN</strong></div>
+            <div className="arena-tip"><span className="holo-status" /> MACRO VIEW · FLY ≈ 3 MM</div>
           </div>
           <div className="controls">
             <div className="control-copy">
-              <strong>{action === "rest" ? "Find the little snack" : action === "forward" ? "Tiny feet in motion" : `Steering ${action}`}</strong>
-              <span>{action === "rest" ? "Follow the golden scent through Clover Court" : "Connectome signals are now in motion"}</span>
+              <strong>{action === "rest" ? "Find the fallen fruit" : action === "forward" ? "Tiny feet in motion" : `Steering ${action}`}</strong>
+              <span>{action === "rest" ? "A 3 mm journey through a giant garden" : "Connectome signals are now in motion"}</span>
             </div>
             <div className="key-controls" aria-label="Fly movement controls">
               <button onClick={() => nudge("left")} aria-label="Steer left">←<kbd>A</kbd></button>

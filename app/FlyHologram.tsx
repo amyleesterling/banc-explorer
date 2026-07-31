@@ -86,7 +86,7 @@ function makeMaterial(color: string, opacity = 1): HologramMaterial {
     depthWrite: false,
     depthTest: true,
     side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
   }) as HologramMaterial;
 }
 
@@ -123,14 +123,14 @@ export function FlyHologram({
     const lowPower = window.matchMedia("(max-width: 640px), (prefers-reduced-motion: reduce)").matches;
     const renderer = new THREE.WebGLRenderer({ alpha: false, antialias: !lowPower, powerPreference: "low-power" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 1.35));
-    renderer.setClearColor(0xe7ead6, 1);
+    renderer.setClearColor(0xb9edc7, 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.domElement.setAttribute("aria-label", "Interactive holographic NeuroMechFly model in a miniature foraging garden");
     renderer.domElement.setAttribute("role", "img");
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xe7ead6, 0.048);
+    scene.fog = new THREE.FogExp2(0xb9edc7, 0.025);
     const camera = new THREE.OrthographicCamera(-5, 5, 4, -4, 0.1, 40);
     camera.position.set(0, 0, 12);
     camera.lookAt(0, 0, 0);
@@ -153,22 +153,31 @@ export function FlyHologram({
     };
 
     const palette = {
-      ground: worldMaterial(0xe7ead6),
-      meadow: worldMaterial(0xd7ddbd),
-      meadowLight: worldMaterial(0xf0eedb, 0.82),
-      path: worldMaterial(0xeadcb6),
-      pathShade: worldMaterial(0xc9bc98, 0.72),
-      leaf: worldMaterial(0x789873),
-      clover: worldMaterial(0x90aa77),
-      petal: worldMaterial(0xfff9e8),
-      flower: worldMaterial(0xf3b94f),
-      water: worldMaterial(0x9ecfc8, 0.72),
-      waterLine: lineMaterial(0x5e9d94, 0.62),
-      vein: lineMaterial(0x345344, 0.62),
+      ground: worldMaterial(0xb9edc7),
+      groundLight: worldMaterial(0xd3f6d1, 0.82),
+      moss: worldMaterial(0x75d5aa),
+      mossDark: worldMaterial(0x4eb890),
+      earth: worldMaterial(0xf4b28f),
+      earthShade: worldMaterial(0xd98679, 0.55),
+      stone: worldMaterial(0xffdfb3),
+      stoneShade: worldMaterial(0xc98275, 0.42),
+      leaf: worldMaterial(0x49aa83),
+      leafLight: worldMaterial(0x87dfa4),
+      leafShade: worldMaterial(0x2e856f),
+      petalPink: worldMaterial(0xffa9c4),
+      petalBlush: worldMaterial(0xffd3df),
+      petalCream: worldMaterial(0xfff3c7),
+      flower: worldMaterial(0xffcf70),
+      flowerShade: worldMaterial(0xe78082, 0.38),
+      water: worldMaterial(0x7fdbd3, 0.78),
+      waterShine: worldMaterial(0xe8fff3, 0.72),
+      vein: lineMaterial(0x246e61, 0.72),
+      grass: lineMaterial(0x308e72, 0.72),
+      grassLight: lineMaterial(0x71c994, 0.8),
     };
 
     const world = new THREE.Group();
-    world.name = "tiny-foraging-garden";
+    world.name = "peachdrop-micro-garden";
     scene.add(world);
 
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(24, 16), palette.ground);
@@ -193,140 +202,152 @@ export function FlyHologram({
       return mesh;
     }
 
-    addDisc(-1.65, -1.72, 2.65, 0.88, -0.08, palette.meadow, -1.12);
-    addDisc(2.3, 2.18, 2.25, 0.78, 0.1, palette.meadow, -1.12);
-    addDisc(-3.15, 2.3, 1.4, 0.72, -0.38, palette.meadowLight, -1.1);
-    addDisc(3.05, -2.5, 1.2, 0.58, 0.18, palette.water, -0.93);
+    // Soft, irregular ground patches replace the old diagram-like grid. At this
+    // scale, a single leaf is a landscape and a dew drop is nearly fly-sized.
+    addDisc(-2.55, -2.1, 2.8, 1.05, -0.12, palette.moss, -1.14);
+    addDisc(-3.25, -2.35, 1.75, 0.76, 0.1, palette.groundLight, -1.11);
+    addDisc(2.45, 2.45, 2.55, 0.95, 0.12, palette.moss, -1.14);
+    addDisc(3.55, -2.65, 1.85, 0.9, -0.08, palette.groundLight, -1.12);
 
-    const pondCurve = new THREE.EllipseCurve(3.05, -2.5, 1.2, 0.58, 0, Math.PI * 2);
-    const pondLine = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(pondCurve.getPoints(lowPower ? 24 : 42)),
-      palette.waterLine,
-    );
-    pondLine.position.z = -0.9;
-    world.add(pondLine);
-
-    const steppingStones: Array<[number, number, number, number, number]> = [
-      [-3.45, -2.28, 0.34, 0.21, 0.08],
-      [-2.72, -1.98, 0.38, 0.23, -0.12],
-      [-1.92, -1.53, 0.4, 0.24, 0.06],
-      [-1.08, -1.03, 0.37, 0.22, -0.1],
-      [-0.18, -0.48, 0.42, 0.24, 0.05],
-      [0.7, 0.02, 0.36, 0.22, -0.08],
-      [1.5, 0.52, 0.4, 0.23, 0.1],
-      [2.25, 0.98, 0.34, 0.21, -0.06],
+    const trail: Array<[number, number, number, number, number]> = [
+      [-3.75, -2.34, 0.62, 0.36, 0.18],
+      [-2.9, -1.9, 0.7, 0.4, -0.08],
+      [-1.98, -1.34, 0.76, 0.43, 0.12],
+      [-1.02, -0.74, 0.78, 0.44, -0.1],
+      [0.02, -0.13, 0.82, 0.46, 0.09],
+      [1.05, 0.48, 0.76, 0.42, -0.06],
+      [2.02, 1.03, 0.68, 0.38, 0.12],
+      [2.86, 1.48, 0.58, 0.34, -0.08],
     ];
-    steppingStones.forEach(([x, y, rx, ry, rotation]) => {
-      addDisc(x + 0.025, y - 0.045, rx, ry, rotation, palette.pathShade, -0.94);
-      addDisc(x, y, rx, ry, rotation, palette.path, -0.9);
+    trail.forEach(([x, y, rx, ry, rotation]) => {
+      addDisc(x + 0.035, y - 0.075, rx, ry, rotation, palette.earthShade, -1.01);
+      addDisc(x, y, rx, ry, rotation, palette.earth, -0.98);
+      addDisc(x - rx * 0.18, y + ry * 0.14, rx * 0.6, ry * 0.48, rotation, palette.stone, -0.94);
     });
 
-    function addLeaf(x: number, y: number, scale: number, rotation: number) {
-      addDisc(x, y, 0.34 * scale, 0.68 * scale, rotation, palette.leaf, -0.84);
-      const direction = new THREE.Vector2(Math.sin(rotation), Math.cos(rotation)).multiplyScalar(0.47 * scale);
+    function addBlade(x: number, y: number, height: number, lean: number, material: THREE.LineBasicMaterial) {
+      const curve = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(x, y, -0.91),
+        new THREE.Vector3(x + lean * 0.35, y + height * 0.6, -0.88),
+        new THREE.Vector3(x + lean, y + height, -0.84),
+      );
+      world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(12)), material));
+    }
+
+    [
+      [-4.4, -3.2, 2.0, 0.7], [-4.0, -3.3, 2.45, -0.25], [-3.55, -3.4, 1.75, 0.35],
+      [-2.8, -3.45, 1.5, -0.4], [2.6, -3.45, 1.7, 0.45], [3.05, -3.4, 2.15, -0.25],
+      [3.55, -3.35, 2.35, 0.48], [4.05, -3.25, 1.85, -0.55], [-4.2, 2.0, 1.5, 0.5],
+      [3.65, 2.05, 1.55, -0.55],
+    ].forEach(([x, y, height, lean], index) => addBlade(x, y, height, lean, index % 2 ? palette.grass : palette.grassLight));
+
+    function addLeaf(x: number, y: number, scale: number, rotation: number, light = false) {
+      addDisc(x + 0.055, y - 0.075, 0.52 * scale, 1.04 * scale, rotation, palette.leafShade, -0.9);
+      addDisc(x, y, 0.49 * scale, 1 * scale, rotation, light ? palette.leafLight : palette.leaf, -0.86);
+      const direction = new THREE.Vector2(Math.sin(rotation), Math.cos(rotation)).multiplyScalar(0.75 * scale);
       const vein = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(x - direction.x, y - direction.y, -0.82),
-          new THREE.Vector3(x + direction.x, y + direction.y, -0.82),
+          new THREE.Vector3(x - direction.x, y - direction.y, -0.83),
+          new THREE.Vector3(x + direction.x, y + direction.y, -0.83),
         ]),
         palette.vein,
       );
       world.add(vein);
     }
 
-    addLeaf(-3.25, 1.58, 0.92, -0.58);
-    addLeaf(-2.72, 1.95, 0.72, 0.62);
-    addLeaf(2.05, -1.86, 0.7, -0.48);
-    addLeaf(2.48, -1.5, 0.82, 0.55);
+    addLeaf(-3.92, 1.78, 1.3, -0.6);
+    addLeaf(-3.15, 2.42, 1.02, 0.68, true);
+    addLeaf(3.68, -1.92, 1.18, 0.56);
+    addLeaf(2.88, -2.62, 1.02, -0.52, true);
 
-    function addFlower(x: number, y: number, scale: number) {
-      for (let petal = 0; petal < 6; petal += 1) {
-        const angle = (petal / 6) * Math.PI * 2;
+    function addFlower(x: number, y: number, scale: number, blush = false) {
+      for (let petal = 0; petal < 7; petal += 1) {
+        const angle = (petal / 7) * Math.PI * 2;
         addDisc(
-          x + Math.cos(angle) * 0.19 * scale,
-          y + Math.sin(angle) * 0.19 * scale,
-          0.11 * scale,
-          0.21 * scale,
+          x + Math.cos(angle) * 0.36 * scale + 0.045,
+          y + Math.sin(angle) * 0.36 * scale - 0.07,
+          0.24 * scale,
+          0.52 * scale,
           angle - Math.PI / 2,
-          palette.petal,
-          -0.79,
-          16,
+          palette.flowerShade,
+          -0.84,
+          18,
+        );
+        addDisc(
+          x + Math.cos(angle) * 0.36 * scale,
+          y + Math.sin(angle) * 0.36 * scale,
+          0.22 * scale,
+          0.5 * scale,
+          angle - Math.PI / 2,
+          blush ? palette.petalBlush : palette.petalPink,
+          -0.8,
+          18,
         );
       }
-      addDisc(x, y, 0.105 * scale, 0.105 * scale, 0, palette.flower, -0.75, 18);
-    }
-
-    addFlower(-2.92, 2.55, 0.82);
-    addFlower(-3.58, 1.95, 0.58);
-    addFlower(1.84, 2.43, 0.62);
-
-    const cloverPositions: Array<[number, number, number]> = [
-      [-3.7, -0.25, 0.72],
-      [-2.95, -0.52, 0.55],
-      [0.55, 2.53, 0.58],
-      [1.15, 2.35, 0.48],
-      [3.48, -0.83, 0.62],
-    ];
-    cloverPositions.forEach(([x, y, scale]) => {
-      for (let leaf = 0; leaf < 3; leaf += 1) {
-        const angle = (leaf / 3) * Math.PI * 2 - Math.PI / 2;
-        addDisc(
-          x + Math.cos(angle) * 0.12 * scale,
-          y + Math.sin(angle) * 0.12 * scale,
-          0.15 * scale,
-          0.2 * scale,
-          angle - Math.PI / 2,
-          palette.clover,
-          -0.83,
-          16,
-        );
+      addDisc(x + 0.025, y - 0.035, 0.31 * scale, 0.31 * scale, 0, palette.flowerShade, -0.77, 22);
+      addDisc(x, y, 0.28 * scale, 0.28 * scale, 0, palette.flower, -0.73, 22);
+      for (let seed = 0; seed < 7; seed += 1) {
+        const angle = seed * 2.4;
+        const radius = 0.16 * scale * (0.35 + (seed % 3) * 0.22);
+        addDisc(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, 0.022 * scale, 0.022 * scale, 0, palette.petalCream, -0.7, 10);
       }
-    });
-
-    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x52674e, transparent: true, opacity: 0.13 });
-    const gridPoints: THREE.Vector3[] = [];
-    for (let value = -8; value <= 8; value += 0.5) {
-      gridPoints.push(new THREE.Vector3(-12, value, -1), new THREE.Vector3(12, value, -1));
-      gridPoints.push(new THREE.Vector3(value, -12, -1), new THREE.Vector3(value, 12, -1));
     }
-    const gridGeometry = new THREE.BufferGeometry().setFromPoints(gridPoints);
-    scene.add(new THREE.LineSegments(gridGeometry, gridMaterial));
+
+    addFlower(-4.05, 2.9, 1.82);
+    addFlower(-2.35, 3.35, 1.28, true);
+    addFlower(3.95, 3.12, 1.58, true);
+    addFlower(4.48, -2.75, 1.55);
+
+    function addDewDrop(x: number, y: number, scale: number) {
+      addDisc(x + 0.05, y - 0.08, 0.44 * scale, 0.36 * scale, -0.12, palette.leafShade, -0.79);
+      addDisc(x, y, 0.42 * scale, 0.35 * scale, -0.12, palette.water, -0.73);
+      addDisc(x - 0.13 * scale, y + 0.11 * scale, 0.1 * scale, 0.06 * scale, -0.25, palette.waterShine, -0.68, 14);
+    }
+
+    addDewDrop(-2.72, 0.92, 1.25);
+    addDewDrop(1.08, -2.18, 0.92);
+    addDewDrop(3.72, 0.02, 0.72);
 
     const target = new THREE.Group();
-    const targetMaterial = new THREE.MeshBasicMaterial({ color: 0xffc857, transparent: true, opacity: 0.78 });
-    const snackEdgeMaterial = new THREE.MeshBasicMaterial({ color: 0x8f6535 });
-    const snackMaterial = new THREE.MeshBasicMaterial({ color: 0xf0be57 });
-    const snackChipMaterial = new THREE.MeshBasicMaterial({ color: 0x6f4728 });
-    worldMaterials.push(targetMaterial, snackEdgeMaterial, snackMaterial, snackChipMaterial);
-    const targetRing = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.022, 10, 40), targetMaterial);
-    targetRing.position.z = -0.04;
-    const snackEdge = new THREE.Mesh(new THREE.CircleGeometry(0.17, 24), snackEdgeMaterial);
-    const targetCore = new THREE.Mesh(new THREE.CircleGeometry(0.145, 24), snackMaterial);
-    targetCore.position.z = 0.015;
-    target.add(targetRing, snackEdge, targetCore);
-    [[-0.055, 0.048], [0.055, 0.02], [-0.018, -0.06]].forEach(([x, y]) => {
-      const chip = new THREE.Mesh(new THREE.CircleGeometry(0.018, 10), snackChipMaterial);
-      chip.position.set(x, y, 0.025);
-      target.add(chip);
+    const targetMaterial = new THREE.MeshBasicMaterial({ color: 0xfff39a, transparent: true, opacity: 0.72 });
+    const fruitSkinMaterial = new THREE.MeshBasicMaterial({ color: 0xe95f7d });
+    const fruitFleshMaterial = new THREE.MeshBasicMaterial({ color: 0xffbb79 });
+    const fruitGlowMaterial = new THREE.MeshBasicMaterial({ color: 0xffe0a6 });
+    const fruitSeedMaterial = new THREE.MeshBasicMaterial({ color: 0xa94f5d });
+    worldMaterials.push(targetMaterial, fruitSkinMaterial, fruitFleshMaterial, fruitGlowMaterial, fruitSeedMaterial);
+    const targetRing = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.035, 10, 48), targetMaterial);
+    targetRing.position.z = -0.05;
+    const fruitSkin = new THREE.Mesh(new THREE.CircleGeometry(0.58, 32), fruitSkinMaterial);
+    const fruitFlesh = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), fruitFleshMaterial);
+    fruitFlesh.position.z = 0.012;
+    const fruitGlow = new THREE.Mesh(new THREE.CircleGeometry(0.36, 28), fruitGlowMaterial);
+    fruitGlow.position.set(-0.08, 0.07, 0.024);
+    target.add(targetRing, fruitSkin, fruitFlesh, fruitGlow);
+    [[-0.18, 0.17], [0.08, 0.21], [0.2, -0.04], [-0.06, -0.2], [-0.24, -0.08]].forEach(([x, y]) => {
+      const seed = new THREE.Mesh(new THREE.CircleGeometry(0.028, 10), fruitSeedMaterial);
+      seed.position.set(x, y, 0.035);
+      seed.scale.set(0.72, 1.25, 1);
+      target.add(seed);
     });
-    target.position.set(3.1, 1.45, 0);
+    target.position.set(3.02, 1.62, 0);
     scene.add(target);
 
     const scentDots: Array<[number, number, number, number]> = [
-      [2.72, 1.64, 0.055, 0.38],
-      [2.31, 1.79, 0.043, 0.28],
-      [1.91, 1.82, 0.032, 0.2],
+      [2.28, 1.94, 0.085, 0.44],
+      [1.7, 2.08, 0.067, 0.34],
+      [1.16, 2.0, 0.05, 0.25],
+      [0.68, 1.77, 0.038, 0.18],
     ];
     scentDots.forEach(([x, y, radius, opacity]) => {
-      const scentMaterial = worldMaterial(0xf3b94f, opacity);
+      const scentMaterial = worldMaterial(0xffd170, opacity);
       addDisc(x, y, radius, radius, 0, scentMaterial, -0.18, 14);
     });
 
     const materials = {
-      body: makeMaterial("#68d6c4", 1),
-      leg: makeMaterial("#b7f6df", 0.93),
-      wing: makeMaterial("#8ac7ff", 0.72),
-      eye: makeMaterial("#ff7f6e", 1.08),
+      body: makeMaterial("#108f8e", 1),
+      leg: makeMaterial("#2fb9a8", 0.96),
+      wing: makeMaterial("#55aef0", 0.78),
+      eye: makeMaterial("#ef5674", 1.08),
     };
     const materialList = Object.values(materials);
     const modelPivot = new THREE.Group();
@@ -401,7 +422,7 @@ export function FlyHologram({
         const thoraxPivot = objects.get("c_thorax")?.getWorldPosition(new THREE.Vector3())
           ?? bounds.getCenter(new THREE.Vector3());
         modelRoot.position.sub(thoraxPivot);
-        modelPivot.scale.setScalar(0.72);
+        modelPivot.scale.setScalar(0.38);
         modelPivot.userData.pulse = pulse;
         modelPivot.userData.curve = neuralCurve;
         modelPivot.userData.pivot = thoraxPivot;
@@ -468,8 +489,8 @@ export function FlyHologram({
       }
       modelPivot.position.z = Math.sin(time * 2.2) * 0.025;
       materialList.forEach((material) => { material.uniforms.uTime.value = time; });
-      targetRing.scale.setScalar(1 + Math.sin(time * 2.4) * 0.12);
-      targetMaterial.opacity = 0.62 + Math.sin(time * 2.4) * 0.16;
+      targetRing.scale.setScalar(1 + Math.sin(time * 2.4) * 0.055);
+      targetMaterial.opacity = 0.55 + Math.sin(time * 2.4) * 0.12;
 
       const pulse = modelPivot.userData.pulse as THREE.Mesh | undefined;
       const curve = modelPivot.userData.curve as THREE.CatmullRomCurve3 | undefined;
@@ -486,10 +507,9 @@ export function FlyHologram({
       observer.disconnect();
       container.removeChild(renderer.domElement);
       scene.traverse((object) => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) object.geometry.dispose();
+        if (object instanceof THREE.Mesh || object instanceof THREE.Line) object.geometry.dispose();
       });
       materialList.forEach((material) => material.dispose());
-      gridMaterial.dispose();
       worldMaterials.forEach((material) => material.dispose());
       renderer.dispose();
     };
