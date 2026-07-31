@@ -147,7 +147,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .neuron-render-stage:before { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(rgba(104,214,196,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(104,214,196,.035) 1px, transparent 1px); background-size: 32px 32px; mask-image: radial-gradient(circle, #000 20%, transparent 78%); }
 .neuron-render-stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; pointer-events: none; }
 .neuron-context-layer { z-index: 1; opacity: .5; filter: saturate(.45) brightness(.9); }
-.neuron-render-stage.heading .neuron-context-layer { opacity: .22; filter: saturate(.2) brightness(.72); }
+.neuron-render-stage.heading { background: radial-gradient(circle at 50% 64%, #14211f 0, #050807 45%, #010302 100%); }
 .neuron-action-layer { z-index: 2; opacity: .96; filter: saturate(1.16) drop-shadow(0 0 7px color-mix(in srgb, var(--layer-accent, #ff1493) 38%, transparent)); animation: neuron-ignite .55s ease-out both; }
 .neuron-render-glow { position: absolute; z-index: 0; inset: 10% 22%; border-radius: 50%; background: rgba(47,185,168,.055); filter: blur(28px); }
 .neuron-render-label { position: absolute; z-index: 4; left: 22px; top: 21px; display: grid; gap: 7px; pointer-events: none; }
@@ -156,13 +156,26 @@ h1 em { color: var(--moss); font-weight: 400; }
 .neuron-render-label strong { font-family: Georgia, serif; color: #eff3e9; font-size: 27px; font-weight: 400; letter-spacing: -.02em; }
 .neuron-render-count { position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; min-height: 38px; display: flex; align-items: center; justify-content: flex-end; padding: 0 17px; border-top: 1px solid rgba(229,234,219,.14); background: rgba(9,18,15,.9); font-weight: 800; letter-spacing: .08em; }
 .neuron-render-count strong { color: #f1bed4; font-size: 11px; }
-.epg-compass { position: absolute; z-index: 3; left: 50%; top: 51%; width: 190px; height: 190px; transform: translate(-50%, -50%); display: grid; place-items: center; filter: drop-shadow(0 16px 30px rgba(142,95,151,.2)); }
-.epg-ring { position: absolute; inset: 0; border-radius: 50%; background: repeating-conic-gradient(from -11.25deg, #eab8ce 0 9deg, #c7a7d8 9deg 18deg, transparent 18deg 22.5deg); border: 1px solid rgba(245,223,235,.82); box-shadow: inset 0 0 24px rgba(245,223,235,.24), 0 0 0 10px rgba(199,167,216,.06); }
-.epg-ring:after { content: ''; position: absolute; inset: 35px; border-radius: 50%; background: #0d1713; border: 1px solid rgba(234,184,206,.48); box-shadow: inset 0 0 30px rgba(185,143,202,.15); }
-.epg-ring span { position: absolute; z-index: 2; left: calc(50% - 2px); bottom: 50%; width: 4px; height: 72px; border-radius: 4px; background: linear-gradient(to top, rgba(244,207,223,.18), #ffd3e4); transform-origin: 50% 100%; animation: epg-heading 2.2s ease-in-out infinite alternate; }
-.epg-ring span:before { content: ''; position: absolute; left: -5px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: #ffd3e4; box-shadow: 0 0 0 7px rgba(255,211,228,.13), 0 0 18px #eab8ce; }
-.epg-compass > strong { position: relative; z-index: 4; color: #f6d9e7; font-family: Georgia, serif; font-size: 25px; font-weight: 400; letter-spacing: .04em; }
-@keyframes epg-heading { from { transform: rotate(-38deg); } to { transform: rotate(32deg); } }
+.epg-cockpit { position: absolute; z-index: 2; inset: 0; overflow: hidden; background: #010302; }
+.epg-cockpit img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.epg-cockpit-base { opacity: .3; filter: saturate(.55) brightness(.58); }
+.epg-cockpit-active {
+  opacity: 1;
+  filter: saturate(1.35) brightness(1.22) drop-shadow(0 0 8px rgba(248,172,226,.5));
+  -webkit-mask-image: conic-gradient(from calc(var(--heading-angle) - 7deg) at 50% 64%, #000 0 14deg, transparent 14deg 360deg);
+  mask-image: conic-gradient(from calc(var(--heading-angle) - 7deg) at 50% 64%, #000 0 14deg, transparent 14deg 360deg);
+}
+.epg-cockpit-reticle { position: absolute; z-index: 3; left: 50%; top: 64%; width: 31%; aspect-ratio: 1; border: 1px solid rgba(237,211,237,.24); border-radius: 50%; transform: translate(-50%, -50%) rotate(var(--heading-angle)); box-shadow: 0 0 0 7px rgba(197,168,219,.035), inset 0 0 22px rgba(220,187,226,.055); transition: transform .08s linear; }
+.epg-cockpit-reticle:before, .epg-cockpit-reticle:after { content: ''; position: absolute; background: rgba(240,218,235,.2); }
+.epg-cockpit-reticle:before { left: 50%; top: -12%; width: 1px; height: 124%; }
+.epg-cockpit-reticle:after { top: 50%; left: -12%; height: 1px; width: 124%; }
+.epg-cockpit-reticle span { position: absolute; left: 50%; top: -6px; width: 12px; height: 12px; transform: translateX(-50%); border-radius: 50%; background: #ffd5e8; box-shadow: 0 0 0 8px rgba(255,213,232,.13), 0 0 22px #efb7dc; }
+.epg-cockpit-readout { position: absolute; z-index: 4; right: 22px; top: 22px; min-width: 112px; padding: 9px 12px; border: 1px solid rgba(244,215,232,.34); border-radius: 8px; background: rgba(33,22,39,.7); color: #f5d7e8; display: grid; gap: 2px; text-align: right; backdrop-filter: blur(8px); }
+.epg-cockpit-readout span { font-size: 8px; font-weight: 900; letter-spacing: .13em; opacity: .68; }
+.epg-cockpit-readout strong { font-family: Georgia, serif; font-size: 25px; font-weight: 400; }
+.epg-cockpit-turn { position: absolute; z-index: 4; left: 50%; bottom: 48px; transform: translateX(-50%); width: min(300px, 58%); display: flex; align-items: center; justify-content: space-between; gap: 16px; color: rgba(240,217,233,.56); font-size: 9px; font-weight: 900; letter-spacing: .11em; }
+.epg-cockpit-turn b { color: #f2cde1; font-size: 9px; }
+.epg-cockpit.turn-left .epg-cockpit-turn span:first-child, .epg-cockpit.turn-right .epg-cockpit-turn span:last-child { color: #fff0f8; text-shadow: 0 0 12px #f3b8dc; }
 @keyframes neuron-ignite { from { opacity: 0; filter: saturate(.35) brightness(.65) drop-shadow(0 0 0 transparent); } to { opacity: .96; filter: saturate(1.16) brightness(1) drop-shadow(0 0 7px color-mix(in srgb, var(--layer-accent, #ff1493) 38%, transparent)); } }
 .inline-neuroglancer { position: absolute; inset: 0; z-index: 2; display: grid; grid-template-rows: 0 minmax(0, 1fr) 28px; overflow: hidden; background: #000; }
 .inline-neuroglancer iframe { width: 100%; height: 100%; display: block; border: 0; background: #000; }

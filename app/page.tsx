@@ -45,7 +45,7 @@ const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; d
   right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
   eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", detail: "6 FEEDING CELLS LIT", accent: "#ffc857" },
   threat: { src: `${assetBase}/banc-threat-walk.webp`, label: "THREAT RESPONSE", detail: "5 RESPONSE CELLS LIT", accent: "#ff6b5f" },
-  heading: { label: "EPG HEADING", detail: "45 EPG CELLS · COMPASS", accent: "#b98fca" },
+  heading: { label: "EPG COCKPIT", detail: "ILLUSTRATIVE HEADING BUMP", accent: "#b98fca" },
 };
 
 const WALKING_NODES: CircuitNode[] = [
@@ -181,6 +181,7 @@ export default function Home() {
   const keysRef = useRef(new Set<string>());
   const frameRef = useRef<number | null>(null);
   const lastRef = useRef(0);
+  const lastHeadingUiRef = useRef(0);
   const actionRef = useRef<Action>("rest");
   const worldStateRef = useRef<WorldState>("seeking");
   const warningTimerRef = useRef<number | null>(null);
@@ -193,6 +194,7 @@ export default function Home() {
   const [spiderWarning, setSpiderWarning] = useState(false);
   const [stage, setStage] = useState(0);
   const [steps, setSteps] = useState(0);
+  const [headingDegrees, setHeadingDegrees] = useState(344);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
   const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
@@ -375,6 +377,11 @@ export default function Home() {
       }
       const currentState = worldStateRef.current;
       const interactiveFlight = currentState === "heading";
+      if (interactiveFlight && time - lastHeadingUiRef.current > 70) {
+        const normalizedHeading = ((fly.angle * 180 / Math.PI) % 360 + 360) % 360;
+        setHeadingDegrees(Math.round(normalizedHeading));
+        lastHeadingUiRef.current = time;
+      }
       const direction = Number(forward) - Number(backward);
       if (direction !== 0) {
         const flightBoost = interactiveFlight ? 1.45 : 1;
@@ -673,20 +680,29 @@ export default function Home() {
             <div
               className={`neuron-render-stage${circuitMode === "heading" ? " heading" : ""}`}
               role="img"
-              aria-label={circuitMode === "heading" ? "Illustrative EPG heading ring; 45 BANC EPG cells available in Codex" : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
-              style={{ "--layer-accent": activeNeuronLayer.accent } as CSSProperties}
+              aria-label={circuitMode === "heading" ? `Front-view EPG cockpit with an illustrative heading bump at ${headingDegrees} degrees` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
+              style={{
+                "--layer-accent": activeNeuronLayer.accent,
+                "--heading-angle": `${headingDegrees + 90}deg`,
+              } as CSSProperties}
             >
-              <img className="neuron-context-layer" src={`${assetBase}/banc-context-base.webp`} alt="" aria-hidden="true" />
-              {activeNeuronLayer.src && <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />}
-              {circuitMode === "heading" && (
-                <div className="epg-compass" aria-hidden="true">
-                  <div className="epg-ring"><span /></div>
-                  <strong>EPG</strong>
+              {circuitMode === "heading" ? (
+                <div className={`epg-cockpit turn-${action}`} aria-hidden="true">
+                  <img className="epg-cockpit-base" src={`${assetBase}/epg-cockpit.webp`} alt="" />
+                  <img className="epg-cockpit-active" src={`${assetBase}/epg-cockpit.webp`} alt="" />
+                  <div className="epg-cockpit-reticle"><span /></div>
+                  <div className="epg-cockpit-readout"><span>FLY HEADING</span><strong>{String(headingDegrees).padStart(3, "0")}°</strong></div>
+                  <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
                 </div>
+              ) : (
+                <>
+                  <img className="neuron-context-layer" src={`${assetBase}/banc-context-base.webp`} alt="" aria-hidden="true" />
+                  {activeNeuronLayer.src && <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />}
+                </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
               <div className="neuron-render-label">
-                <span><i /> BANC NEURONS</span>
+                <span><i /> {circuitMode === "heading" ? "COMPASS COCKPIT" : "BANC NEURONS"}</span>
                 <strong>{activeNeuronLayer.label}</strong>
               </div>
               <div className="neuron-render-count"><strong>{activeNeuronLayer.detail}</strong></div>
