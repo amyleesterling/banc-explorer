@@ -535,11 +535,12 @@ export default function Home() {
             />
             <div className={`odor-label ${worldState}`}><span /><div><strong>{targetCopy.title}</strong><small>{targetCopy.detail}</small></div></div>
             {(worldState === "threat" || worldState === "takeoff" || worldState === "safe") && (
-              <div className={`spider-threat${worldState === "safe" ? " retreating" : ""}`} aria-hidden="true">
-                <span className="spider-leg leg-one" /><span className="spider-leg leg-two" />
-                <span className="spider-leg leg-three" /><span className="spider-leg leg-four" />
-                <span className="spider-body"><i /><i /></span>
-              </div>
+              <img
+                className={`spider-threat${worldState === "safe" ? " retreating" : ""}`}
+                src={`${assetBase}/mint-spider.webp`}
+                alt=""
+                aria-hidden="true"
+              />
             )}
             {worldState !== "seeking" && (
               <div className={`world-event ${worldState}`} role="status" aria-live="polite">
