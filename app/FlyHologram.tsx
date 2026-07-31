@@ -301,7 +301,8 @@ export function FlyHologram({
       seed.scale.set(0.72, 1.25, 1);
       target.add(seed);
     });
-    target.position.set(3.02, 1.62, 0);
+    // Align the fruit with the reachable edge of the fly's normalized arena.
+    target.position.set(2.65, 1.56, 0);
     scene.add(target);
 
     const scentDots: Array<[number, number, number, number]> = [
@@ -411,15 +412,20 @@ export function FlyHologram({
 
     const tripodA = new Set(["lf", "rm", "lh"]);
     const animationStart = performance.now() / 1000;
+    let displayedStride = 0.025;
+    let displayedTurn = 0;
     function animate(timeMs: number) {
       if (disposed) return;
       animationFrame = requestAnimationFrame(animate);
       if (timeMs - lastFrame < (lowPower ? 50 : 30)) return;
+      const frameDelta = Math.min((timeMs - lastFrame) / 1000, 0.08);
       lastFrame = timeMs;
       const time = timeMs / 1000;
       const moving = actionRef.current !== "rest";
       const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
-      const stride = moving ? 0.24 : 0.025;
+      const easing = Math.min(1, frameDelta * 8);
+      displayedStride += ((moving ? 0.24 : 0.025) - displayedStride) * easing;
+      displayedTurn += (turn - displayedTurn) * easing;
 
       for (const [name, object] of animatedSegments) {
         const base = baseQuaternions.get(name);
@@ -429,9 +435,9 @@ export function FlyHologram({
         const phase = tripodA.has(prefix) ? 0 : Math.PI;
         const wave = Math.sin(time * 8.2 + phase);
         const side = prefix.startsWith("l") ? 1 : -1;
-        if (name.endsWith("coxa")) object.rotateZ(wave * stride + turn * side * 0.08);
-        if (name.endsWith("trochanterfemur")) object.rotateY(wave * stride * 0.62);
-        if (name.endsWith("tibia")) object.rotateY(-wave * stride * 0.48);
+        if (name.endsWith("coxa")) object.rotateZ(wave * displayedStride + displayedTurn * side * 0.08);
+        if (name.endsWith("trochanterfemur")) object.rotateY(wave * displayedStride * 0.62);
+        if (name.endsWith("tibia")) object.rotateY(-wave * displayedStride * 0.48);
       }
 
       // A short, occasional wing shimmy makes the resting fly feel alert without

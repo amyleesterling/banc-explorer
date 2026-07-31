@@ -1,11 +1,13 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
 import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
 type Action = "rest" | "forward" | "left" | "right";
-type CircuitMode = "walk" | "left" | "right";
+type CircuitMode = "walk" | "left" | "right" | "eat" | "threat";
+type WorldState = "seeking" | "eating" | "threat" | "safe";
 
 type CircuitNode = {
   name: string;
@@ -18,15 +20,21 @@ type CircuitNode = {
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
 const WALKING_SCENE_URL = "https://ng.banc.community/2026a/walking";
 const STEERING_SCENE_URL = "https://ng.banc.community/2026a/walking-steering";
+const FEEDING_SCENE_URL = "https://ng.banc.community/2026a/feeding";
 const INTERACTIVE_NEURON_URL = `https://spelunker.cave-explorer.org/#!${encodeURIComponent(JSON.stringify(walkingSteeringNeuroglancer))}`;
 const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const FOOD_TARGET = { x: 0.88, y: 0.18 };
+const FOOD_CONTACT_RADIUS = 0.095;
+const SAFE_DISTANCE = 0.22;
 
-const STATIC_NEURON_LAYERS: Record<CircuitMode, { src: string; label: string; detail: string }> = {
-  walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", detail: "6 WALKING CELLS LIT" },
-  left: { src: `${assetBase}/banc-turn-left.webp`, label: "STEER LEFT", detail: "2 STEERING CELLS LIT" },
-  right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", detail: "2 STEERING CELLS LIT" },
+const STATIC_NEURON_LAYERS: Record<CircuitMode, { src: string; label: string; detail: string; accent: string }> = {
+  walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", detail: "6 WALKING CELLS LIT", accent: "#ff1493" },
+  left: { src: `${assetBase}/banc-turn-left.webp`, label: "STEER LEFT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
+  right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
+  eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", detail: "6 FEEDING CELLS LIT", accent: "#ffc857" },
+  threat: { src: `${assetBase}/banc-threat-walk.webp`, label: "THREAT RESPONSE", detail: "5 RESPONSE CELLS LIT", accent: "#ff6b5f" },
 };
 
 const WALKING_NODES: CircuitNode[] = [
@@ -82,6 +90,30 @@ const CIRCUITS: Record<CircuitMode, {
     viewerLabel: "OPEN STEERING NEURONS",
     nodes: steeringNodes("RIGHT"),
   },
+  eat: {
+    eyebrow: "FEEDING · SELECTED",
+    title: "The snack recruits a feeding ensemble",
+    summary: "Six exemplars from the official BANC v888 feeding scene are highlighted when the fly reaches the fruit. The selection is anatomical context, not a recording of neural activity.",
+    evidence: "OFFICIAL BANC v888 FEEDING SCENE",
+    viewerUrl: FEEDING_SCENE_URL,
+    viewerLabel: "OPEN FEEDING SCENE",
+    nodes: [
+      { name: "FEEDING SET", area: "BRAIN + VNC", role: "six scene-defined feeding exemplars", color: "#ffc857" },
+      { name: "VERSION NOTE", area: "FROZEN v888", role: "IDs follow the official scene snapshot", color: "#d8ec71" },
+    ],
+  },
+  threat: {
+    eyebrow: "THREAT RESPONSE · SELECTED",
+    title: "Escape pathways join the walking context",
+    summary: "Five descending response exemplars are highlighted with the gray nervous-system context while the fly moves away from the spider. This is a response selection, not a claim of threat detection.",
+    evidence: "BANC EXEMPLARS · RESPONSE, NOT DETECTION",
+    viewerUrl: WALKING_FIGURE_URL,
+    viewerLabel: "OPEN BANC WALKING PATHWAY",
+    nodes: [
+      { name: "RESPONSE SET", area: "BRAIN → VNC", role: "five descending response exemplars", color: "#ff6b5f" },
+      { name: "WALKING CONTEXT", area: "BRAIN + VNC", role: "gray cells provide anatomical context", color: "#71827a", muted: true },
+    ],
+  },
 };
 
 const SIGNAL_STAGES = [
@@ -117,7 +149,10 @@ export default function Home() {
   const frameRef = useRef<number | null>(null);
   const lastRef = useRef(0);
   const actionRef = useRef<Action>("rest");
+  const worldStateRef = useRef<WorldState>("seeking");
+  const threatTimerRef = useRef<number | null>(null);
   const [action, setAction] = useState<Action>("rest");
+  const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [stage, setStage] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [steps, setSteps] = useState(0);
@@ -125,6 +160,31 @@ export default function Home() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
   const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
+  const activeSignal = worldState === "eating"
+    ? { label: "EAT", color: "#ffc857", detail: "Feeding-scene exemplars glow when the fly reaches the fruit." }
+    : worldState === "threat"
+      ? { label: "ESCAPE", color: "#ff6b5f", detail: "Descending response exemplars appear as the fly moves away from danger." }
+      : worldState === "safe"
+        ? { label: "SAFE", color: "#68d6c4", detail: "The fly has opened a safe gap while the response selection remains visible." }
+        : SIGNAL_STAGES[stage];
+  const worldCopy = worldState === "eating"
+    ? { title: "Snack found!", detail: "A feeding selection is now glowing in the connectome lens." }
+    : worldState === "threat"
+      ? { title: "Spider! Walk away", detail: "Turn, then move forward to open a safe gap." }
+      : worldState === "safe"
+        ? { title: "Safe for now", detail: "You escaped—the response cells remain highlighted for inspection." }
+        : action === "rest"
+          ? { title: "Find the fallen fruit", detail: "A 3 mm journey through a giant garden." }
+          : action === "forward"
+            ? { title: "Tiny feet in motion", detail: "Connectome signals are now in motion." }
+            : { title: `Steering ${action}`, detail: "Connectome signals are now in motion." };
+  const targetCopy = worldState === "eating"
+    ? { title: "SNACK FOUND", detail: "TASTING THE FRUIT" }
+    : worldState === "threat"
+      ? { title: "SPIDER ALERT", detail: "MOVE AWAY FROM DANGER" }
+      : worldState === "safe"
+        ? { title: "SAFE DISTANCE", detail: "RESPONSE SELECTION VISIBLE" }
+        : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
 
   useEffect(() => {
     if (!viewerOpen) return;
@@ -140,10 +200,37 @@ export default function Home() {
     };
   }, [viewerOpen]);
 
+  const triggerEating = useCallback(() => {
+    if (worldStateRef.current !== "seeking") return;
+    worldStateRef.current = "eating";
+    actionRef.current = "rest";
+    keysRef.current.clear();
+    setWorldState("eating");
+    setAction("rest");
+    setCircuitMode("eat");
+    setStage(0);
+    setIsPlaying(false);
+    if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
+    threatTimerRef.current = window.setTimeout(() => {
+      if (worldStateRef.current !== "eating") return;
+      worldStateRef.current = "threat";
+      setWorldState("threat");
+      setCircuitMode("threat");
+    }, 2400);
+  }, []);
+
+  const markSafe = useCallback(() => {
+    if (worldStateRef.current !== "threat") return;
+    worldStateRef.current = "safe";
+    setWorldState("safe");
+    setCircuitMode("threat");
+  }, []);
+
   const updateAction = useCallback((next: Action) => {
+    if (worldStateRef.current === "eating") return;
     actionRef.current = next;
     setAction(next);
-    if (next !== "rest") {
+    if (next !== "rest" && worldStateRef.current === "seeking") {
       setCircuitMode(next === "forward" ? "walk" : next);
       setIsPlaying(true);
       setStage(next === "forward" ? 3 : 2);
@@ -155,6 +242,7 @@ export default function Home() {
       const key = event.key.toLowerCase();
       if (["arrowup", "arrowleft", "arrowright", "w", "a", "d"].includes(key)) {
         event.preventDefault();
+        if (worldStateRef.current === "eating") return;
         keysRef.current.add(key);
       }
     };
@@ -216,10 +304,18 @@ export default function Home() {
       }
       fly.x = Math.max(0.1, Math.min(0.9, fly.x));
       fly.y = Math.max(0.16, Math.min(0.86, fly.y));
+      const foodDistance = Math.hypot(fly.x - FOOD_TARGET.x, fly.y - FOOD_TARGET.y);
+      if (worldStateRef.current === "seeking" && foodDistance <= FOOD_CONTACT_RADIUS) {
+        triggerEating();
+      }
+      if (worldStateRef.current === "eating") nextAction = "rest";
+      if (worldStateRef.current === "threat" && foodDistance >= SAFE_DISTANCE) {
+        markSafe();
+      }
       if (nextAction !== actionRef.current) {
         actionRef.current = nextAction;
         setAction(nextAction);
-        if (nextAction !== "rest") {
+        if (nextAction !== "rest" && worldStateRef.current === "seeking") {
           setCircuitMode(nextAction === "forward" ? "walk" : nextAction);
           setStage(nextAction === "forward" ? 3 : 2);
           setIsPlaying(true);
@@ -371,8 +467,9 @@ export default function Home() {
     frameRef.current = requestAnimationFrame(render);
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
     };
-  }, []);
+  }, [markSafe, triggerEating]);
 
   const nudge = (next: Action) => {
     updateAction(next);
@@ -422,19 +519,31 @@ export default function Home() {
           <div className="arena-wrap">
             <canvas ref={arenaRef} className="arena-motion-canvas" aria-hidden="true" />
             <FlyHologram motionRef={flyRef} action={action} />
-            <div className="odor-label"><span /><div><strong>RIPE FRUIT</strong><small>FOLLOW THE YEASTY SCENT</small></div></div>
+            <div className={`odor-label ${worldState}`}><span /><div><strong>{targetCopy.title}</strong><small>{targetCopy.detail}</small></div></div>
+            {(worldState === "threat" || worldState === "safe") && (
+              <div className={`spider-threat${worldState === "safe" ? " retreating" : ""}`} aria-hidden="true">
+                <span className="spider-leg leg-one" /><span className="spider-leg leg-two" />
+                <span className="spider-leg leg-three" /><span className="spider-leg leg-four" />
+                <span className="spider-body"><i /><i /></span>
+              </div>
+            )}
+            {worldState !== "seeking" && (
+              <div className={`world-event ${worldState}`} role="status" aria-live="polite">
+                <strong>{worldCopy.title}</strong><span>{worldCopy.detail}</span>
+              </div>
+            )}
             <div className="world-label"><span>FERMENTATION PATCH 01</span><strong>PEACHDROP GARDEN</strong></div>
             <div className="arena-tip"><span className="holo-status" /> MACRO VIEW · FLY ≈ 3 MM</div>
           </div>
           <div className="controls">
             <div className="control-copy">
-              <strong>{action === "rest" ? "Find the fallen fruit" : action === "forward" ? "Tiny feet in motion" : `Steering ${action}`}</strong>
-              <span>{action === "rest" ? "A 3 mm journey through a giant garden" : "Connectome signals are now in motion"}</span>
+              <strong>{worldCopy.title}</strong>
+              <span>{worldCopy.detail}</span>
             </div>
             <div className="key-controls" aria-label="Fly movement controls">
-              <button onClick={() => nudge("left")} aria-label="Steer left">←<kbd>A</kbd></button>
-              <button onClick={() => nudge("forward")} aria-label="Walk forward">↑<kbd>W</kbd></button>
-              <button onClick={() => nudge("right")} aria-label="Steer right">→<kbd>D</kbd></button>
+              <button onClick={() => nudge("left")} disabled={worldState === "eating"} aria-label="Steer left">←<kbd>A</kbd></button>
+              <button onClick={() => nudge("forward")} disabled={worldState === "eating"} aria-label="Walk forward">↑<kbd>W</kbd></button>
+              <button onClick={() => nudge("right")} disabled={worldState === "eating"} aria-label="Steer right">→<kbd>D</kbd></button>
             </div>
           </div>
         </div>
@@ -447,7 +556,12 @@ export default function Home() {
             </button>
           </header>
           <div className="circuit-canvas-wrap">
-            <div className="neuron-render-stage" role="img" aria-label={`BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}>
+            <div
+              className="neuron-render-stage"
+              role="img"
+              aria-label={`BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
+              style={{ "--layer-accent": activeNeuronLayer.accent } as CSSProperties}
+            >
               <img className="neuron-context-layer" src={`${assetBase}/banc-context-base.webp`} alt="" aria-hidden="true" />
               <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />
               <div className="neuron-render-glow" aria-hidden="true" />
@@ -456,7 +570,7 @@ export default function Home() {
                 <strong>{activeNeuronLayer.label}</strong>
                 <small>GRAY = CONTEXT · COLOR = SELECTED CIRCUIT</small>
               </div>
-              <div className="neuron-render-count"><span>81-CELL CONTEXT</span><strong>{activeNeuronLayer.detail}</strong></div>
+              <div className="neuron-render-count"><span>92-CELL CONTEXT</span><strong>{activeNeuronLayer.detail}</strong></div>
             </div>
             {viewerOpen && (
               <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">
@@ -474,8 +588,8 @@ export default function Home() {
               <span>NOW SHOWING</span>
               <button type="button" onClick={() => setIsPlaying((value) => !value)}>{isPlaying ? "PAUSE Ⅱ" : "PLAY ▶"}</button>
             </div>
-            <h2><span style={{ color: SIGNAL_STAGES[stage].color }}>{String(stage + 1).padStart(2, "0")}</span> {SIGNAL_STAGES[stage].label}</h2>
-            <p>{SIGNAL_STAGES[stage].detail}</p>
+            <h2><span style={{ color: activeSignal.color }}>{String(stage + 1).padStart(2, "0")}</span> {activeSignal.label}</h2>
+            <p>{activeSignal.detail}</p>
             <div className="action-circuit" aria-live="polite">
               <div className="action-circuit-heading">
                 <div>
