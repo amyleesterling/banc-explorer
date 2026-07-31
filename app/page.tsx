@@ -202,7 +202,7 @@ export default function Home() {
       : worldState === "heading"
         ? { title: "Fly to the flower", detail: "Steer with the arrow keys." }
       : worldState === "landing"
-        ? { title: "Landing", detail: "Safe patch ahead." }
+        ? { title: "Safe on the flower", detail: "The spider is gone." }
         : action === "rest"
           ? { title: "Find the fallen fruit", detail: "A 3 mm journey through a giant garden." }
           : action === "forward"
@@ -219,7 +219,7 @@ export default function Home() {
       : worldState === "heading"
         ? { title: "LAND HERE", detail: "STEER TO THE FLOWER" }
       : worldState === "landing"
-        ? { title: "SAFE PATCH", detail: "TOUCHING DOWN" }
+        ? { title: "SAFE FLOWER", detail: "TOUCHING DOWN" }
         : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
 
   useEffect(() => {
@@ -607,10 +607,8 @@ export default function Home() {
               <div
                 className={`landing-flower ${worldState}`}
                 style={FLOWER_SCREEN}
-                role="img"
-                aria-label="Flower landing target"
               >
-                <span className="flower-petals"><i /><i /><i /><i /><i /><b /></span>
+                <img className="safe-flower-art" src={`${assetBase}/safe-flower.webp`} alt="Glowing pink flower, the safe landing target" />
                 <strong>{targetCopy.title}</strong>
               </div>
             )}
