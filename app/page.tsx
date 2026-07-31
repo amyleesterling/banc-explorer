@@ -149,13 +149,6 @@ const CIRCUITS: Record<CircuitMode, {
   },
 };
 
-const SIGNAL_STAGES = [
-  { label: "SENSE", color: "#68d6c4", detail: "Leg proprioceptors report stance and motion." },
-  { label: "ASCEND", color: "#8ac7ff", detail: "Ascending neurons carry body-state signals toward the brain." },
-  { label: "STEER", color: "#ffc857", detail: "Descending pathways bias walking direction and speed." },
-  { label: "STEP", color: "#ff7f6e", detail: "Local VNC circuits coordinate motor output across six legs." },
-];
-
 const LEGEND = [
   ["Sensory", "#68d6c4"],
   ["Ascending", "#8ac7ff"],
@@ -192,26 +185,12 @@ export default function Home() {
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [spiderWarning, setSpiderWarning] = useState(false);
-  const [stage, setStage] = useState(0);
   const [steps, setSteps] = useState(0);
   const [headingDegrees, setHeadingDegrees] = useState(344);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
   const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
   const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
-  const activeSignal = worldState === "eating"
-    ? { label: "EAT", color: "#ffc857", detail: "Feeding-scene exemplars glow when the fly reaches the fruit." }
-    : worldState === "threat"
-      ? { label: "ESCAPE", color: "#c86f78", detail: "Escape response." }
-      : worldState === "takeoff"
-        ? { label: "TAKEOFF", color: "#b77892", detail: "Wings accelerate." }
-      : worldState === "heading"
-        ? { label: "EPG COMPASS", color: "#8a6697", detail: "Heading stays online." }
-      : worldState === "landing"
-        ? { label: "LANDING", color: "#5f8d7c", detail: "Touching down." }
-        : action === "backward"
-          ? { label: "MOONWALK", color: "#ff1493", detail: "Moonwalker Descending Neurons switch the fly into reverse." }
-          : SIGNAL_STAGES[stage];
   const worldCopy = worldState === "eating"
     ? spiderWarning
       ? { title: "Watch out for the spider!", detail: "Keep moving." }
@@ -262,7 +241,6 @@ export default function Home() {
     worldStateRef.current = "eating";
     setWorldState("eating");
     setCircuitMode("eat");
-    setStage(0);
     setSpiderWarning(false);
     if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
     if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
@@ -304,7 +282,6 @@ export default function Home() {
       worldStateRef.current = "seeking";
       setWorldState("seeking");
       setCircuitMode("walk");
-      setStage(0);
     }, 1100);
   }, []);
 
@@ -315,7 +292,6 @@ export default function Home() {
     setAction(next);
     if (next !== "rest" && currentState === "seeking") {
       setCircuitMode(next === "forward" ? "walk" : next);
-      setStage(next === "forward" || next === "backward" ? 3 : 2);
     }
   }, []);
 
@@ -405,7 +381,6 @@ export default function Home() {
         setAction(nextAction);
         if (nextAction !== "rest" && worldStateRef.current === "seeking") {
           setCircuitMode(nextAction === "forward" ? "walk" : nextAction);
-          setStage(nextAction === "forward" || nextAction === "backward" ? 3 : 2);
           setSteps((value) => value + 1);
         }
       }
@@ -705,7 +680,6 @@ export default function Home() {
                 <span><i /> {circuitMode === "heading" ? "COMPASS COCKPIT" : "BANC NEURONS"}</span>
                 <strong>{activeNeuronLayer.label}</strong>
               </div>
-              <div className="neuron-render-count"><strong>{activeNeuronLayer.detail}</strong></div>
             </div>
             {viewerOpen && (
               <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">
@@ -719,10 +693,10 @@ export default function Home() {
             )}
           </div>
           <div className={`signal-story mode-${circuitMode}`} aria-live="polite">
-            <div className="signal-topline"><span>NOW SHOWING</span></div>
-            <h2>{activeSignal.label}</h2>
+            <div className="signal-topline"><span>ACTION</span></div>
+            <h2>{activeNeuronLayer.label}</h2>
             <p>{activeCircuit.summary}</p>
-            <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE ↗</a>
+            <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT ↗</a>
           </div>
         </div>
       </section>
