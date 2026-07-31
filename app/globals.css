@@ -2,8 +2,8 @@
 
 :root {
   --ink: #17251f;
-  --paper: #f2efdf;
-  --moss: #3f5848;
+  --paper: #e8f2ec;
+  --moss: #376454;
   --acid: #68d6c4;
   --night: #111a17;
   --line: rgba(23, 37, 31, .2);
@@ -13,7 +13,9 @@
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  background: var(--paper);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(244, 213, 228, .48), transparent 34rem),
+    linear-gradient(180deg, #edf6f0 0%, var(--paper) 58%, #dfece4 100%);
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -31,6 +33,8 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .08em;
+  background: rgba(237, 246, 240, .72);
+  backdrop-filter: blur(12px);
 }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark {
@@ -68,7 +72,7 @@ h1 em { color: var(--moss); font-weight: 400; }
   min-height: 670px; border: 1px solid var(--ink); box-shadow: 0 20px 60px rgba(29,44,36,.12);
 }
 .arena-panel, .circuit-panel { min-width: 0; display: grid; grid-template-rows: 57px 1fr auto; }
-.arena-panel { background: #f8dbe5; }
+.arena-panel { background: #e4f0e8; }
 .circuit-panel { background: var(--night); color: #e5eadb; border-left: 1px solid #839087; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 21px; border-bottom: 1px solid; }
 .panel-heading > div:first-child { display: flex; align-items: center; gap: 12px; }
@@ -129,7 +133,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .world-label strong { font-family: Georgia, serif; font-size: 20px; font-weight: 400; color: #7b3e62; }
 .arena-tip { position: absolute; z-index: 4; left: 18px; bottom: 16px; background: rgba(75,44,75,.88); color: #fff5df; padding: 10px 13px; border: 1px solid rgba(255,184,211,.42); border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .08em; display: flex; align-items: center; gap: 7px; box-shadow: 0 7px 24px rgba(85,45,74,.18); }
 .holo-status { width: 6px; height: 6px; border-radius: 50%; background: #68d6c4; box-shadow: 0 0 9px #68d6c4; }
-.controls { min-height: 88px; background: #f7f4e8; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; gap: 18px; }
+.controls { min-height: 88px; background: #edf6f0; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; gap: 18px; }
 .control-copy { display: grid; gap: 4px; }
 .control-copy strong { font-family: Georgia, serif; font-size: 18px; font-weight: 400; }
 .control-copy span { font-size: 13px; color: #67756d; }
