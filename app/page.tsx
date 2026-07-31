@@ -515,8 +515,11 @@ export default function Home() {
           <h2>The brain doesn’t walk alone.</h2>
         </div>
         <div className="how-copy">
-          <p>BANC joins the brain and ventral nerve cord in one densely reconstructed adult fly nervous system. Walking emerges from distributed coordination: body sensors, local feedback loops, long-range pathways, and motor neurons working together.</p>
-          <a href="https://www.nature.com/articles/s41586-026-10735-w" target="_blank" rel="noreferrer">Read the BANC paper <span>↗</span></a>
+          <p>The BANC (Brain and Nerve Cord) is the first fly connectome that includes the whole central nervous system, mapped down to the synapse. Walking emerges from distributed coordination: body sensors, local feedback loops, long-range pathways, and motor neurons working together.</p>
+          <div className="how-links">
+            <a href="https://www.nature.com/articles/s41586-026-10735-w" target="_blank" rel="noreferrer">Read the BANC paper <span>↗</span></a>
+            <a href="https://codex.flywire.ai/?dataset=banc" target="_blank" rel="noreferrer">Explore BANC in Codex <span>↗</span></a>
+          </div>
         </div>
         <div className="coming-soon">
           <span>COMING NEXT</span>
