@@ -154,7 +154,6 @@ export default function Home() {
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [stage, setStage] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [steps, setSteps] = useState(0);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -209,7 +208,6 @@ export default function Home() {
     setAction("rest");
     setCircuitMode("eat");
     setStage(0);
-    setIsPlaying(false);
     if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
     threatTimerRef.current = window.setTimeout(() => {
       if (worldStateRef.current !== "eating") return;
@@ -232,7 +230,6 @@ export default function Home() {
     setAction(next);
     if (next !== "rest" && worldStateRef.current === "seeking") {
       setCircuitMode(next === "forward" ? "walk" : next);
-      setIsPlaying(true);
       setStage(next === "forward" ? 3 : 2);
     }
   }, []);
@@ -254,12 +251,6 @@ export default function Home() {
       window.removeEventListener("keyup", keyUp);
     };
   }, []);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    const timer = window.setInterval(() => setStage((current) => (current + 1) % 4), 1150);
-    return () => window.clearInterval(timer);
-  }, [isPlaying]);
 
   useEffect(() => {
     const canvas = arenaRef.current;
@@ -318,7 +309,6 @@ export default function Home() {
         if (nextAction !== "rest" && worldStateRef.current === "seeking") {
           setCircuitMode(nextAction === "forward" ? "walk" : nextAction);
           setStage(nextAction === "forward" ? 3 : 2);
-          setIsPlaying(true);
           setSteps((value) => value + 1);
         }
       }
@@ -586,7 +576,7 @@ export default function Home() {
           <div className="signal-story">
             <div className="signal-topline">
               <span>NOW SHOWING</span>
-              <button type="button" onClick={() => setIsPlaying((value) => !value)}>{isPlaying ? "PAUSE Ⅱ" : "PLAY ▶"}</button>
+              <span>DRIVEN BY THE FLY</span>
             </div>
             <h2><span style={{ color: activeSignal.color }}>{String(stage + 1).padStart(2, "0")}</span> {activeSignal.label}</h2>
             <p>{activeSignal.detail}</p>
@@ -624,7 +614,7 @@ export default function Home() {
                   key={item.label}
                   type="button"
                   className={index === stage ? "active" : index < stage ? "seen" : ""}
-                  onClick={() => { setStage(index); setIsPlaying(false); }}
+                  onClick={() => setStage(index)}
                   aria-label={`Show ${item.label.toLowerCase()} stage`}
                 ><span style={{ backgroundColor: item.color }} />{item.label}</button>
               ))}
