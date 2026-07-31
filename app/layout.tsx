@@ -19,7 +19,7 @@ const imageUrl = `${siteUrl}${assetBase}/og.png`;
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "BANC Explorer — Be the Fly",
-  description: "Steer a fruit fly and explore how walking emerges across its brain and ventral nerve cord.",
+  description: "Drive a fruit fly through walking, steering, feeding, escape, and flight while the neurons behind each behavior light up.",
   icons: {
     icon: [{ url: `${assetBase}/flywire-favicon.jpg`, type: "image/jpeg", sizes: "256x256" }],
     shortcut: `${assetBase}/flywire-favicon.jpg`,
@@ -27,13 +27,13 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "BANC Explorer — Be the Fly",
-    description: "One small step. An entire nervous system.",
+    description: "Drive the fly. See behavior light up.",
     images: [{ url: imageUrl, width: 1536, height: 1024, alt: "BANC Explorer — Be the Fly" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "BANC Explorer — Be the Fly",
-    description: "One small step. An entire nervous system.",
+    description: "Drive the fly. See behavior light up.",
     images: [imageUrl],
   },
 };

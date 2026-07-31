@@ -9,20 +9,10 @@ type Action = "rest" | "forward" | "backward" | "left" | "right";
 type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "heading";
 type WorldState = "seeking" | "eating" | "threat" | "takeoff" | "heading" | "landing";
 
-type CircuitNode = {
-  name: string;
-  area: string;
-  role: string;
-  color: string;
-  muted?: boolean;
-};
-
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
 const WALKING_SCENE_URL = "https://ng.banc.community/2026a/walking";
-const STEERING_SCENE_URL = "https://ng.banc.community/2026a/walking-steering";
 const FEEDING_SCENE_URL = "https://ng.banc.community/2026a/feeding";
 const INTERACTIVE_NEURON_URL = `https://spelunker.cave-explorer.org/#!${encodeURIComponent(JSON.stringify(walkingSteeringNeuroglancer))}`;
-const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
 const MDN_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+MDN&dataset=banc";
 const EPG_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+EPG&dataset=banc";
@@ -38,114 +28,47 @@ const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
 const FOOD_SCREEN = toScreenPosition(FOOD_TARGET);
 const FLOWER_SCREEN = toScreenPosition(FLOWER_TARGET);
 
-const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; detail: string; accent: string }> = {
-  walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", detail: "6 WALKING CELLS LIT", accent: "#ff1493" },
-  backward: { src: `${assetBase}/banc-backward.webp`, label: "MOONWALK", detail: "4 MDNs LIT", accent: "#ff1493" },
-  left: { src: `${assetBase}/banc-turn-left.webp`, label: "STEER LEFT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
-  right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
-  eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", detail: "6 FEEDING CELLS LIT", accent: "#ffc857" },
-  threat: { src: `${assetBase}/banc-threat-walk.webp`, label: "THREAT RESPONSE", detail: "5 RESPONSE CELLS LIT", accent: "#ff6b5f" },
-  heading: { label: "EPG COCKPIT", detail: "ILLUSTRATIVE HEADING BUMP", accent: "#b98fca" },
+const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; accent: string }> = {
+  walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", accent: "#ff4fa3" },
+  backward: { src: `${assetBase}/banc-backward.webp`, label: "MOONWALK", accent: "#ff4fa3" },
+  left: { src: `${assetBase}/banc-turn-left.webp`, label: "STEER LEFT", accent: "#ff4fa3" },
+  right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", accent: "#ff4fa3" },
+  eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", accent: "#ffc857" },
+  threat: { src: `${assetBase}/banc-threat-walk.webp`, label: "THREAT RESPONSE", accent: "#ff7b72" },
+  heading: { label: "EPG COCKPIT", accent: "#bd9bd1" },
 };
 
-const WALKING_NODES: CircuitNode[] = [
-  { name: "DNg100", area: "BRAIN → VNC", role: "pro-walking descending type", color: "#ffc857" },
-  { name: "AN09B029_b", area: "LEG → BRAIN", role: "proprioceptive context", color: "#8ac7ff" },
-  { name: "AN02A002", area: "VNC → BRAIN", role: "inhibitory walking feedback", color: "#68d6c4" },
-  { name: "T1 LOCAL LOOP", area: "FRONT LEG VNC", role: "sensory → intrinsic → motor", color: "#ff7f6e" },
-];
-
-function steeringNodes(side: "LEFT" | "RIGHT"): CircuitNode[] {
-  const otherSide = side === "LEFT" ? "RIGHT" : "LEFT";
-  return [
-    { name: `DNa02 · ${side}`, area: "BRAIN → VNC", role: "high-gain ipsilateral steering", color: "#ffc857" },
-    { name: `DNa01 · ${side}`, area: "BRAIN → VNC", role: "low-gain ipsilateral steering", color: "#d8ec71" },
-    { name: `DNa02 · ${otherSide}`, area: "OTHER SIDE", role: "bilateral comparison", color: "#71827a", muted: true },
-    { name: `DNa01 · ${otherSide}`, area: "OTHER SIDE", role: "bilateral comparison", color: "#5d6b64", muted: true },
-  ];
-}
-
 const CIRCUITS: Record<CircuitMode, {
-  eyebrow: string;
-  title: string;
   summary: string;
-  evidence: string;
   viewerUrl: string;
-  viewerLabel: string;
-  nodes: CircuitNode[];
 }> = {
   walk: {
-    eyebrow: "FORWARD WALK · SELECTED",
-    title: "Walking drive meets local control",
-    summary: "Walking drive is coordinated with body feedback and local leg circuits.",
-    evidence: "BANC FIG. 5c · CONNECTOME-SUPPORTED",
+    summary: "DNg100 walking drive is coordinated with ascending feedback and local leg circuits.",
     viewerUrl: WALKING_SCENE_URL,
-    viewerLabel: "OPEN WALKING NEURONS",
-    nodes: WALKING_NODES,
   },
   backward: {
-    eyebrow: "MOONWALK · SELECTED",
-    title: "Moonwalkers reverse the motor program",
     summary: "Four Moonwalker Descending Neurons are highlighted during backward walking.",
-    evidence: "BANC v888 · LINEAGE-VERIFIED",
     viewerUrl: MDN_CODEX_URL,
-    viewerLabel: "OPEN MDNs IN CODEX",
-    nodes: [
-      { name: "MDN × 4", area: "BRAIN → VNC", role: "command-like backward walking", color: "#ff1493" },
-    ],
   },
   left: {
-    eyebrow: "STEER LEFT · SELECTED",
-    title: "A bilateral steering comparison",
     summary: "Left DNa01 and DNa02 are highlighted for steering.",
-    evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
-    viewerUrl: STEERING_SCENE_URL,
-    viewerLabel: "OPEN STEERING NEURONS",
-    nodes: steeringNodes("LEFT"),
+    viewerUrl: STEERING_CODEX_URL,
   },
   right: {
-    eyebrow: "STEER RIGHT · SELECTED",
-    title: "A bilateral steering comparison",
     summary: "Right DNa01 and DNa02 are highlighted for steering.",
-    evidence: "FUNCTIONALLY CHARACTERIZED · BANC-MATCHED",
-    viewerUrl: STEERING_SCENE_URL,
-    viewerLabel: "OPEN STEERING NEURONS",
-    nodes: steeringNodes("RIGHT"),
+    viewerUrl: STEERING_CODEX_URL,
   },
   eat: {
-    eyebrow: "FEEDING · SELECTED",
-    title: "The snack recruits a feeding ensemble",
     summary: "Six cells from the official BANC feeding scene are highlighted.",
-    evidence: "OFFICIAL BANC v888 FEEDING SCENE",
     viewerUrl: FEEDING_SCENE_URL,
-    viewerLabel: "OPEN FEEDING SCENE",
-    nodes: [
-      { name: "FEEDING SET", area: "BRAIN + VNC", role: "six scene-defined feeding exemplars", color: "#ffc857" },
-      { name: "VERSION NOTE", area: "FROZEN v888", role: "IDs follow the official scene snapshot", color: "#d8ec71" },
-    ],
   },
   threat: {
-    eyebrow: "THREAT RESPONSE · SELECTED",
-    title: "Escape pathways join the walking context",
     summary: "Five response neurons are highlighted as the fly escapes.",
-    evidence: "BANC EXEMPLARS · RESPONSE, NOT DETECTION",
     viewerUrl: WALKING_FIGURE_URL,
-    viewerLabel: "OPEN BANC WALKING PATHWAY",
-    nodes: [
-      { name: "RESPONSE SET", area: "BRAIN → VNC", role: "five descending response exemplars", color: "#ff6b5f" },
-      { name: "WALKING CONTEXT", area: "BRAIN + VNC", role: "gray cells provide anatomical context", color: "#71827a", muted: true },
-    ],
   },
   heading: {
-    eyebrow: "FLIGHT HEADING · SELECTED",
-    title: "A compass in the fly brain",
     summary: "EPG neurons maintain the fly's heading as it turns.",
-    evidence: "BANC v888 · 45 EPG CELLS",
     viewerUrl: EPG_CODEX_URL,
-    viewerLabel: "OPEN EPG CELLS IN CODEX",
-    nodes: [
-      { name: "EPG × 45", area: "ELLIPSOID BODY", role: "heading-direction compass", color: "#b98fca" },
-    ],
   },
 };
 
@@ -156,20 +79,7 @@ const LEGEND = [
   ["VNC + motor", "#ff7f6e"],
 ];
 
-function roundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, width, height, radius);
-}
-
 export default function Home() {
-  const arenaRef = useRef<HTMLCanvasElement>(null);
   const flyRef = useRef({ x: 0.34, y: 0.58, angle: -0.28 });
   const keysRef = useRef(new Set<string>());
   const frameRef = useRef<number | null>(null);
@@ -315,24 +225,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const canvas = arenaRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
     const render = (time: number) => {
       if (time - lastRef.current < 30) {
         frameRef.current = requestAnimationFrame(render);
         return;
       }
-      const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
-      if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
-        canvas.width = Math.floor(width * ratio);
-        canvas.height = Math.floor(height * ratio);
-      }
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       const dt = Math.min((time - lastRef.current) / 1000 || 0, 0.03);
       lastRef.current = time;
 
@@ -384,145 +281,6 @@ export default function Home() {
           setSteps((value) => value + 1);
         }
       }
-
-      const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, "#ebe6cf");
-      gradient.addColorStop(0.55, "#dfe5c8");
-      gradient.addColorStop(1, "#cbd2ae");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-
-      ctx.globalAlpha = 0.15;
-      ctx.strokeStyle = "#52674e";
-      ctx.lineWidth = 1;
-      for (let x = 0; x < width; x += 38) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < height; y += 38) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-
-      const plumeX = width * 0.81;
-      const plumeY = height * 0.31;
-      const plume = ctx.createRadialGradient(plumeX, plumeY, 2, plumeX, plumeY, width * 0.27);
-      plume.addColorStop(0, "rgba(255, 200, 87, .52)");
-      plume.addColorStop(0.35, "rgba(255, 200, 87, .16)");
-      plume.addColorStop(1, "rgba(255, 200, 87, 0)");
-      ctx.fillStyle = plume;
-      ctx.fillRect(plumeX - width * 0.32, plumeY - width * 0.32, width * 0.64, width * 0.64);
-      ctx.fillStyle = "#263d32";
-      ctx.beginPath();
-      ctx.arc(plumeX, plumeY, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#ffc857";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(plumeX, plumeY, 16 + Math.sin(time / 500) * 3, 0, Math.PI * 2);
-      ctx.stroke();
-
-      const fx = fly.x * width;
-      const fy = fly.y * height;
-      ctx.save();
-      ctx.translate(fx, fy);
-      ctx.rotate(fly.angle + Math.PI / 2);
-      const gait = actionRef.current === "rest" ? 0 : Math.sin(time / 55) * 5;
-      const bodyGlow = ctx.createRadialGradient(0, 0, 2, 0, 0, 52);
-      bodyGlow.addColorStop(0, "rgba(104,214,196,.25)");
-      bodyGlow.addColorStop(.45, "rgba(104,214,196,.08)");
-      bodyGlow.addColorStop(1, "rgba(104,214,196,0)");
-      ctx.fillStyle = bodyGlow;
-      ctx.fillRect(-58, -58, 116, 116);
-
-      ctx.strokeStyle = "rgba(104,214,196,.34)";
-      ctx.lineWidth = 6;
-      ctx.shadowColor = "#68d6c4";
-      ctx.shadowBlur = 13;
-      for (const side of [-1, 1]) {
-        for (let leg = -1; leg <= 1; leg++) {
-          ctx.beginPath();
-          ctx.moveTo(side * 6, leg * 8);
-          ctx.lineTo(side * (19 + gait * (leg || 1)), leg * 13 - gait * side);
-          ctx.lineTo(side * 27, leg * 20);
-          ctx.stroke();
-        }
-      }
-      ctx.strokeStyle = "rgba(225,255,246,.9)";
-      ctx.lineWidth = 1.15;
-      ctx.shadowBlur = 5;
-      for (const side of [-1, 1]) {
-        for (let leg = -1; leg <= 1; leg++) {
-          ctx.beginPath();
-          ctx.moveTo(side * 6, leg * 8);
-          ctx.lineTo(side * (19 + gait * (leg || 1)), leg * 13 - gait * side);
-          ctx.lineTo(side * 27, leg * 20);
-          ctx.stroke();
-          ctx.fillStyle = leg === 0 ? "#ffc857" : "#68d6c4";
-          ctx.beginPath();
-          ctx.arc(side * (19 + gait * (leg || 1)), leg * 13 - gait * side, 1.8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "rgba(200,255,239,.12)";
-      ctx.beginPath();
-      ctx.ellipse(-9, -2, 9, 19, -0.4, 0, Math.PI * 2);
-      ctx.ellipse(9, -2, 9, 19, 0.4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(104,214,196,.76)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.fillStyle = "rgba(16,42,35,.72)";
-      ctx.shadowColor = "#68d6c4";
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.ellipse(0, 4, 7, 17, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#baf5e7";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.fillStyle = "rgba(255,127,110,.9)";
-      ctx.beginPath();
-      ctx.arc(0, -12, 7.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#d8ec71";
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = "#d8ec71";
-      ctx.shadowBlur = 9;
-      ctx.beginPath();
-      ctx.moveTo(0, -13);
-      ctx.bezierCurveTo(-2, -4, 2, 3, 0, 19);
-      ctx.stroke();
-      for (let node = -8; node <= 14; node += 7) {
-        ctx.beginPath();
-        ctx.arc(Math.sin(node) * 1.4, node, 1.6, 0, Math.PI * 2);
-        ctx.fillStyle = node < 0 ? "#ffc857" : "#d8ec71";
-        ctx.fill();
-      }
-      const scanY = ((time / 18) % 70) - 35;
-      ctx.shadowColor = "#d8ec71";
-      ctx.shadowBlur = 12;
-      ctx.strokeStyle = "rgba(216,236,113,.72)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(-30, scanY);
-      ctx.lineTo(30, scanY);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-
-      roundedRect(ctx, 16, 16, 138, 34, 17);
-      ctx.fillStyle = "rgba(247,244,228,.86)";
-      ctx.fill();
-      ctx.fillStyle = "#24342c";
-      ctx.font = "600 11px Arial";
-      ctx.fillText(actionRef.current === "rest" ? "READY TO WALK" : actionRef.current.toUpperCase(), 34, 38);
 
       frameRef.current = requestAnimationFrame(render);
     };
@@ -588,7 +346,6 @@ export default function Home() {
             <div className="metric"><small>STEPS</small><strong>{String(steps).padStart(3, "0")}</strong></div>
           </header>
           <div className="arena-wrap" style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}>
-            <canvas ref={arenaRef} className="arena-motion-canvas" aria-hidden="true" />
             <FlyHologram
               motionRef={flyRef}
               action={action}
