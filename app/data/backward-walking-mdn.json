@@ -1,0 +1,29 @@
+{
+  "cell_type": "MDN",
+  "label": "Moonwalker Descending Neuron",
+  "behavior": "backward walking",
+  "verification": "Queried cell_info for tag=MDN at BANC materialization 896, then mapped each soma supervoxel to materialization 888 so the identities match the frozen public mesh snapshot used by the site.",
+  "render_asset": "banc-backward.webp",
+  "cells": [
+    {
+      "supervoxel_id": "76140287742936280",
+      "root_id_896": "720575941592674814",
+      "root_id_888": "720575941614906387"
+    },
+    {
+      "supervoxel_id": "76142074315307608",
+      "root_id_896": "720575941597827697",
+      "root_id_888": "720575941499708745"
+    },
+    {
+      "supervoxel_id": "76210656487087505",
+      "root_id_896": "720575941491012809",
+      "root_id_888": "720575941491012809"
+    },
+    {
+      "supervoxel_id": "76210656487113810",
+      "root_id_896": "720575941690515574",
+      "root_id_888": "720575941491065653"
+    }
+  ]
+}

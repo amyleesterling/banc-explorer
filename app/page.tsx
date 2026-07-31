@@ -5,8 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
 import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
-type Action = "rest" | "forward" | "left" | "right";
-type CircuitMode = "walk" | "left" | "right" | "eat" | "threat";
+type Action = "rest" | "forward" | "backward" | "left" | "right";
+type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat";
 type WorldState = "seeking" | "eating" | "threat" | "takeoff" | "safe";
 
 type CircuitNode = {
@@ -24,12 +24,14 @@ const FEEDING_SCENE_URL = "https://ng.banc.community/2026a/feeding";
 const INTERACTIVE_NEURON_URL = `https://spelunker.cave-explorer.org/#!${encodeURIComponent(JSON.stringify(walkingSteeringNeuroglancer))}`;
 const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
+const MDN_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+MDN&dataset=banc";
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const FOOD_TARGET = { x: 0.88, y: 0.18 };
 const FOOD_CONTACT_RADIUS = 0.095;
 
 const STATIC_NEURON_LAYERS: Record<CircuitMode, { src: string; label: string; detail: string; accent: string }> = {
   walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", detail: "6 WALKING CELLS LIT", accent: "#ff1493" },
+  backward: { src: `${assetBase}/banc-backward.webp`, label: "MOONWALK", detail: "4 MDNs LIT", accent: "#ff1493" },
   left: { src: `${assetBase}/banc-turn-left.webp`, label: "STEER LEFT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
   right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", detail: "2 STEERING CELLS LIT", accent: "#ff1493" },
   eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", detail: "6 FEEDING CELLS LIT", accent: "#ffc857" },
@@ -70,6 +72,17 @@ const CIRCUITS: Record<CircuitMode, {
     viewerUrl: WALKING_SCENE_URL,
     viewerLabel: "OPEN WALKING NEURONS",
     nodes: WALKING_NODES,
+  },
+  backward: {
+    eyebrow: "MOONWALK · SELECTED",
+    title: "Moonwalkers reverse the motor program",
+    summary: "Four Moonwalker Descending Neurons are highlighted during backward walking.",
+    evidence: "BANC v888 · LINEAGE-VERIFIED",
+    viewerUrl: MDN_CODEX_URL,
+    viewerLabel: "OPEN MDNs IN CODEX",
+    nodes: [
+      { name: "MDN × 4", area: "BRAIN → VNC", role: "command-like backward walking", color: "#ff1493" },
+    ],
   },
   left: {
     eyebrow: "STEER LEFT · SELECTED",
@@ -167,7 +180,9 @@ export default function Home() {
       ? { label: "ESCAPE", color: "#ff6b5f", detail: "Response exemplars remain highlighted during the illustrative takeoff." }
       : worldState === "safe"
         ? { label: "SAFE", color: "#68d6c4", detail: "The fly has opened a safe gap while the response selection remains visible." }
-        : SIGNAL_STAGES[stage];
+        : action === "backward"
+          ? { label: "MOONWALK", color: "#ff1493", detail: "Moonwalker Descending Neurons switch the fly into reverse." }
+          : SIGNAL_STAGES[stage];
   const worldCopy = worldState === "eating"
     ? { title: "Snack found!", detail: "A feeding selection is now glowing in the connectome lens." }
     : worldState === "threat"
@@ -180,6 +195,8 @@ export default function Home() {
           ? { title: "Find the fallen fruit", detail: "A 3 mm journey through a giant garden." }
           : action === "forward"
             ? { title: "Tiny feet in motion", detail: "Connectome signals are now in motion." }
+            : action === "backward"
+              ? { title: "Moonwalking", detail: "Four MDNs send the fly into reverse." }
             : { title: `Steering ${action}`, detail: "Connectome signals are now in motion." };
   const targetCopy = worldState === "eating"
     ? { title: "SNACK FOUND", detail: "TASTING THE FRUIT" }
@@ -250,14 +267,14 @@ export default function Home() {
     setAction(next);
     if (next !== "rest" && worldStateRef.current === "seeking") {
       setCircuitMode(next === "forward" ? "walk" : next);
-      setStage(next === "forward" ? 3 : 2);
+      setStage(next === "forward" || next === "backward" ? 3 : 2);
     }
   }, []);
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      if (["arrowup", "arrowleft", "arrowright", "w", "a", "d"].includes(key)) {
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "s", "a", "d"].includes(key)) {
         event.preventDefault();
         if (worldStateRef.current !== "seeking") return;
         keysRef.current.add(key);
@@ -297,6 +314,7 @@ export default function Home() {
       const keys = keysRef.current;
       const fly = flyRef.current;
       const forward = keys.has("arrowup") || keys.has("w");
+      const backward = keys.has("arrowdown") || keys.has("s");
       const left = keys.has("arrowleft") || keys.has("a");
       const right = keys.has("arrowright") || keys.has("d");
       let nextAction: Action = "rest";
@@ -308,10 +326,11 @@ export default function Home() {
         fly.angle += dt * 2.25;
         nextAction = "right";
       }
-      if (forward) {
-        fly.x += Math.cos(fly.angle) * dt * 0.12;
-        fly.y += Math.sin(fly.angle) * dt * 0.16;
-        nextAction = left ? "left" : right ? "right" : "forward";
+      const direction = Number(forward) - Number(backward);
+      if (direction !== 0) {
+        fly.x += Math.cos(fly.angle) * dt * 0.12 * direction;
+        fly.y += Math.sin(fly.angle) * dt * 0.16 * direction;
+        nextAction = direction < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
       }
       fly.x = Math.max(0.1, Math.min(0.9, fly.x));
       fly.y = Math.max(0.16, Math.min(0.86, fly.y));
@@ -325,7 +344,7 @@ export default function Home() {
         setAction(nextAction);
         if (nextAction !== "rest" && worldStateRef.current === "seeking") {
           setCircuitMode(nextAction === "forward" ? "walk" : nextAction);
-          setStage(nextAction === "forward" ? 3 : 2);
+          setStage(nextAction === "forward" || nextAction === "backward" ? 3 : 2);
           setSteps((value) => value + 1);
         }
       }
@@ -491,6 +510,11 @@ export default function Home() {
       fly.y += Math.sin(fly.angle) * 0.045;
       setSteps((value) => value + 1);
     }
+    if (next === "backward") {
+      fly.x -= Math.cos(fly.angle) * 0.035;
+      fly.y -= Math.sin(fly.angle) * 0.045;
+      setSteps((value) => value + 1);
+    }
     window.setTimeout(() => updateAction("rest"), 380);
   };
 
@@ -558,6 +582,7 @@ export default function Home() {
             <div className="key-controls" aria-label="Fly movement controls">
               <button onClick={() => nudge("left")} disabled={worldState !== "seeking"} aria-label="Steer left">←<kbd>A</kbd></button>
               <button onClick={() => nudge("forward")} disabled={worldState !== "seeking"} aria-label="Walk forward">↑<kbd>W</kbd></button>
+              <button onClick={() => nudge("backward")} disabled={worldState !== "seeking"} aria-label="Walk backward with Moonwalker Descending Neurons">↓<kbd>S</kbd></button>
               <button onClick={() => nudge("right")} disabled={worldState !== "seeking"} aria-label="Steer right">→<kbd>D</kbd></button>
             </div>
           </div>

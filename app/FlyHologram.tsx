@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
-type Action = "rest" | "forward" | "left" | "right";
+type Action = "rest" | "forward" | "backward" | "left" | "right";
 type EscapeState = "ground" | "takeoff" | "gone";
 
 export type FlyMotion = {
@@ -443,6 +443,7 @@ export function FlyHologram({
       const flying = escapeStateRef.current !== "ground";
       const moving = !flying && actionRef.current !== "rest";
       const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
+      const gaitDirection = actionRef.current === "backward" ? -1 : 1;
       const easing = Math.min(1, frameDelta * 8);
       displayedStride += ((moving ? 0.24 : 0.025) - displayedStride) * easing;
       displayedTurn += (turn - displayedTurn) * easing;
@@ -453,7 +454,7 @@ export function FlyHologram({
         object.quaternion.copy(base);
         const prefix = name.slice(0, 2);
         const phase = tripodA.has(prefix) ? 0 : Math.PI;
-        const wave = Math.sin(time * 8.2 + phase);
+        const wave = Math.sin(time * 8.2 + phase) * gaitDirection;
         const side = prefix.startsWith("l") ? 1 : -1;
         if (name.endsWith("coxa")) object.rotateZ(wave * displayedStride + displayedTurn * side * 0.08);
         if (name.endsWith("trochanterfemur")) object.rotateY(wave * displayedStride * 0.62);
