@@ -60,9 +60,10 @@ const fragmentShader = /* glsl */ `
   void main() {
     float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewDirection))), 2.0);
     float breathing = 0.95 + sin(uTime * 1.7) * 0.05;
-    vec3 color = uTint * (0.72 + rim * 0.9);
-    float alpha = (0.22 + rim * 0.52) * uOpacity * breathing;
-    gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.88));
+    vec3 ice = vec3(0.9, 1.0, 0.97);
+    vec3 color = mix(uTint, ice, 0.18 + rim * 0.34) * breathing;
+    float alpha = (0.5 + rim * 0.4) * uOpacity;
+    gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.96));
   }
 `;
 
@@ -337,10 +338,10 @@ export function FlyHologram({
     });
 
     const materials = {
-      body: makeMaterial("#108f8e", 1),
-      leg: makeMaterial("#2fb9a8", 0.96),
-      wing: makeMaterial("#55aef0", 0.78),
-      eye: makeMaterial("#ef5674", 1.08),
+      body: makeMaterial("#43d5c1", 1),
+      leg: makeMaterial("#77ead8", 0.98),
+      wing: makeMaterial("#b5ddff", 0.84),
+      eye: makeMaterial("#ff6a83", 1.06),
     };
     const materialList = Object.values(materials);
     const modelPivot = new THREE.Group();
@@ -459,6 +460,12 @@ export function FlyHologram({
         const phase = tripodA.has(prefix) ? 0 : Math.PI;
         const wave = Math.sin(time * 8.2 + phase) * gaitDirection;
         const side = prefix.startsWith("l") ? 1 : -1;
+        if (flying) {
+          if (name.endsWith("coxa")) object.rotateZ(side * 0.18);
+          if (name.endsWith("trochanterfemur")) object.rotateY(-0.28);
+          if (name.endsWith("tibia")) object.rotateY(0.42);
+          continue;
+        }
         if (name.endsWith("coxa")) object.rotateZ(wave * displayedStride + displayedTurn * side * 0.08);
         if (name.endsWith("trochanterfemur")) object.rotateY(wave * displayedStride * 0.62);
         if (name.endsWith("tibia")) object.rotateY(-wave * displayedStride * 0.48);
@@ -480,10 +487,10 @@ export function FlyHologram({
         const phase = name.startsWith("l") ? 0 : 0.65;
         const flutter = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(wingWindow * 34 + phase));
         const flick = flying
-          ? 0.36 + Math.sin(time * 48 + phase) * 0.14
+          ? 0.68 + Math.sin(time * 58 + phase) * 0.38
           : wingEnvelope * flutter;
         object.rotateZ(side * flick);
-        object.rotateX(flick * (flying ? 0.42 : 0.24));
+        object.rotateX(flick * (flying ? 0.56 : 0.24));
       }
 
       const motion = motionRef.current;
@@ -494,6 +501,8 @@ export function FlyHologram({
         modelPivot.position.y = (0.5 - motion.y) * viewHeight * 0.72;
         // Arena coordinates use a downward-positive Y axis; Three.js uses upward-positive Y.
         modelPivot.rotation.z = -motion.angle;
+        modelPivot.rotation.x = 0;
+        modelPivot.rotation.y = 0;
         modelPivot.scale.setScalar(0.38);
 
         if (eating) {
@@ -513,10 +522,13 @@ export function FlyHologram({
               ? (1 - landing) ** 2
               : 1;
           const cruise = sceneState === "flight" ? Math.sin(time * 2.6) : 0;
+          const wingLift = sceneState === "flight" ? Math.sin(time * 9.5) : 0;
           modelPivot.position.x += viewWidth * cruise * 0.004;
-          modelPivot.position.y += viewHeight * cruise * 0.006;
-          modelPivot.rotation.z -= 0.18 * lift + cruise * 0.06;
-          modelPivot.scale.setScalar(0.38 * (1 + lift * 0.1));
+          modelPivot.position.y += viewHeight * (cruise * 0.006 + wingLift * 0.004);
+          modelPivot.rotation.z += displayedTurn * 0.055 + cruise * 0.025;
+          modelPivot.rotation.x = lift * (0.07 + wingLift * 0.018);
+          modelPivot.rotation.y = displayedTurn * 0.13;
+          modelPivot.scale.setScalar(0.38 * (1 + lift * 0.13 + wingLift * 0.012));
         }
       }
       modelPivot.position.z = Math.sin(time * 2.2) * 0.025;

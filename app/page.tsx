@@ -143,6 +143,12 @@ export default function Home() {
       : worldState === "landing"
         ? { title: "SAFE FLOWER", detail: "TOUCHING DOWN" }
         : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
+  const missionCopy = worldState === "heading"
+    ? { kicker: "FLIGHT OBJECTIVE", title: "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
+    : { kicker: "FORAGING OBJECTIVE", title: "FIND THE RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
+  const controlCopy = worldState === "heading"
+    ? { title: "Flight controls", detail: "Steer with A/D. Fly with W." }
+    : worldCopy;
 
   useEffect(() => {
     if (!viewerOpen) return;
@@ -377,8 +383,12 @@ export default function Home() {
               src={`${assetBase}/droso-peach.webp`}
               alt="Glowing slice of peach"
             />
-            {worldState !== "takeoff" && worldState !== "heading" && worldState !== "landing" && (
-              <div className={`odor-label ${worldState}`}><span /><div><strong>{targetCopy.title}</strong><small>{targetCopy.detail}</small></div></div>
+            {(worldState === "seeking" || worldState === "heading") && (
+              <div className={`mission-hud ${worldState}`} role="status" aria-live="polite">
+                <span>{missionCopy.kicker}</span>
+                <strong>{missionCopy.title}</strong>
+                <small>{missionCopy.detail}</small>
+              </div>
             )}
             {(worldState === "takeoff" || worldState === "heading" || worldState === "landing") && (
               <div
@@ -397,18 +407,17 @@ export default function Home() {
                 aria-hidden="true"
               />
             )}
-            {worldState !== "seeking" && (
+            {worldState !== "seeking" && worldState !== "heading" && (
               <div className={`world-event ${worldState}${spiderWarning ? " warning" : ""}`} role="status" aria-live="polite">
                 <strong>{worldCopy.title}</strong><span>{worldCopy.detail}</span>
               </div>
             )}
-            <div className="world-label"><span>FERMENTATION PATCH 01</span><strong>PEACHDROP GARDEN</strong></div>
-            <div className="arena-tip"><span className="holo-status" /> MACRO VIEW · FLY ≈ 3 MM</div>
+            <div className="world-label"><span>FERMENTATION PATCH 01</span></div>
           </div>
           <div className="controls">
             <div className="control-copy">
-              <strong>{worldCopy.title}</strong>
-              <span>{worldCopy.detail}</span>
+              <strong>{controlCopy.title}</strong>
+              <span>{controlCopy.detail}</span>
             </div>
             <div className="key-controls" aria-label="Fly movement controls">
               <button onClick={() => nudge("left")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer left">←<kbd>A</kbd></button>
@@ -452,7 +461,7 @@ export default function Home() {
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
               <div className="neuron-render-label">
-                <span><i /> {circuitMode === "heading" ? "COMPASS COCKPIT" : "BANC NEURONS"}</span>
+                {circuitMode === "heading" && <span><i /> COMPASS COCKPIT</span>}
                 <strong>{activeNeuronLayer.label}</strong>
               </div>
             </div>
