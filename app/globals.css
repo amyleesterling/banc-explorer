@@ -85,7 +85,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .arena-wrap, .circuit-canvas-wrap { min-height: 500px; position: relative; overflow: hidden; }
 .arena-wrap canvas, .circuit-canvas-wrap canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
 .arena-motion-canvas { display: none !important; }
-.fly-hologram { position: absolute; inset: 0; overflow: hidden; background: #b9edc7; }
+.fly-hologram { position: absolute; inset: 0; overflow: hidden; background-color: #b9edc7; background-position: center 52%; background-repeat: no-repeat; background-size: cover; }
 .fly-hologram canvas { width: 100%; height: 100%; display: block; }
 .model-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 9px; z-index: 3; color: #40584b; font-size: 8px; font-weight: 800; letter-spacing: .12em; pointer-events: none; }
 .model-status span { width: 7px; height: 7px; border-radius: 50%; background: #68d6c4; box-shadow: 0 0 11px #68d6c4; animation: model-pulse 1.1s ease-in-out infinite; }

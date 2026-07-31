@@ -113,9 +113,9 @@ export function FlyHologram({
     let animationFrame = 0;
     let lastFrame = 0;
     const lowPower = window.matchMedia("(max-width: 640px), (prefers-reduced-motion: reduce)").matches;
-    const renderer = new THREE.WebGLRenderer({ alpha: false, antialias: !lowPower, powerPreference: "low-power" });
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !lowPower, powerPreference: "low-power" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 1.35));
-    renderer.setClearColor(0xb9edc7, 1);
+    renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.domElement.setAttribute("aria-label", "Interactive holographic NeuroMechFly model in a miniature foraging garden");
     renderer.domElement.setAttribute("role", "img");
@@ -166,6 +166,10 @@ export function FlyHologram({
 
     const world = new THREE.Group();
     world.name = "peachdrop-micro-garden";
+    // The illustrated Peachdrop Garden now supplies the navigable ground.
+    // Keep the former procedural scenery out of the render while retaining
+    // the animated fruit target and fly in this transparent WebGL layer.
+    world.visible = false;
     scene.add(world);
 
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(24, 16), palette.ground);
@@ -493,7 +497,11 @@ export function FlyHologram({
   }, [motionRef]);
 
   return (
-    <div className="fly-hologram" ref={hostRef}>
+    <div
+      className="fly-hologram"
+      ref={hostRef}
+      style={{ backgroundImage: `url("${assetBase}/peachdrop-garden.webp")` }}
+    >
       {status !== "ready" && (
         <div className={`model-status ${status}`} role="status">
           <span />
