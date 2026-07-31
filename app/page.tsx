@@ -590,8 +590,8 @@ export default function Home() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow"><span /> AN INTERACTIVE CONNECTOME</p>
-          <h1>One small step.<br/><em>An entire nervous system.</em></h1>
-          <p className="lede">Steer a fruit fly and watch a connectome-derived circuit story unfold—from sensing the ground to coordinating six moving legs.</p>
+          <h1>Drive the fly.<br/><em>See behavior light up.</em></h1>
+          <p className="lede">Walk, steer, eat, and escape—then see the neurons behind each move.</p>
         </div>
         <div className="live-note">
           <span className="pulse-dot" />
