@@ -123,17 +123,165 @@ export function FlyHologram({
     const lowPower = window.matchMedia("(max-width: 640px), (prefers-reduced-motion: reduce)").matches;
     const renderer = new THREE.WebGLRenderer({ alpha: false, antialias: !lowPower, powerPreference: "low-power" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 1.35));
-    renderer.setClearColor(0xdfe3c9, 1);
+    renderer.setClearColor(0xe7ead6, 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.domElement.setAttribute("aria-label", "Interactive holographic NeuroMechFly model in a walking arena");
+    renderer.domElement.setAttribute("aria-label", "Interactive holographic NeuroMechFly model in a miniature foraging garden");
     renderer.domElement.setAttribute("role", "img");
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xdfe3c9, 0.055);
+    scene.fog = new THREE.FogExp2(0xe7ead6, 0.048);
     const camera = new THREE.OrthographicCamera(-5, 5, 4, -4, 0.1, 40);
     camera.position.set(0, 0, 12);
     camera.lookAt(0, 0, 0);
+
+    const worldMaterials: THREE.Material[] = [];
+    const worldMaterial = (color: number, opacity = 1) => {
+      const material = new THREE.MeshBasicMaterial({
+        color,
+        transparent: opacity < 1,
+        opacity,
+        depthWrite: opacity === 1,
+      });
+      worldMaterials.push(material);
+      return material;
+    };
+    const lineMaterial = (color: number, opacity = 1) => {
+      const material = new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity });
+      worldMaterials.push(material);
+      return material;
+    };
+
+    const palette = {
+      ground: worldMaterial(0xe7ead6),
+      meadow: worldMaterial(0xd7ddbd),
+      meadowLight: worldMaterial(0xf0eedb, 0.82),
+      path: worldMaterial(0xeadcb6),
+      pathShade: worldMaterial(0xc9bc98, 0.72),
+      leaf: worldMaterial(0x789873),
+      clover: worldMaterial(0x90aa77),
+      petal: worldMaterial(0xfff9e8),
+      flower: worldMaterial(0xf3b94f),
+      water: worldMaterial(0x9ecfc8, 0.72),
+      waterLine: lineMaterial(0x5e9d94, 0.62),
+      vein: lineMaterial(0x345344, 0.62),
+    };
+
+    const world = new THREE.Group();
+    world.name = "tiny-foraging-garden";
+    scene.add(world);
+
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(24, 16), palette.ground);
+    ground.position.z = -1.25;
+    world.add(ground);
+
+    function addDisc(
+      x: number,
+      y: number,
+      radiusX: number,
+      radiusY: number,
+      rotation: number,
+      material: THREE.Material,
+      z = -0.9,
+      segments = lowPower ? 18 : 28,
+    ) {
+      const mesh = new THREE.Mesh(new THREE.CircleGeometry(1, segments), material);
+      mesh.position.set(x, y, z);
+      mesh.scale.set(radiusX, radiusY, 1);
+      mesh.rotation.z = rotation;
+      world.add(mesh);
+      return mesh;
+    }
+
+    addDisc(-1.65, -1.72, 2.65, 0.88, -0.08, palette.meadow, -1.12);
+    addDisc(2.3, 2.18, 2.25, 0.78, 0.1, palette.meadow, -1.12);
+    addDisc(-3.15, 2.3, 1.4, 0.72, -0.38, palette.meadowLight, -1.1);
+    addDisc(3.05, -2.5, 1.2, 0.58, 0.18, palette.water, -0.93);
+
+    const pondCurve = new THREE.EllipseCurve(3.05, -2.5, 1.2, 0.58, 0, Math.PI * 2);
+    const pondLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(pondCurve.getPoints(lowPower ? 24 : 42)),
+      palette.waterLine,
+    );
+    pondLine.position.z = -0.9;
+    world.add(pondLine);
+
+    const steppingStones: Array<[number, number, number, number, number]> = [
+      [-3.45, -2.28, 0.34, 0.21, 0.08],
+      [-2.72, -1.98, 0.38, 0.23, -0.12],
+      [-1.92, -1.53, 0.4, 0.24, 0.06],
+      [-1.08, -1.03, 0.37, 0.22, -0.1],
+      [-0.18, -0.48, 0.42, 0.24, 0.05],
+      [0.7, 0.02, 0.36, 0.22, -0.08],
+      [1.5, 0.52, 0.4, 0.23, 0.1],
+      [2.25, 0.98, 0.34, 0.21, -0.06],
+    ];
+    steppingStones.forEach(([x, y, rx, ry, rotation]) => {
+      addDisc(x + 0.025, y - 0.045, rx, ry, rotation, palette.pathShade, -0.94);
+      addDisc(x, y, rx, ry, rotation, palette.path, -0.9);
+    });
+
+    function addLeaf(x: number, y: number, scale: number, rotation: number) {
+      addDisc(x, y, 0.34 * scale, 0.68 * scale, rotation, palette.leaf, -0.84);
+      const direction = new THREE.Vector2(Math.sin(rotation), Math.cos(rotation)).multiplyScalar(0.47 * scale);
+      const vein = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(x - direction.x, y - direction.y, -0.82),
+          new THREE.Vector3(x + direction.x, y + direction.y, -0.82),
+        ]),
+        palette.vein,
+      );
+      world.add(vein);
+    }
+
+    addLeaf(-3.25, 1.58, 0.92, -0.58);
+    addLeaf(-2.72, 1.95, 0.72, 0.62);
+    addLeaf(2.05, -1.86, 0.7, -0.48);
+    addLeaf(2.48, -1.5, 0.82, 0.55);
+
+    function addFlower(x: number, y: number, scale: number) {
+      for (let petal = 0; petal < 6; petal += 1) {
+        const angle = (petal / 6) * Math.PI * 2;
+        addDisc(
+          x + Math.cos(angle) * 0.19 * scale,
+          y + Math.sin(angle) * 0.19 * scale,
+          0.11 * scale,
+          0.21 * scale,
+          angle - Math.PI / 2,
+          palette.petal,
+          -0.79,
+          16,
+        );
+      }
+      addDisc(x, y, 0.105 * scale, 0.105 * scale, 0, palette.flower, -0.75, 18);
+    }
+
+    addFlower(-2.92, 2.55, 0.82);
+    addFlower(-3.58, 1.95, 0.58);
+    addFlower(1.84, 2.43, 0.62);
+
+    const cloverPositions: Array<[number, number, number]> = [
+      [-3.7, -0.25, 0.72],
+      [-2.95, -0.52, 0.55],
+      [0.55, 2.53, 0.58],
+      [1.15, 2.35, 0.48],
+      [3.48, -0.83, 0.62],
+    ];
+    cloverPositions.forEach(([x, y, scale]) => {
+      for (let leaf = 0; leaf < 3; leaf += 1) {
+        const angle = (leaf / 3) * Math.PI * 2 - Math.PI / 2;
+        addDisc(
+          x + Math.cos(angle) * 0.12 * scale,
+          y + Math.sin(angle) * 0.12 * scale,
+          0.15 * scale,
+          0.2 * scale,
+          angle - Math.PI / 2,
+          palette.clover,
+          -0.83,
+          16,
+        );
+      }
+    });
 
     const gridMaterial = new THREE.LineBasicMaterial({ color: 0x52674e, transparent: true, opacity: 0.13 });
     const gridPoints: THREE.Vector3[] = [];
@@ -146,11 +294,33 @@ export function FlyHologram({
 
     const target = new THREE.Group();
     const targetMaterial = new THREE.MeshBasicMaterial({ color: 0xffc857, transparent: true, opacity: 0.78 });
-    const targetRing = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.026, 10, 40), targetMaterial);
-    const targetCore = new THREE.Mesh(new THREE.CircleGeometry(0.075, 24), targetMaterial);
-    target.add(targetRing, targetCore);
+    const snackEdgeMaterial = new THREE.MeshBasicMaterial({ color: 0x8f6535 });
+    const snackMaterial = new THREE.MeshBasicMaterial({ color: 0xf0be57 });
+    const snackChipMaterial = new THREE.MeshBasicMaterial({ color: 0x6f4728 });
+    worldMaterials.push(targetMaterial, snackEdgeMaterial, snackMaterial, snackChipMaterial);
+    const targetRing = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.022, 10, 40), targetMaterial);
+    targetRing.position.z = -0.04;
+    const snackEdge = new THREE.Mesh(new THREE.CircleGeometry(0.17, 24), snackEdgeMaterial);
+    const targetCore = new THREE.Mesh(new THREE.CircleGeometry(0.145, 24), snackMaterial);
+    targetCore.position.z = 0.015;
+    target.add(targetRing, snackEdge, targetCore);
+    [[-0.055, 0.048], [0.055, 0.02], [-0.018, -0.06]].forEach(([x, y]) => {
+      const chip = new THREE.Mesh(new THREE.CircleGeometry(0.018, 10), snackChipMaterial);
+      chip.position.set(x, y, 0.025);
+      target.add(chip);
+    });
     target.position.set(3.1, 1.45, 0);
     scene.add(target);
+
+    const scentDots: Array<[number, number, number, number]> = [
+      [2.72, 1.64, 0.055, 0.38],
+      [2.31, 1.79, 0.043, 0.28],
+      [1.91, 1.82, 0.032, 0.2],
+    ];
+    scentDots.forEach(([x, y, radius, opacity]) => {
+      const scentMaterial = worldMaterial(0xf3b94f, opacity);
+      addDisc(x, y, radius, radius, 0, scentMaterial, -0.18, 14);
+    });
 
     const materials = {
       body: makeMaterial("#68d6c4", 1),
@@ -320,7 +490,7 @@ export function FlyHologram({
       });
       materialList.forEach((material) => material.dispose());
       gridMaterial.dispose();
-      targetMaterial.dispose();
+      worldMaterials.forEach((material) => material.dispose());
       renderer.dispose();
     };
   }, [motionRef]);
