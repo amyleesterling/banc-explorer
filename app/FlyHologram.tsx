@@ -546,7 +546,6 @@ export function FlyHologram({
     <div
       className="fly-hologram"
       ref={hostRef}
-      style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}
     >
       {status !== "ready" && (
         <div className={`model-status ${status}`} role="status">

@@ -587,7 +587,7 @@ export default function Home() {
             <div><span>01</span><p>FLY WORLD</p></div>
             <div className="metric"><small>STEPS</small><strong>{String(steps).padStart(3, "0")}</strong></div>
           </header>
-          <div className="arena-wrap">
+          <div className="arena-wrap" style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}>
             <canvas ref={arenaRef} className="arena-motion-canvas" aria-hidden="true" />
             <FlyHologram
               motionRef={flyRef}
