@@ -17,6 +17,12 @@ const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names
 const MDN_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+MDN&dataset=banc";
 const EPG_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+EPG&dataset=banc";
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const EPG_HEADING_COUNT = 16;
+const EPG_HEADING_ASSETS = Array.from(
+  { length: EPG_HEADING_COUNT },
+  (_, index) => `${assetBase}/epg/epg-heading-${String(index).padStart(2, "0")}.webp`,
+);
+const EPG_BASE_ASSET = `${assetBase}/epg/epg-base.webp`;
 const FOOD_TARGET = { x: 0.88, y: 0.18 };
 const FOOD_CONTACT_RADIUS = 0.095;
 const FLOWER_TARGET = { x: 0.2, y: 0.72 };
@@ -92,6 +98,7 @@ export default function Home() {
   const takeoffTimerRef = useRef<number | null>(null);
   const headingTimerRef = useRef<number | null>(null);
   const resetTimerRef = useRef<number | null>(null);
+  const epgPreloadedRef = useRef(false);
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [spiderWarning, setSpiderWarning] = useState(false);
@@ -101,6 +108,11 @@ export default function Home() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
   const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
+  const compassDegrees = (headingDegrees + 90) % 360;
+  const epgCounterClockwiseDegrees = (360 - compassDegrees) % 360;
+  const epgHeadingIndex = Math.floor(epgCounterClockwiseDegrees / (360 / EPG_HEADING_COUNT)) % EPG_HEADING_COUNT;
+  const epgHeadingAsset = EPG_HEADING_ASSETS[epgHeadingIndex];
+  const headingCardinal = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(compassDegrees / 45) % 8];
   const worldCopy = worldState === "eating"
     ? spiderWarning
       ? { title: "Watch out for the spider!", detail: "Keep moving." }
@@ -223,6 +235,14 @@ export default function Home() {
       window.removeEventListener("keyup", keyUp);
     };
   }, []);
+
+  useEffect(() => {
+    if (worldState !== "eating" || epgPreloadedRef.current) return;
+    epgPreloadedRef.current = true;
+    [EPG_BASE_ASSET, ...EPG_HEADING_ASSETS].forEach((src) => {
+      void fetch(src, { cache: "force-cache" }).catch(() => undefined);
+    });
+  }, [worldState]);
 
   useEffect(() => {
     const render = (time: number) => {
@@ -410,7 +430,7 @@ export default function Home() {
             <div
               className={`neuron-render-stage${circuitMode === "heading" ? " heading" : ""}`}
               role="img"
-              aria-label={circuitMode === "heading" ? `Front-view EPG cockpit with an illustrative heading bump at ${headingDegrees} degrees` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
+              aria-label={circuitMode === "heading" ? `Front-view EPG cockpit with heading sector ${epgHeadingIndex} selected at ${compassDegrees} compass degrees` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
               style={{
                 "--layer-accent": activeNeuronLayer.accent,
                 "--heading-angle": `${headingDegrees + 90}deg`,
@@ -418,10 +438,10 @@ export default function Home() {
             >
               {circuitMode === "heading" ? (
                 <div className={`epg-cockpit turn-${action}`} aria-hidden="true">
-                  <img className="epg-cockpit-base" src={`${assetBase}/epg-cockpit.webp`} alt="" />
-                  <img className="epg-cockpit-active" src={`${assetBase}/epg-cockpit.webp`} alt="" />
+                  <img className="epg-cockpit-base" src={EPG_BASE_ASSET} alt="" />
+                  <img key={epgHeadingAsset} className="epg-cockpit-active" src={epgHeadingAsset} alt="" />
                   <div className="epg-cockpit-reticle"><span /></div>
-                  <div className="epg-cockpit-readout"><span>FLY HEADING</span><strong>{String(headingDegrees).padStart(3, "0")}°</strong></div>
+                  <div className="epg-cockpit-readout"><span>FLY HEADING · EPG {String(epgHeadingIndex).padStart(2, "0")}</span><strong>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</strong></div>
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
                 </div>
               ) : (

@@ -1,0 +1,721 @@
+{
+ "name": "EPG compass neurons, ellipsoid body",
+ "cells": 53,
+ "resolution": [
+  1600,
+  1200
+ ],
+ "alpha": "straight, no black matte; transparent background; full canvas preserved",
+ "denoising": "disabled, so nothing is filtered across the alpha boundary",
+ "camera": {
+  "shared": true,
+  "note": "One camera solved from the 53-cell set and locked. Every master, the base and all 16 heading overlays use it, so they are pixel aligned.",
+  "file": "D:/Meshes/banc/epg_camera.json"
+ },
+ "dataset": {
+  "name": "FAFB / FlyWire",
+  "datastack": "flywire_fafb_production",
+  "source": "local meshparty export, C:/Users/amyle/meshparty/EPG (*-meshlab.obj, welded)",
+  "materialization_version": null,
+  "version_note": "NOT RECORDED in the local export, and deliberately not guessed. Materialization versions visible on the datastack at build time were [258, 630, 783, 1238]. Currency of these root ids could not be confirmed: the chunkedgraph returned 503 during the build. Re-run the check before publishing if the version matters.",
+  "units": "mesh vertices in nanometres; render world units are micrometres"
+ },
+ "excluded": {
+  "segment_id": "720575940637920582",
+  "reason": "Not an EPG. 651k vertices against ~140k typical, with 41% of its mass in a separate arbor down and left of the ellipsoid body. Reads as a segmentation merge, and confirmed unwanted."
+ },
+ "colour_scheme": {
+  "basis": "angular position around the ellipsoid body",
+  "note": "EPGs tile the EB, and these 53 spread over the full 360 degrees, so hue runs around the ring. Stops are interpolated in sRGB, not HSV, because a hue sweep detours through yellow-green between gold and teal.",
+  "stops": [
+   {
+    "t_deg_ccw_from_top": 0,
+    "color": "#FF4DA6"
+   },
+   {
+    "t_deg_ccw_from_top": 55,
+    "color": "#FF8A5C"
+   },
+   {
+    "t_deg_ccw_from_top": 105,
+    "color": "#FFC24A"
+   },
+   {
+    "t_deg_ccw_from_top": 150,
+    "color": "#7FD9A0"
+   },
+   {
+    "t_deg_ccw_from_top": 190,
+    "color": "#3FC9C9"
+   },
+   {
+    "t_deg_ccw_from_top": 235,
+    "color": "#4C9BE8"
+   },
+   {
+    "t_deg_ccw_from_top": 280,
+    "color": "#8A6FE0"
+   },
+   {
+    "t_deg_ccw_from_top": 320,
+    "color": "#C45CD6"
+   },
+   {
+    "t_deg_ccw_from_top": 360,
+    "color": "#FF4DA6"
+   }
+  ]
+ },
+ "headings": {
+  "count": 16,
+  "sector_width_deg": 22.5,
+  "convention": "sector = floor(t / 22.5) where t is degrees counter-clockwise from the TOP of the ring; heading 00 is centred at 12 o'clock",
+  "bump_weights": {
+   "centre": 1.0,
+   "neighbour": 0.45,
+   "next_neighbour": 0.15
+  },
+  "applied_as": "colour lerp from the dim base colour to the full palette colour, with lit cells kept opaque. Mesh alpha was not used: overlapping front and back walls of the same tube would compound 0.45 into about 0.70 and occlusion between neighbours would be lost.",
+  "files": [
+   "epg-heading-00.webp",
+   "epg-heading-01.webp",
+   "epg-heading-02.webp",
+   "epg-heading-03.webp",
+   "epg-heading-04.webp",
+   "epg-heading-05.webp",
+   "epg-heading-06.webp",
+   "epg-heading-07.webp",
+   "epg-heading-08.webp",
+   "epg-heading-09.webp",
+   "epg-heading-10.webp",
+   "epg-heading-11.webp",
+   "epg-heading-12.webp",
+   "epg-heading-13.webp",
+   "epg-heading-14.webp",
+   "epg-heading-15.webp"
+  ]
+ },
+ "base": {
+  "file": "epg-base.webp",
+  "note": "all 53 cells, dim and desaturated"
+ },
+ "sectors": {
+  "0": [
+   "720575940627140551",
+   "720575940604801993"
+  ],
+  "1": [
+   "720575940632844002",
+   "720575940632614295"
+  ],
+  "2": [
+   "720575940621034078",
+   "720575940619296365",
+   "720575940630704715"
+  ],
+  "3": [
+   "720575940630672671",
+   "720575940630251818",
+   "720575940658101889",
+   "720575940618612952",
+   "720575940610901930"
+  ],
+  "4": [
+   "720575940619966854",
+   "720575940613836438",
+   "720575940631708836",
+   "720575940626315207",
+   "720575940620282906"
+  ],
+  "5": [
+   "720575940614926475",
+   "720575940628802041",
+   "720575940613829900",
+   "720575940629733963",
+   "720575940608722371",
+   "720575940606683996",
+   "720575940633719487",
+   "720575940619905404"
+  ],
+  "6": [
+   "720575940635427982",
+   "720575940602917088",
+   "720575940628843458"
+  ],
+  "7": [
+   "720575940615593845"
+  ],
+  "8": [
+   "720575940635461550",
+   "720575940626721835",
+   "720575940626533653",
+   "720575940620776662"
+  ],
+  "9": [
+   "720575940616569601",
+   "720575940621826601",
+   "720575940642634532",
+   "720575940617769851",
+   "720575940636730694"
+  ],
+  "10": [
+   "720575940614626370",
+   "720575940639372928",
+   "720575940620020694",
+   "720575940611396835"
+  ],
+  "11": [
+   "720575940638850512",
+   "720575940610453427"
+  ],
+  "12": [
+   "720575940620419354",
+   "720575940622364771",
+   "720575940625351354",
+   "720575940611216099"
+  ],
+  "13": [
+   "720575940611208410"
+  ],
+  "14": [
+   "720575940624784280",
+   "720575940626824015"
+  ],
+  "15": [
+   "720575940623046548",
+   "720575940613691404"
+  ]
+ },
+ "cells_detail": [
+  {
+   "segment_id": "720575940627140551",
+   "angle_deg_from_right": 93.4,
+   "angle_deg_ccw_from_top": 3.4,
+   "sector": 0,
+   "color": "#FF51A1",
+   "hue_deg": 332.2,
+   "rendered_hue_deg": 334.5,
+   "master": "cells/epg-cell-720575940627140551.png"
+  },
+  {
+   "segment_id": "720575940604801993",
+   "angle_deg_from_right": 103.24,
+   "angle_deg_ccw_from_top": 13.24,
+   "sector": 0,
+   "color": "#FF5C94",
+   "hue_deg": 339.2,
+   "rendered_hue_deg": 340.8,
+   "master": "cells/epg-cell-720575940604801993.png"
+  },
+  {
+   "segment_id": "720575940632844002",
+   "angle_deg_from_right": 120.17,
+   "angle_deg_ccw_from_top": 30.17,
+   "sector": 1,
+   "color": "#FF6E7D",
+   "hue_deg": 353.8,
+   "rendered_hue_deg": 354.5,
+   "master": "cells/epg-cell-720575940632844002.png"
+  },
+  {
+   "segment_id": "720575940632614295",
+   "angle_deg_from_right": 126.05,
+   "angle_deg_ccw_from_top": 36.05,
+   "sector": 1,
+   "color": "#FF7575",
+   "hue_deg": 359.8,
+   "rendered_hue_deg": 359.0,
+   "master": "cells/epg-cell-720575940632614295.png"
+  },
+  {
+   "segment_id": "720575940621034078",
+   "angle_deg_from_right": 137.08,
+   "angle_deg_ccw_from_top": 47.08,
+   "sector": 2,
+   "color": "#FF8167",
+   "hue_deg": 10.5,
+   "rendered_hue_deg": 9.2,
+   "master": "cells/epg-cell-720575940621034078.png"
+  },
+  {
+   "segment_id": "720575940619296365",
+   "angle_deg_from_right": 146.85,
+   "angle_deg_ccw_from_top": 56.85,
+   "sector": 2,
+   "color": "#FF8C5B",
+   "hue_deg": 17.9,
+   "rendered_hue_deg": 16.5,
+   "master": "cells/epg-cell-720575940619296365.png"
+  },
+  {
+   "segment_id": "720575940630704715",
+   "angle_deg_from_right": 151.27,
+   "angle_deg_ccw_from_top": 61.27,
+   "sector": 2,
+   "color": "#FF915A",
+   "hue_deg": 20.1,
+   "rendered_hue_deg": 17.9,
+   "master": "cells/epg-cell-720575940630704715.png"
+  },
+  {
+   "segment_id": "720575940630672671",
+   "angle_deg_from_right": 159.55,
+   "angle_deg_ccw_from_top": 69.55,
+   "sector": 3,
+   "color": "#FF9A57",
+   "hue_deg": 24.1,
+   "rendered_hue_deg": 21.7,
+   "master": "cells/epg-cell-720575940630672671.png"
+  },
+  {
+   "segment_id": "720575940630251818",
+   "angle_deg_from_right": 160.59,
+   "angle_deg_ccw_from_top": 70.59,
+   "sector": 3,
+   "color": "#FF9B56",
+   "hue_deg": 24.6,
+   "rendered_hue_deg": 22.2,
+   "master": "cells/epg-cell-720575940630251818.png"
+  },
+  {
+   "segment_id": "720575940658101889",
+   "angle_deg_from_right": 170.92,
+   "angle_deg_ccw_from_top": 80.92,
+   "sector": 3,
+   "color": "#FFA753",
+   "hue_deg": 29.4,
+   "rendered_hue_deg": 27.4,
+   "master": "cells/epg-cell-720575940658101889.png"
+  },
+  {
+   "segment_id": "720575940618612952",
+   "angle_deg_from_right": 174.16,
+   "angle_deg_ccw_from_top": 84.16,
+   "sector": 3,
+   "color": "#FFAB52",
+   "hue_deg": 30.8,
+   "rendered_hue_deg": 29.1,
+   "master": "cells/epg-cell-720575940618612952.png"
+  },
+  {
+   "segment_id": "720575940610901930",
+   "angle_deg_from_right": 178.99,
+   "angle_deg_ccw_from_top": 88.99,
+   "sector": 3,
+   "color": "#FFB050",
+   "hue_deg": 33.0,
+   "rendered_hue_deg": 30.7,
+   "master": "cells/epg-cell-720575940610901930.png"
+  },
+  {
+   "segment_id": "720575940619966854",
+   "angle_deg_from_right": 184.63,
+   "angle_deg_ccw_from_top": 94.63,
+   "sector": 4,
+   "color": "#FFB64E",
+   "hue_deg": 35.4,
+   "rendered_hue_deg": 32.5,
+   "master": "cells/epg-cell-720575940619966854.png"
+  },
+  {
+   "segment_id": "720575940613836438",
+   "angle_deg_from_right": 185.46,
+   "angle_deg_ccw_from_top": 95.46,
+   "sector": 4,
+   "color": "#FFB74D",
+   "hue_deg": 35.8,
+   "rendered_hue_deg": 31.9,
+   "master": "cells/epg-cell-720575940613836438.png"
+  },
+  {
+   "segment_id": "720575940631708836",
+   "angle_deg_from_right": 190.23,
+   "angle_deg_ccw_from_top": 100.23,
+   "sector": 4,
+   "color": "#FFBD4C",
+   "hue_deg": 37.8,
+   "rendered_hue_deg": 35.3,
+   "master": "cells/epg-cell-720575940631708836.png"
+  },
+  {
+   "segment_id": "720575940626315207",
+   "angle_deg_from_right": 191.07,
+   "angle_deg_ccw_from_top": 101.07,
+   "sector": 4,
+   "color": "#FFBE4B",
+   "hue_deg": 38.1,
+   "rendered_hue_deg": 36.1,
+   "master": "cells/epg-cell-720575940626315207.png"
+  },
+  {
+   "segment_id": "720575940620282906",
+   "angle_deg_from_right": 199.28,
+   "angle_deg_ccw_from_top": 109.28,
+   "sector": 4,
+   "color": "#F3C452",
+   "hue_deg": 42.6,
+   "rendered_hue_deg": 40.7,
+   "master": "cells/epg-cell-720575940620282906.png"
+  },
+  {
+   "segment_id": "720575940614926475",
+   "angle_deg_from_right": 203.7,
+   "angle_deg_ccw_from_top": 113.7,
+   "sector": 5,
+   "color": "#E6C65B",
+   "hue_deg": 46.3,
+   "rendered_hue_deg": 45.3,
+   "master": "cells/epg-cell-720575940614926475.png"
+  },
+  {
+   "segment_id": "720575940628802041",
+   "angle_deg_from_right": 209.72,
+   "angle_deg_ccw_from_top": 119.72,
+   "sector": 5,
+   "color": "#D5CA66",
+   "hue_deg": 53.7,
+   "rendered_hue_deg": 53.3,
+   "master": "cells/epg-cell-720575940628802041.png"
+  },
+  {
+   "segment_id": "720575940613829900",
+   "angle_deg_from_right": 212.18,
+   "angle_deg_ccw_from_top": 122.18,
+   "sector": 5,
+   "color": "#CECB6B",
+   "hue_deg": 58.0,
+   "rendered_hue_deg": 57.8,
+   "master": "cells/epg-cell-720575940613829900.png"
+  },
+  {
+   "segment_id": "720575940629733963",
+   "angle_deg_from_right": 217.02,
+   "angle_deg_ccw_from_top": 127.02,
+   "sector": 5,
+   "color": "#C0CD74",
+   "hue_deg": 68.7,
+   "rendered_hue_deg": 69.4,
+   "master": "cells/epg-cell-720575940629733963.png"
+  },
+  {
+   "segment_id": "720575940608722371",
+   "angle_deg_from_right": 217.51,
+   "angle_deg_ccw_from_top": 127.51,
+   "sector": 5,
+   "color": "#BFCE75",
+   "hue_deg": 69.9,
+   "rendered_hue_deg": 70.6,
+   "master": "cells/epg-cell-720575940608722371.png"
+  },
+  {
+   "segment_id": "720575940606683996",
+   "angle_deg_from_right": 219.08,
+   "angle_deg_ccw_from_top": 129.08,
+   "sector": 5,
+   "color": "#BACE78",
+   "hue_deg": 73.8,
+   "rendered_hue_deg": 74.8,
+   "master": "cells/epg-cell-720575940606683996.png"
+  },
+  {
+   "segment_id": "720575940633719487",
+   "angle_deg_from_right": 223.64,
+   "angle_deg_ccw_from_top": 133.64,
+   "sector": 5,
+   "color": "#AED181",
+   "hue_deg": 86.4,
+   "rendered_hue_deg": 87.4,
+   "master": "cells/epg-cell-720575940633719487.png"
+  },
+  {
+   "segment_id": "720575940619905404",
+   "angle_deg_from_right": 224.78,
+   "angle_deg_ccw_from_top": 134.78,
+   "sector": 5,
+   "color": "#AAD183",
+   "hue_deg": 89.8,
+   "rendered_hue_deg": 90.5,
+   "master": "cells/epg-cell-720575940619905404.png"
+  },
+  {
+   "segment_id": "720575940635427982",
+   "angle_deg_from_right": 236.32,
+   "angle_deg_ccw_from_top": 146.32,
+   "sector": 6,
+   "color": "#89D799",
+   "hue_deg": 132.0,
+   "rendered_hue_deg": 130.6,
+   "master": "cells/epg-cell-720575940635427982.png"
+  },
+  {
+   "segment_id": "720575940602917088",
+   "angle_deg_from_right": 238.42,
+   "angle_deg_ccw_from_top": 148.42,
+   "sector": 6,
+   "color": "#84D89D",
+   "hue_deg": 138.0,
+   "rendered_hue_deg": 137.3,
+   "master": "cells/epg-cell-720575940602917088.png"
+  },
+  {
+   "segment_id": "720575940628843458",
+   "angle_deg_from_right": 244.4,
+   "angle_deg_ccw_from_top": 154.4,
+   "sector": 6,
+   "color": "#78D7A5",
+   "hue_deg": 148.1,
+   "rendered_hue_deg": 146.4,
+   "master": "cells/epg-cell-720575940628843458.png"
+  },
+  {
+   "segment_id": "720575940615593845",
+   "angle_deg_from_right": 249.33,
+   "angle_deg_ccw_from_top": 159.33,
+   "sector": 7,
+   "color": "#70D5AA",
+   "hue_deg": 154.1,
+   "rendered_hue_deg": 152.3,
+   "master": "cells/epg-cell-720575940615593845.png"
+  },
+  {
+   "segment_id": "720575940635461550",
+   "angle_deg_from_right": 273.51,
+   "angle_deg_ccw_from_top": 183.51,
+   "sector": 8,
+   "color": "#49CCC2",
+   "hue_deg": 175.7,
+   "rendered_hue_deg": 175.4,
+   "master": "cells/epg-cell-720575940635461550.png"
+  },
+  {
+   "segment_id": "720575940626721835",
+   "angle_deg_from_right": 280.79,
+   "angle_deg_ccw_from_top": 190.79,
+   "sector": 8,
+   "color": "#3FC8CA",
+   "hue_deg": 180.6,
+   "rendered_hue_deg": 181.2,
+   "master": "cells/epg-cell-720575940626721835.png"
+  },
+  {
+   "segment_id": "720575940626533653",
+   "angle_deg_from_right": 282.75,
+   "angle_deg_ccw_from_top": 192.75,
+   "sector": 8,
+   "color": "#40C6CB",
+   "hue_deg": 182.0,
+   "rendered_hue_deg": 183.0,
+   "master": "cells/epg-cell-720575940626533653.png"
+  },
+  {
+   "segment_id": "720575940620776662",
+   "angle_deg_from_right": 289.62,
+   "angle_deg_ccw_from_top": 199.62,
+   "sector": 8,
+   "color": "#42BFD0",
+   "hue_deg": 187.0,
+   "rendered_hue_deg": 188.5,
+   "master": "cells/epg-cell-720575940620776662.png"
+  },
+  {
+   "segment_id": "720575940616569601",
+   "angle_deg_from_right": 293.39,
+   "angle_deg_ccw_from_top": 203.39,
+   "sector": 9,
+   "color": "#43BBD2",
+   "hue_deg": 189.6,
+   "rendered_hue_deg": 191.7,
+   "master": "cells/epg-cell-720575940616569601.png"
+  },
+  {
+   "segment_id": "720575940621826601",
+   "angle_deg_from_right": 298.76,
+   "angle_deg_ccw_from_top": 208.76,
+   "sector": 9,
+   "color": "#44B6D6",
+   "hue_deg": 193.2,
+   "rendered_hue_deg": 195.8,
+   "master": "cells/epg-cell-720575940621826601.png"
+  },
+  {
+   "segment_id": "720575940642634532",
+   "angle_deg_from_right": 302.55,
+   "angle_deg_ccw_from_top": 212.55,
+   "sector": 9,
+   "color": "#46B2D9",
+   "hue_deg": 195.7,
+   "rendered_hue_deg": 198.8,
+   "master": "cells/epg-cell-720575940642634532.png"
+  },
+  {
+   "segment_id": "720575940617769851",
+   "angle_deg_from_right": 308.2,
+   "angle_deg_ccw_from_top": 218.2,
+   "sector": 9,
+   "color": "#47ACDC",
+   "hue_deg": 199.4,
+   "rendered_hue_deg": 202.6,
+   "master": "cells/epg-cell-720575940617769851.png"
+  },
+  {
+   "segment_id": "720575940636730694",
+   "angle_deg_from_right": 309.27,
+   "angle_deg_ccw_from_top": 219.27,
+   "sector": 9,
+   "color": "#47ABDD",
+   "hue_deg": 200.1,
+   "rendered_hue_deg": 203.3,
+   "master": "cells/epg-cell-720575940636730694.png"
+  },
+  {
+   "segment_id": "720575940614626370",
+   "angle_deg_from_right": 315.35,
+   "angle_deg_ccw_from_top": 225.35,
+   "sector": 10,
+   "color": "#49A5E1",
+   "hue_deg": 203.9,
+   "rendered_hue_deg": 207.1,
+   "master": "cells/epg-cell-720575940614626370.png"
+  },
+  {
+   "segment_id": "720575940639372928",
+   "angle_deg_from_right": 315.5,
+   "angle_deg_ccw_from_top": 225.5,
+   "sector": 10,
+   "color": "#49A5E1",
+   "hue_deg": 203.9,
+   "rendered_hue_deg": 207.2,
+   "master": "cells/epg-cell-720575940639372928.png"
+  },
+  {
+   "segment_id": "720575940620020694",
+   "angle_deg_from_right": 323.37,
+   "angle_deg_ccw_from_top": 233.37,
+   "sector": 10,
+   "color": "#4C9DE7",
+   "hue_deg": 208.7,
+   "rendered_hue_deg": 212.0,
+   "master": "cells/epg-cell-720575940620020694.png"
+  },
+  {
+   "segment_id": "720575940611396835",
+   "angle_deg_from_right": 336.6,
+   "angle_deg_ccw_from_top": 246.6,
+   "sector": 10,
+   "color": "#5C90E6",
+   "hue_deg": 217.5,
+   "rendered_hue_deg": 220.2,
+   "master": "cells/epg-cell-720575940611396835.png"
+  },
+  {
+   "segment_id": "720575940638850512",
+   "angle_deg_from_right": 340.76,
+   "angle_deg_ccw_from_top": 250.76,
+   "sector": 11,
+   "color": "#628CE5",
+   "hue_deg": 220.9,
+   "rendered_hue_deg": 224.0,
+   "master": "cells/epg-cell-720575940638850512.png"
+  },
+  {
+   "segment_id": "720575940610453427",
+   "angle_deg_from_right": 357.7,
+   "angle_deg_ccw_from_top": 267.7,
+   "sector": 11,
+   "color": "#797BE2",
+   "hue_deg": 238.9,
+   "rendered_hue_deg": 240.0,
+   "master": "cells/epg-cell-720575940610453427.png"
+  },
+  {
+   "segment_id": "720575940620419354",
+   "angle_deg_from_right": 2.38,
+   "angle_deg_ccw_from_top": 272.38,
+   "sector": 12,
+   "color": "#8076E1",
+   "hue_deg": 245.1,
+   "rendered_hue_deg": 245.3,
+   "master": "cells/epg-cell-720575940620419354.png"
+  },
+  {
+   "segment_id": "720575940622364771",
+   "angle_deg_from_right": 4.72,
+   "angle_deg_ccw_from_top": 274.72,
+   "sector": 12,
+   "color": "#8374E1",
+   "hue_deg": 248.0,
+   "rendered_hue_deg": 248.0,
+   "master": "cells/epg-cell-720575940622364771.png"
+  },
+  {
+   "segment_id": "720575940625351354",
+   "angle_deg_from_right": 11.46,
+   "angle_deg_ccw_from_top": 281.46,
+   "sector": 12,
+   "color": "#8C6EE0",
+   "hue_deg": 255.8,
+   "rendered_hue_deg": 254.6,
+   "master": "cells/epg-cell-720575940625351354.png"
+  },
+  {
+   "segment_id": "720575940611216099",
+   "angle_deg_from_right": 14.15,
+   "angle_deg_ccw_from_top": 284.15,
+   "sector": 12,
+   "color": "#906DDF",
+   "hue_deg": 258.4,
+   "rendered_hue_deg": 257.5,
+   "master": "cells/epg-cell-720575940611216099.png"
+  },
+  {
+   "segment_id": "720575940611208410",
+   "angle_deg_from_right": 42.73,
+   "angle_deg_ccw_from_top": 312.73,
+   "sector": 13,
+   "color": "#B95FD8",
+   "hue_deg": 284.9,
+   "rendered_hue_deg": 283.1,
+   "master": "cells/epg-cell-720575940611208410.png"
+  },
+  {
+   "segment_id": "720575940624784280",
+   "angle_deg_from_right": 49.48,
+   "angle_deg_ccw_from_top": 319.48,
+   "sector": 14,
+   "color": "#C35CD6",
+   "hue_deg": 290.7,
+   "rendered_hue_deg": 289.0,
+   "master": "cells/epg-cell-720575940624784280.png"
+  },
+  {
+   "segment_id": "720575940626824015",
+   "angle_deg_from_right": 57.33,
+   "angle_deg_ccw_from_top": 327.33,
+   "sector": 14,
+   "color": "#CF59CD",
+   "hue_deg": 300.8,
+   "rendered_hue_deg": 300.0,
+   "master": "cells/epg-cell-720575940626824015.png"
+  },
+  {
+   "segment_id": "720575940623046548",
+   "angle_deg_from_right": 71.21,
+   "angle_deg_ccw_from_top": 341.21,
+   "sector": 15,
+   "color": "#E354BD",
+   "hue_deg": 316.2,
+   "rendered_hue_deg": 317.6,
+   "master": "cells/epg-cell-720575940623046548.png"
+  },
+  {
+   "segment_id": "720575940613691404",
+   "angle_deg_from_right": 75.75,
+   "angle_deg_ccw_from_top": 345.75,
+   "sector": 15,
+   "color": "#EA52B7",
+   "hue_deg": 320.1,
+   "rendered_hue_deg": 321.4,
+   "master": "cells/epg-cell-720575940613691404.png"
+  }
+ ]
+}
