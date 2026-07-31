@@ -327,6 +327,7 @@ export function FlyHologram({
     modelPivot.add(modelRoot);
     scene.add(modelPivot);
     const animatedSegments = new Map<string, THREE.Object3D>();
+    const wingSegments = new Map<string, THREE.Object3D>();
     const baseQuaternions = new Map<string, THREE.Quaternion>();
 
     const loader = new STLLoader();
@@ -354,6 +355,10 @@ export function FlyHologram({
           objects.set(segment.name, object);
           if (/^[lr][fmh]_(coxa|tibia|trochanterfemur)$/.test(segment.name)) {
             animatedSegments.set(segment.name, object);
+            baseQuaternions.set(segment.name, object.quaternion.clone());
+          }
+          if (/^[lr]_wing$/.test(segment.name)) {
+            wingSegments.set(segment.name, object);
             baseQuaternions.set(segment.name, object.quaternion.clone());
           }
         }
@@ -405,6 +410,7 @@ export function FlyHologram({
     resize();
 
     const tripodA = new Set(["lf", "rm", "lh"]);
+    const animationStart = performance.now() / 1000;
     function animate(timeMs: number) {
       if (disposed) return;
       animationFrame = requestAnimationFrame(animate);
@@ -426,6 +432,26 @@ export function FlyHologram({
         if (name.endsWith("coxa")) object.rotateZ(wave * stride + turn * side * 0.08);
         if (name.endsWith("trochanterfemur")) object.rotateY(wave * stride * 0.62);
         if (name.endsWith("tibia")) object.rotateY(-wave * stride * 0.48);
+      }
+
+      // A short, occasional wing shimmy makes the resting fly feel alert without
+      // reading as flight. The two wings move slightly out of phase and settle
+      // back onto their exact authored poses between bursts.
+      const wingCycle = (time - animationStart) % 5.8;
+      const wingWindow = wingCycle - 1.35;
+      const wingEnvelope = turn === 0 && wingWindow >= 0 && wingWindow < 0.72
+        ? Math.sin((wingWindow / 0.72) * Math.PI) ** 2
+        : 0;
+      for (const [name, object] of wingSegments) {
+        const base = baseQuaternions.get(name);
+        if (!base) continue;
+        object.quaternion.copy(base);
+        const side = name.startsWith("l") ? 1 : -1;
+        const phase = name.startsWith("l") ? 0 : 0.65;
+        const flutter = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(wingWindow * 34 + phase));
+        const flick = wingEnvelope * flutter;
+        object.rotateZ(side * flick);
+        object.rotateX(flick * 0.24);
       }
 
       const motion = motionRef.current;
