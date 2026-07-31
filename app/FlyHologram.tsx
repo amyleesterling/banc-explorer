@@ -157,10 +157,6 @@ export function FlyHologram({
       groundLight: worldMaterial(0xd3f6d1, 0.82),
       moss: worldMaterial(0x75d5aa),
       mossDark: worldMaterial(0x4eb890),
-      earth: worldMaterial(0xf4b28f),
-      earthShade: worldMaterial(0xd98679, 0.55),
-      stone: worldMaterial(0xffdfb3),
-      stoneShade: worldMaterial(0xc98275, 0.42),
       leaf: worldMaterial(0x49aa83),
       leafLight: worldMaterial(0x87dfa4),
       leafShade: worldMaterial(0x2e856f),
@@ -208,22 +204,6 @@ export function FlyHologram({
     addDisc(-3.25, -2.35, 1.75, 0.76, 0.1, palette.groundLight, -1.11);
     addDisc(2.45, 2.45, 2.55, 0.95, 0.12, palette.moss, -1.14);
     addDisc(3.55, -2.65, 1.85, 0.9, -0.08, palette.groundLight, -1.12);
-
-    const trail: Array<[number, number, number, number, number]> = [
-      [-3.75, -2.34, 0.62, 0.36, 0.18],
-      [-2.9, -1.9, 0.7, 0.4, -0.08],
-      [-1.98, -1.34, 0.76, 0.43, 0.12],
-      [-1.02, -0.74, 0.78, 0.44, -0.1],
-      [0.02, -0.13, 0.82, 0.46, 0.09],
-      [1.05, 0.48, 0.76, 0.42, -0.06],
-      [2.02, 1.03, 0.68, 0.38, 0.12],
-      [2.86, 1.48, 0.58, 0.34, -0.08],
-    ];
-    trail.forEach(([x, y, rx, ry, rotation]) => {
-      addDisc(x + 0.035, y - 0.075, rx, ry, rotation, palette.earthShade, -1.01);
-      addDisc(x, y, rx, ry, rotation, palette.earth, -0.98);
-      addDisc(x - rx * 0.18, y + ry * 0.14, rx * 0.6, ry * 0.48, rotation, palette.stone, -0.94);
-    });
 
     function addBlade(x: number, y: number, height: number, lean: number, material: THREE.LineBasicMaterial) {
       const curve = new THREE.QuadraticBezierCurve3(

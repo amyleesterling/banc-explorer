@@ -111,6 +111,20 @@ h1 em { color: var(--moss); font-weight: 400; }
 .key-controls kbd { position: absolute; bottom: 3px; right: 5px; font-size: 7px; opacity: .5; }
 
 .circuit-canvas-wrap { background: #000; isolation: isolate; }
+.neuron-render-stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(circle at 50% 44%, #15251e 0, #09120f 48%, #030806 100%); isolation: isolate; }
+.neuron-render-stage:before { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(rgba(104,214,196,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(104,214,196,.035) 1px, transparent 1px); background-size: 32px 32px; mask-image: radial-gradient(circle, #000 20%, transparent 78%); }
+.neuron-render-stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; pointer-events: none; }
+.neuron-context-layer { z-index: 1; opacity: .5; filter: saturate(.45) brightness(.9); }
+.neuron-action-layer { z-index: 2; opacity: .96; filter: saturate(1.16) drop-shadow(0 0 7px rgba(255,20,147,.28)); animation: neuron-ignite .55s ease-out both; }
+.neuron-render-glow { position: absolute; z-index: 0; inset: 10% 22%; border-radius: 50%; background: rgba(47,185,168,.055); filter: blur(28px); }
+.neuron-render-label { position: absolute; z-index: 4; left: 18px; top: 17px; display: grid; gap: 5px; pointer-events: none; }
+.neuron-render-label span { display: flex; align-items: center; gap: 7px; color: #90a49a; font-size: 7px; font-weight: 800; letter-spacing: .13em; }
+.neuron-render-label span i { width: 6px; height: 6px; border-radius: 50%; background: #ff1493; box-shadow: 0 0 10px #ff1493; }
+.neuron-render-label strong { font-family: Georgia, serif; color: #eff3e9; font-size: 19px; font-weight: 400; letter-spacing: -.02em; }
+.neuron-render-label small { color: #6f8479; font-size: 6px; font-weight: 800; letter-spacing: .09em; }
+.neuron-render-count { position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; min-height: 29px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 13px; border-top: 1px solid rgba(229,234,219,.14); background: rgba(9,18,15,.88); color: #71827a; font-size: 7px; font-weight: 800; letter-spacing: .1em; }
+.neuron-render-count strong { color: #d8ec71; font-size: 7px; }
+@keyframes neuron-ignite { from { opacity: 0; filter: saturate(.35) brightness(.65) drop-shadow(0 0 0 transparent); } to { opacity: .96; filter: saturate(1.16) brightness(1) drop-shadow(0 0 7px rgba(255,20,147,.28)); } }
 .inline-neuroglancer { position: absolute; inset: 0; z-index: 2; display: grid; grid-template-rows: 0 minmax(0, 1fr) 28px; overflow: hidden; background: #000; }
 .inline-neuroglancer iframe { width: 100%; height: 100%; display: block; border: 0; background: #000; }
 .neuroglancer-expand-bar { min-height: 0; overflow: hidden; opacity: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 20px; border-bottom: 1px solid rgba(229,234,219,.17); background: #101a16; }

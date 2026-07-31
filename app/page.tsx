@@ -21,6 +21,13 @@ const STEERING_SCENE_URL = "https://ng.banc.community/2026a/walking-steering";
 const INTERACTIVE_NEURON_URL = `https://spelunker.cave-explorer.org/#!${encodeURIComponent(JSON.stringify(walkingSteeringNeuroglancer))}`;
 const FRONT_LEG_LOOP_URL = "https://spelunker.cave-explorer.org/#!middleauth+https://global.daf-apis.com/nglstate/api/v1/6393410721153024";
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
+const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+const STATIC_NEURON_LAYERS: Record<CircuitMode, { src: string; label: string; detail: string }> = {
+  walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", detail: "6 WALKING CELLS LIT" },
+  left: { src: `${assetBase}/banc-turn-left.webp`, label: "STEER LEFT", detail: "2 STEERING CELLS LIT" },
+  right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", detail: "2 STEERING CELLS LIT" },
+};
 
 const WALKING_NODES: CircuitNode[] = [
   { name: "DNg100", area: "BRAIN → VNC", role: "pro-walking descending type", color: "#ffc857" },
@@ -117,6 +124,7 @@ export default function Home() {
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
   const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
+  const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
 
   useEffect(() => {
     if (!viewerOpen) return;
@@ -435,23 +443,31 @@ export default function Home() {
           <header className="panel-heading dark-heading">
             <div><span>02</span><p>CONNECTOME LENS</p></div>
             <button className="viewer-button" type="button" onClick={() => setViewerOpen(true)}>
-              EXPAND 3D ↗
+              EXPLORE IN 3D ↗
             </button>
           </header>
           <div className="circuit-canvas-wrap">
-            <div
-              className={`inline-neuroglancer${viewerOpen ? " expanded" : ""}`}
-              role={viewerOpen ? "dialog" : "region"}
-              aria-modal={viewerOpen || undefined}
-              aria-label="Interactive BANC walking and steering neurons"
-            >
-              <div className="neuroglancer-expand-bar">
-                <div><span><i /> INTERACTIVE MORPHOLOGY</span><strong>73 WALKING + STEERING NEURONS</strong></div>
-                <div><a href={INTERACTIVE_NEURON_URL} target="_blank" rel="noreferrer">OPEN IN NEW TAB ↗</a><button type="button" onClick={() => setViewerOpen(false)} aria-label="Close expanded neuron viewer">CLOSE ×</button></div>
+            <div className="neuron-render-stage" role="img" aria-label={`BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}>
+              <img className="neuron-context-layer" src={`${assetBase}/banc-context-base.webp`} alt="" aria-hidden="true" />
+              <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />
+              <div className="neuron-render-glow" aria-hidden="true" />
+              <div className="neuron-render-label">
+                <span><i /> CONNECTOME-SUPPORTED SELECTION</span>
+                <strong>{activeNeuronLayer.label}</strong>
+                <small>GRAY = CONTEXT · COLOR = SELECTED CIRCUIT</small>
               </div>
-              <iframe src={INTERACTIVE_NEURON_URL} title="Interactive 3D BANC walking and steering neuron view" allowFullScreen />
-              <div className="neuroglancer-inline-footer"><span><i /> LIVE BANC MORPHOLOGY · DRAG TO ROTATE</span><span>73 CELLS · LEFT/RIGHT PANELS HIDDEN</span></div>
+              <div className="neuron-render-count"><span>81-CELL CONTEXT</span><strong>{activeNeuronLayer.detail}</strong></div>
             </div>
+            {viewerOpen && (
+              <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">
+                <div className="neuroglancer-expand-bar">
+                  <div><span><i /> INTERACTIVE MORPHOLOGY</span><strong>WALKING + STEERING NEURONS</strong></div>
+                  <div><a href={INTERACTIVE_NEURON_URL} target="_blank" rel="noreferrer">OPEN IN NEW TAB ↗</a><button type="button" onClick={() => setViewerOpen(false)} aria-label="Close expanded neuron viewer">CLOSE ×</button></div>
+                </div>
+                <iframe src={INTERACTIVE_NEURON_URL} title="Interactive 3D BANC walking and steering neuron view" allowFullScreen />
+                <div className="neuroglancer-inline-footer"><span><i /> LIVE BANC MORPHOLOGY · DRAG TO ROTATE</span><span>LOADED ON REQUEST</span></div>
+              </div>
+            )}
           </div>
           <div className="signal-story">
             <div className="signal-topline">
