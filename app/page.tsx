@@ -4,11 +4,12 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
 import flightDng02 from "./data/flight-dng02.json";
+import flightDnp03 from "./data/flight-dnp03.json";
 import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
-type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "heading" | "flight-forward" | "flight-reverse";
-type WorldState = "seeking" | "eating" | "threat" | "takeoff" | "heading" | "landing";
+type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "dodge" | "heading" | "flight-forward" | "flight-reverse";
+type WorldState = "seeking" | "eating" | "threat" | "dodge" | "takeoff" | "heading" | "landing";
 
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
 const WALKING_SCENE_URL = "https://ng.banc.community/2026a/walking";
@@ -18,6 +19,7 @@ const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names
 const MDN_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+MDN&dataset=banc";
 const EPG_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+EPG&dataset=banc";
 const DNG02_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+DNg02&dataset=banc";
+const DNP03_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+DNp03&dataset=banc";
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const EPG_HEADING_COUNT = 16;
 const EPG_HEADING_ASSETS = Array.from(
@@ -25,6 +27,15 @@ const EPG_HEADING_ASSETS = Array.from(
   (_, index) => `${assetBase}/epg/epg-heading-${String(index).padStart(2, "0")}.webp`,
 );
 const EPG_BASE_ASSET = `${assetBase}/epg/epg-base.webp`;
+const DODGE_FRAME_COUNT = 12;
+const DODGE_LEFT_ASSETS = Array.from(
+  { length: DODGE_FRAME_COUNT },
+  (_, index) => `${assetBase}/banc-flight-dodge-anatomical-left/frame-${String(index).padStart(2, "0")}.webp`,
+);
+const DODGE_RIGHT_ASSETS = Array.from(
+  { length: DODGE_FRAME_COUNT },
+  (_, index) => `${assetBase}/banc-flight-dodge-anatomical-right/frame-${String(index).padStart(2, "0")}.webp`,
+);
 const FOOD_TARGET = { x: 0.88, y: 0.18 };
 const FOOD_CONTACT_BOUNDARY = { halfWidth: 0.15, halfHeight: 0.11 };
 const FLOWER_TARGET = { x: 0.2, y: 0.72 };
@@ -52,6 +63,7 @@ const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; a
   right: { src: `${assetBase}/banc-turn-right.webp`, label: "STEER RIGHT", accent: "#ff4fa3" },
   eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", accent: "#ffc857" },
   threat: { src: `${assetBase}/banc-threat-walk.webp`, label: "THREAT RESPONSE", accent: "#ff7b72" },
+  dodge: { label: "QUICK DODGE", accent: "#ff8fa8" },
   heading: { label: "EPG COCKPIT", accent: "#bd9bd1" },
   "flight-forward": { label: "FORWARD THRUST", accent: "#70d8ce" },
   "flight-reverse": { label: "REVERSE FLIGHT", accent: "#efb7dc" },
@@ -84,6 +96,10 @@ const CIRCUITS: Record<CircuitMode, {
   threat: {
     summary: "Five response neurons are highlighted as the fly escapes.",
     viewerUrl: WALKING_FIGURE_URL,
+  },
+  dodge: {
+    summary: `The verified ${flightDnp03.count}-cell BANC DNp03 pair is shown as an explanatory flight-saccade pulse. Anatomical side is not assigned to turn direction.`,
+    viewerUrl: DNP03_CODEX_URL,
   },
   heading: {
     summary: "EPG neurons maintain the fly's heading as it turns.",
@@ -125,11 +141,13 @@ export default function Home() {
   const [spiderWarning, setSpiderWarning] = useState(false);
   const [steps, setSteps] = useState(0);
   const [headingDegrees, setHeadingDegrees] = useState(344);
+  const [dodgeFrame, setDodgeFrame] = useState(0);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
   const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
   const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
   const isFlightCockpit = circuitMode === "heading" || circuitMode === "flight-forward" || circuitMode === "flight-reverse";
+  const isDodgePulse = circuitMode === "dodge";
   const compassDegrees = (headingDegrees + 90) % 360;
   const epgCounterClockwiseDegrees = (360 - compassDegrees) % 360;
   const epgHeadingIndex = Math.floor(epgCounterClockwiseDegrees / (360 / EPG_HEADING_COUNT)) % EPG_HEADING_COUNT;
@@ -141,6 +159,8 @@ export default function Home() {
       : { title: "Snack found!", detail: "Feeding neurons are glowing." }
     : worldState === "threat"
       ? { title: "Spider!", detail: "Get airborne." }
+      : worldState === "dodge"
+        ? { title: "Quick dodge!", detail: "DNp03 flight-saccade pulse." }
       : worldState === "takeoff"
         ? { title: "Takeoff!", detail: "Wings up." }
       : worldState === "heading"
@@ -158,6 +178,8 @@ export default function Home() {
     ? { title: "SNACK FOUND", detail: "TASTING THE FRUIT" }
     : worldState === "threat"
       ? { title: "SPIDER ALERT", detail: "MOVE AWAY FROM DANGER" }
+    : worldState === "dodge"
+      ? { title: "QUICK DODGE", detail: "FLIGHT SACCADE" }
     : worldState === "takeoff"
         ? { title: "AIRBORNE", detail: "LAUNCHING FROM DANGER" }
       : worldState === "heading"
@@ -199,24 +221,27 @@ export default function Home() {
       setSpiderWarning(true);
       threatTimerRef.current = window.setTimeout(() => {
         if (worldStateRef.current !== "eating") return;
-        worldStateRef.current = "threat";
+        worldStateRef.current = "dodge";
         keysRef.current.clear();
-        actionRef.current = "rest";
-        setAction("rest");
+        actionRef.current = "right";
+        setAction("right");
         setSpiderWarning(false);
-        setWorldState("threat");
-        setCircuitMode("threat");
+        setWorldState("dodge");
+        setCircuitMode("dodge");
         takeoffTimerRef.current = window.setTimeout(() => {
-          if (worldStateRef.current !== "threat") return;
+          if (worldStateRef.current !== "dodge") return;
           worldStateRef.current = "takeoff";
+          actionRef.current = "rest";
+          setAction("rest");
           setWorldState("takeoff");
-          setCircuitMode("heading");
+          setCircuitMode("flight-forward");
           headingTimerRef.current = window.setTimeout(() => {
             if (worldStateRef.current !== "takeoff") return;
             worldStateRef.current = "heading";
             setWorldState("heading");
+            setCircuitMode("heading");
           }, 850);
-        }, 700);
+        }, 500);
       }, 1200);
     }, 2600);
   }, []);
@@ -269,9 +294,23 @@ export default function Home() {
   useEffect(() => {
     if (worldState !== "eating" || epgPreloadedRef.current) return;
     epgPreloadedRef.current = true;
-    [EPG_BASE_ASSET, ...EPG_HEADING_ASSETS].forEach((src) => {
+    [EPG_BASE_ASSET, ...EPG_HEADING_ASSETS, ...DODGE_LEFT_ASSETS, ...DODGE_RIGHT_ASSETS].forEach((src) => {
       void fetch(src, { cache: "force-cache" }).catch(() => undefined);
     });
+  }, [worldState]);
+
+  useEffect(() => {
+    if (worldState !== "dodge") return;
+    const startedAt = performance.now();
+    let animationFrame = 0;
+    const advance = () => {
+      const elapsed = performance.now() - startedAt;
+      setDodgeFrame(Math.min(DODGE_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / 24))));
+      if (elapsed < 500) animationFrame = requestAnimationFrame(advance);
+    };
+    setDodgeFrame(0);
+    animationFrame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(animationFrame);
   }, [worldState]);
 
   useEffect(() => {
@@ -299,6 +338,12 @@ export default function Home() {
         nextAction = "right";
       }
       const currentState = worldStateRef.current;
+      if (currentState === "dodge") {
+        fly.angle += dt * 2.2;
+        fly.x += dt * 0.18;
+        fly.y -= dt * 0.07;
+        nextAction = "right";
+      }
       const interactiveFlight = currentState === "heading";
       if (interactiveFlight && time - lastHeadingUiRef.current > 70) {
         const normalizedHeading = ((fly.angle * 180 / Math.PI) % 360 + 360) % 360;
@@ -321,7 +366,7 @@ export default function Home() {
       if (worldStateRef.current === "heading" && flowerDistance <= FLOWER_CONTACT_RADIUS) {
         triggerLanding();
       }
-      if (worldStateRef.current !== "seeking" && worldStateRef.current !== "eating" && worldStateRef.current !== "heading") nextAction = "rest";
+      if (worldStateRef.current !== "seeking" && worldStateRef.current !== "eating" && worldStateRef.current !== "heading" && worldStateRef.current !== "dodge") nextAction = "rest";
       if (nextAction !== actionRef.current) {
         actionRef.current = nextAction;
         setAction(nextAction);
@@ -400,7 +445,7 @@ export default function Home() {
             <FlyHologram
               motionRef={flyRef}
               action={action}
-              escapeState={worldState === "eating" ? "eating" : worldState === "takeoff" ? "takeoff" : worldState === "heading" ? "flight" : worldState === "landing" ? "landing" : "ground"}
+              escapeState={worldState === "eating" ? "eating" : worldState === "dodge" ? "dodge" : worldState === "takeoff" ? "takeoff" : worldState === "heading" ? "flight" : worldState === "landing" ? "landing" : "ground"}
             />
             <img
               className={`snack-fruit${worldState === "eating" ? " found" : ""}`}
@@ -424,7 +469,7 @@ export default function Home() {
                 <strong>{targetCopy.title}</strong>
               </div>
             )}
-            {(worldState === "threat" || worldState === "takeoff" || worldState === "heading") && (
+            {(worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "heading") && (
               <img
                 className={`spider-threat${worldState === "heading" ? " retreating" : ""}`}
                 src={`${assetBase}/mint-spider.webp`}
@@ -445,10 +490,10 @@ export default function Home() {
               <span>{controlCopy.detail}</span>
             </div>
             <div className="key-controls" aria-label="Fly movement controls">
-              <button onClick={() => nudge("left")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer left">←<kbd>A</kbd></button>
-              <button onClick={() => nudge("forward")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
-              <button onClick={() => nudge("backward")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
-              <button onClick={() => nudge("right")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer right">→<kbd>D</kbd></button>
+              <button onClick={() => nudge("left")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer left">←<kbd>A</kbd></button>
+              <button onClick={() => nudge("forward")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
+              <button onClick={() => nudge("backward")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
+              <button onClick={() => nudge("right")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer right">→<kbd>D</kbd></button>
             </div>
           </div>
         </div>
@@ -464,7 +509,7 @@ export default function Home() {
             <div
               className={`neuron-render-stage${isFlightCockpit ? " heading" : ""}`}
               role="img"
-              aria-label={isFlightCockpit ? `Front-view EPG cockpit at ${compassDegrees} compass degrees with ${activeNeuronLayer.label.toLowerCase()} selected` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
+              aria-label={isFlightCockpit ? `Front-view EPG cockpit at ${compassDegrees} compass degrees with ${activeNeuronLayer.label.toLowerCase()} selected` : isDodgePulse ? `Animated bilateral DNp03 flight-saccade pulse over gray BANC context neurons` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
               style={{
                 "--layer-accent": activeNeuronLayer.accent,
                 "--heading-angle": `${headingDegrees + 90}deg`,
@@ -487,12 +532,17 @@ export default function Home() {
               ) : (
                 <>
                   <img className="neuron-context-layer" src={`${assetBase}/banc-context-base.webp`} alt="" aria-hidden="true" />
-                  {activeNeuronLayer.src && <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />}
+                  {isDodgePulse ? (
+                    <>
+                      <img className="neuron-action-layer dodge-frame" src={DODGE_LEFT_ASSETS[dodgeFrame]} alt="" aria-hidden="true" />
+                      <img className="neuron-action-layer dodge-frame" src={DODGE_RIGHT_ASSETS[dodgeFrame]} alt="" aria-hidden="true" />
+                    </>
+                  ) : activeNeuronLayer.src && <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />}
                 </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
               <div className="neuron-render-label">
-                {isFlightCockpit && <span><i /> {circuitMode === "heading" ? "COMPASS COCKPIT" : "FLIGHT POWER"}</span>}
+                {(isFlightCockpit || isDodgePulse) && <span><i /> {isDodgePulse ? `DNp03 · ${flightDnp03.count}-CELL PAIR` : circuitMode === "heading" ? "COMPASS COCKPIT" : "FLIGHT POWER"}</span>}
                 <strong>{activeNeuronLayer.label}</strong>
               </div>
             </div>

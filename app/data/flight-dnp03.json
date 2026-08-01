@@ -1,0 +1,18 @@
+{
+  "cell_type": "DNp03",
+  "count": 2,
+  "materialization": 888,
+  "role": "flight-saccade response; not threat detection",
+  "behavioral_direction_mapping": "pending",
+  "verification": "Resolved from BANC cell_info at materialization 888 and confirmed present in the frozen public mesh source. Both roots are current and cross the neck connective.",
+  "cells": [
+    {
+      "root_id": "720575941539809997",
+      "anatomical_hemisphere": "left"
+    },
+    {
+      "root_id": "720575941558607396",
+      "anatomical_hemisphere": "right"
+    }
+  ]
+}

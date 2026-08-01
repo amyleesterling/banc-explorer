@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
-type EscapeState = "ground" | "eating" | "takeoff" | "flight" | "landing";
+type EscapeState = "ground" | "eating" | "dodge" | "takeoff" | "flight" | "landing";
 
 export type FlyMotion = {
   x: number;
@@ -115,7 +115,7 @@ export function FlyHologram({
     escapeStateRef.current = escapeState;
     if (escapeState === "ground") {
       phaseStartedRef.current = null;
-    } else if (escapeState !== previous) {
+    } else if (escapeState !== previous && !(previous === "dodge" && escapeState === "takeoff")) {
       phaseStartedRef.current = performance.now() / 1000;
     }
   }, [escapeState]);
@@ -443,7 +443,7 @@ export function FlyHologram({
       lastFrame = timeMs;
       const time = timeMs / 1000;
       const sceneState = escapeStateRef.current;
-      const flying = sceneState === "takeoff" || sceneState === "flight" || sceneState === "landing";
+      const flying = sceneState === "dodge" || sceneState === "takeoff" || sceneState === "flight" || sceneState === "landing";
       const eating = sceneState === "eating";
       const moving = !flying && actionRef.current !== "rest";
       const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
@@ -514,9 +514,9 @@ export function FlyHologram({
 
         if (flying && phaseStartedRef.current !== null) {
           const phaseAge = Math.max(0, time - phaseStartedRef.current);
-          const takeoff = Math.min(1, phaseAge / 0.9);
+          const takeoff = Math.min(1, phaseAge / (sceneState === "dodge" ? 0.42 : 0.9));
           const landing = Math.min(1, phaseAge / 1.05);
-          const lift = sceneState === "takeoff"
+          const lift = sceneState === "dodge" || sceneState === "takeoff"
             ? 1 - (1 - takeoff) ** 3
             : sceneState === "landing"
               ? (1 - landing) ** 2
@@ -525,9 +525,9 @@ export function FlyHologram({
           const wingLift = sceneState === "flight" ? Math.sin(time * 9.5) : 0;
           modelPivot.position.x += viewWidth * cruise * 0.004;
           modelPivot.position.y += viewHeight * (cruise * 0.006 + wingLift * 0.004);
-          modelPivot.rotation.z += displayedTurn * 0.055 + cruise * 0.025;
-          modelPivot.rotation.x = lift * (0.07 + wingLift * 0.018);
-          modelPivot.rotation.y = displayedTurn * 0.13;
+          modelPivot.rotation.z += displayedTurn * (sceneState === "dodge" ? 0.15 : 0.055) + cruise * 0.025;
+          modelPivot.rotation.x = lift * ((sceneState === "dodge" ? 0.14 : 0.07) + wingLift * 0.018);
+          modelPivot.rotation.y = displayedTurn * (sceneState === "dodge" ? 0.28 : 0.13);
           modelPivot.scale.setScalar(0.38 * (1 + lift * 0.13 + wingLift * 0.012));
         }
       }

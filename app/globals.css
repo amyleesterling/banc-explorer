@@ -159,6 +159,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .neuron-context-layer { z-index: 1; opacity: .5; filter: saturate(.45) brightness(.9); }
 .neuron-render-stage.heading { background: radial-gradient(circle at 50% 64%, #14211f 0, #050807 45%, #010302 100%); }
 .neuron-action-layer { z-index: 2; opacity: .96; filter: saturate(1.16) drop-shadow(0 0 7px color-mix(in srgb, var(--layer-accent, #ff1493) 38%, transparent)); animation: neuron-ignite .55s ease-out both; }
+.neuron-action-layer.dodge-frame { animation: none; filter: saturate(1.12) drop-shadow(0 0 10px rgba(255,143,168,.42)); }
 .neuron-render-glow { position: absolute; z-index: 0; inset: 10% 22%; border-radius: 50%; background: rgba(47,185,168,.055); filter: blur(28px); }
 .neuron-render-label { position: absolute; z-index: 4; left: 22px; top: 21px; display: grid; gap: 7px; pointer-events: none; }
 .neuron-render-label span { display: flex; align-items: center; gap: 8px; color: #aebeb5; font-size: 11px; font-weight: 800; letter-spacing: .11em; }
@@ -207,6 +208,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .signal-story.mode-backward { background: #f6e3ef; color: #6b405c; }
 .signal-story.mode-eat { background: #fff0d4; color: #6d5738; }
 .signal-story.mode-threat { background: #fde6df; color: #6e4747; }
+.signal-story.mode-dodge { background: #fbe5ed; color: #71455b; }
 .signal-story.mode-heading { background: #eee7f6; color: #594667; }
 .signal-story.mode-flight-forward { background: #e2f5f1; color: #275b58; }
 .signal-story.mode-flight-reverse { background: #f3e5f0; color: #67475f; }
