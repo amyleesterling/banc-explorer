@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
-type EscapeState = "ground" | "eating" | "dodge" | "takeoff" | "flight" | "landing";
+type EscapeState = "ground" | "eating" | "dodge" | "takeoff" | "flight" | "landing" | "groom-head" | "groom-wing-left" | "groom-wing-right" | "relaunch";
 
 export type FlyMotion = {
   x: number;
@@ -443,9 +443,13 @@ export function FlyHologram({
       lastFrame = timeMs;
       const time = timeMs / 1000;
       const sceneState = escapeStateRef.current;
-      const flying = sceneState === "dodge" || sceneState === "takeoff" || sceneState === "flight" || sceneState === "landing";
+      const flying = sceneState === "dodge" || sceneState === "takeoff" || sceneState === "flight" || sceneState === "landing" || sceneState === "relaunch";
       const eating = sceneState === "eating";
-      const moving = !flying && actionRef.current !== "rest";
+      const groomingHead = sceneState === "groom-head";
+      const groomingWing = sceneState === "groom-wing-left" || sceneState === "groom-wing-right";
+      const grooming = groomingHead || groomingWing;
+      const phaseAge = phaseStartedRef.current === null ? 0 : Math.max(0, time - phaseStartedRef.current);
+      const moving = !flying && !grooming && actionRef.current !== "rest";
       const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
       const gaitDirection = actionRef.current === "backward" ? -1 : 1;
       const easing = Math.min(1, frameDelta * 8);
@@ -460,6 +464,35 @@ export function FlyHologram({
         const phase = tripodA.has(prefix) ? 0 : Math.PI;
         const wave = Math.sin(time * 8.2 + phase) * gaitDirection;
         const side = prefix.startsWith("l") ? 1 : -1;
+        if (groomingHead) {
+          const isFrontLeg = prefix.endsWith("f");
+          const sweep = Math.sin(phaseAge * 7.4 + (side > 0 ? 0 : Math.PI));
+          if (isFrontLeg) {
+            if (name.endsWith("coxa")) object.rotateZ(side * (0.46 + sweep * 0.15));
+            if (name.endsWith("trochanterfemur")) object.rotateY(-0.82 + sweep * 0.2);
+            if (name.endsWith("tibia")) object.rotateY(1.08 - sweep * 0.26);
+          } else {
+            if (name.endsWith("coxa")) object.rotateZ(side * 0.07);
+            if (name.endsWith("trochanterfemur")) object.rotateY(-0.08);
+            if (name.endsWith("tibia")) object.rotateY(0.12);
+          }
+          continue;
+        }
+        if (groomingWing) {
+          const isHindLeg = prefix.endsWith("h");
+          const selectedSide = sceneState === "groom-wing-left" ? 1 : -1;
+          const sweep = 0.5 + 0.5 * Math.sin(phaseAge * 8.1 + (side > 0 ? 0 : 0.48));
+          if (isHindLeg) {
+            if (name.endsWith("coxa")) object.rotateZ(selectedSide * (0.26 + sweep * 0.22) + side * 0.08);
+            if (name.endsWith("trochanterfemur")) object.rotateY(-0.62 - sweep * 0.22);
+            if (name.endsWith("tibia")) object.rotateY(0.78 + sweep * 0.38);
+          } else {
+            if (name.endsWith("coxa")) object.rotateZ(side * 0.06);
+            if (name.endsWith("trochanterfemur")) object.rotateY(-0.06);
+            if (name.endsWith("tibia")) object.rotateY(0.1);
+          }
+          continue;
+        }
         if (flying) {
           if (name.endsWith("coxa")) object.rotateZ(side * 0.18);
           if (name.endsWith("trochanterfemur")) object.rotateY(-0.28);
@@ -476,7 +509,7 @@ export function FlyHologram({
       // back onto their exact authored poses between bursts.
       const wingCycle = (time - animationStart) % 5.8;
       const wingWindow = wingCycle - 1.35;
-      const wingEnvelope = !flying && turn === 0 && wingWindow >= 0 && wingWindow < 0.72
+      const wingEnvelope = !flying && !grooming && turn === 0 && wingWindow >= 0 && wingWindow < 0.72
         ? Math.sin((wingWindow / 0.72) * Math.PI) ** 2
         : 0;
       for (const [name, object] of wingSegments) {
@@ -486,9 +519,13 @@ export function FlyHologram({
         const side = name.startsWith("l") ? 1 : -1;
         const phase = name.startsWith("l") ? 0 : 0.65;
         const flutter = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(wingWindow * 34 + phase));
+        const groomingThisWing = groomingWing && (sceneState === "groom-wing-left" ? name.startsWith("l") : name.startsWith("r"));
+        const groomOpen = groomingThisWing ? 0.2 + Math.sin(phaseAge * 8.1) * 0.055 : 0;
         const flick = flying
           ? 0.68 + Math.sin(time * 58 + phase) * 0.38
-          : wingEnvelope * flutter;
+          : groomingWing
+            ? groomOpen
+            : wingEnvelope * flutter;
         object.rotateZ(side * flick);
         object.rotateX(flick * (flying ? 0.56 : 0.24));
       }
@@ -512,11 +549,26 @@ export function FlyHologram({
           modelPivot.scale.setScalar(0.38 * (1 + Math.max(0, nibble) * 0.018));
         }
 
+        if (groomingHead) {
+          const sweep = Math.sin(phaseAge * 7.4);
+          modelPivot.position.y += Math.abs(sweep) * 0.018;
+          modelPivot.rotation.z += sweep * 0.025;
+          modelPivot.rotation.x = 0.055 + Math.abs(sweep) * 0.018;
+          modelPivot.scale.setScalar(0.38 * (1 - Math.abs(sweep) * 0.012));
+        }
+
+        if (groomingWing) {
+          const polish = Math.sin(phaseAge * 8.1);
+          const selectedSide = sceneState === "groom-wing-left" ? 1 : -1;
+          modelPivot.position.x += selectedSide * Math.abs(polish) * 0.014;
+          modelPivot.rotation.z += selectedSide * (0.045 + polish * 0.018);
+          modelPivot.rotation.y = selectedSide * 0.055;
+        }
+
         if (flying && phaseStartedRef.current !== null) {
-          const phaseAge = Math.max(0, time - phaseStartedRef.current);
           const takeoff = Math.min(1, phaseAge / (sceneState === "dodge" ? 0.42 : 0.9));
           const landing = Math.min(1, phaseAge / 1.05);
-          const lift = sceneState === "dodge" || sceneState === "takeoff"
+          const lift = sceneState === "dodge" || sceneState === "takeoff" || sceneState === "relaunch"
             ? 1 - (1 - takeoff) ** 3
             : sceneState === "landing"
               ? (1 - landing) ** 2

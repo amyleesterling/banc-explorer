@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">BANC Explorer neural fly</title>
+  <desc id="desc">A simplified fruit fly with neural wings and a central nervous-system line.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M109 104C82 101 59 120 56 154c-3 37 13 63 36 58 19-4 30-27 29-58 0-22-4-39-12-50Z" fill="#f4faf7" stroke="#142c27" stroke-width="7"/>
+    <path d="M147 104c27-3 50 16 53 50 3 37-13 63-36 58-19-4-30-27-29-58 0-22 4-39 12-50Z" fill="#f4faf7" stroke="#142c27" stroke-width="7"/>
+
+    <g stroke="#142c27" stroke-width="9">
+      <path d="m106 102-30-18-12-27-17-14"/>
+      <path d="m101 123-36 8-31 14"/>
+      <path d="m106 162-25 31-17 22"/>
+      <path d="m150 102 30-18 12-27 17-14"/>
+      <path d="m155 123 36 8 31 14"/>
+      <path d="m150 162 25 31 17 22"/>
+    </g>
+
+    <g stroke="#68d6c4" stroke-width="6">
+      <path d="m104 123-20 68M94 151l-17-13M89 171l-20 4M152 123l20 68M162 151l17-13M167 171l20 4"/>
+    </g>
+    <g fill="#68d6c4" stroke="none">
+      <circle cx="77" cy="138" r="6"/><circle cx="69" cy="175" r="6"/><circle cx="84" cy="191" r="6"/>
+      <circle cx="179" cy="138" r="6"/><circle cx="187" cy="175" r="6"/><circle cx="172" cy="191" r="6"/>
+    </g>
+
+    <path d="M116 58Q108 35 91 30M140 58q8-23 25-28" stroke="#142c27" stroke-width="8"/>
+    <ellipse cx="128" cy="80" rx="31" ry="29" fill="#142c27" stroke="#68d6c4" stroke-width="4"/>
+    <path d="M105 94c-9 20-8 43 1 59-3 30 2 59 22 76 20-17 25-46 22-76 9-16 10-39 1-59Z" fill="#142c27" stroke="#68d6c4" stroke-width="4"/>
+    <ellipse cx="104" cy="75" rx="13" ry="18" transform="rotate(-12 104 75)" fill="#ff8078"/>
+    <ellipse cx="152" cy="75" rx="13" ry="18" transform="rotate(12 152 75)" fill="#ff8078"/>
+
+    <path d="M128 98v108" stroke="#bff5e8" stroke-width="7"/>
+    <g fill="#bff5e8" stroke="none">
+      <circle cx="128" cy="98" r="10"/><circle cx="128" cy="151" r="7"/><circle cx="128" cy="206" r="7"/>
+    </g>
+  </g>
+</svg>

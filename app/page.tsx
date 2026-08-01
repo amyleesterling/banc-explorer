@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
 import flightDng02 from "./data/flight-dng02.json";
@@ -8,8 +8,9 @@ import flightDnp03 from "./data/flight-dnp03.json";
 import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
-type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "dodge" | "heading" | "flight-forward" | "flight-reverse";
-type WorldState = "seeking" | "eating" | "threat" | "dodge" | "takeoff" | "heading" | "landing";
+type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "dodge" | "heading" | "flight-forward" | "flight-reverse" | "landing" | "groom-head" | "groom-wing";
+type WorldState = "seeking" | "eating" | "threat" | "dodge" | "takeoff" | "heading" | "landing" | "groom-head" | "groom-wing" | "relaunch";
+type GroomSide = "left" | "right";
 
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
 const WALKING_SCENE_URL = "https://ng.banc.community/2026a/walking";
@@ -20,6 +21,9 @@ const MDN_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_ty
 const EPG_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+EPG&dataset=banc";
 const DNG02_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+DNg02&dataset=banc";
 const DNP03_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+DNp03&dataset=banc";
+const LANDING_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+DNp07+%7C%7C+cell_type+%3D%3D+DNp10&dataset=banc";
+const DNG12_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+DNg12&dataset=banc";
+const WPN1_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+wPN1&dataset=banc";
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const EPG_HEADING_COUNT = 16;
 const EPG_HEADING_ASSETS = Array.from(
@@ -36,16 +40,35 @@ const DODGE_RIGHT_ASSETS = Array.from(
   { length: DODGE_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-flight-dodge-anatomical-right/frame-${String(index).padStart(2, "0")}.webp`,
 );
-const FOOD_TARGET = { x: 0.88, y: 0.18 };
+const GROOM_FRAME_COUNT = 16;
+const HEAD_GROOM_ASSETS = Array.from(
+  { length: GROOM_FRAME_COUNT },
+  (_, index) => `${assetBase}/banc-groom-head-dng12/frame-${String(index).padStart(2, "0")}.webp`,
+);
+const WING_GROOM_ASSETS: Record<GroomSide, string[]> = {
+  left: Array.from(
+    { length: GROOM_FRAME_COUNT },
+    (_, index) => `${assetBase}/banc-groom-wing-wpn1-anatomical-left/frame-${String(index).padStart(2, "0")}.webp`,
+  ),
+  right: Array.from(
+    { length: GROOM_FRAME_COUNT },
+    (_, index) => `${assetBase}/banc-groom-wing-wpn1-anatomical-right/frame-${String(index).padStart(2, "0")}.webp`,
+  ),
+};
+const FOOD_TARGET = { x: 0.84, y: 0.3 };
 const FOOD_CONTACT_BOUNDARY = { halfWidth: 0.15, halfHeight: 0.11 };
-const FLOWER_TARGET = { x: 0.2, y: 0.72 };
+const FLOWER_TARGETS = [
+  { x: 0.2, y: 0.72 },
+  { x: 0.76, y: 0.34 },
+  { x: 0.26, y: 0.24 },
+  { x: 0.73, y: 0.72 },
+] as const;
 const FLOWER_CONTACT_RADIUS = 0.105;
 const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
   left: `${50 + (x - 0.5) * 76}%`,
   top: `${50 + (y - 0.5) * 72}%`,
 });
 const FOOD_SCREEN = toScreenPosition(FOOD_TARGET);
-const FLOWER_SCREEN = toScreenPosition(FLOWER_TARGET);
 const isInsideEllipse = (
   point: { x: number; y: number },
   center: { x: number; y: number },
@@ -67,6 +90,9 @@ const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; a
   heading: { label: "EPG COCKPIT", accent: "#bd9bd1" },
   "flight-forward": { label: "FORWARD THRUST", accent: "#70d8ce" },
   "flight-reverse": { label: "REVERSE FLIGHT", accent: "#efb7dc" },
+  landing: { src: `${assetBase}/banc-landing-pathway.webp`, label: "LANDING", accent: "#68d5c0" },
+  "groom-head": { src: `${assetBase}/banc-groom-head-dng12.webp`, label: "HEAD GROOMING", accent: "#c7a6f3" },
+  "groom-wing": { src: `${assetBase}/banc-groom-wing-wpn1-all.webp`, label: "WING GROOMING", accent: "#78cfe2" },
 };
 
 const CIRCUITS: Record<CircuitMode, {
@@ -113,6 +139,18 @@ const CIRCUITS: Record<CircuitMode, {
     summary: "Reverse is simulated by reducing and redirecting DNg02-powered thrust; no dedicated backward-flight cell type is claimed.",
     viewerUrl: DNG02_CODEX_URL,
   },
+  landing: {
+    summary: "DNp07 and DNp10 landing-pathway neurons are selected as the fly touches down.",
+    viewerUrl: LANDING_CODEX_URL,
+  },
+  "groom-head": {
+    summary: "DNg12 descending neurons can evoke alternating head sweeps and front-leg rubbing.",
+    viewerUrl: DNG12_CODEX_URL,
+  },
+  "groom-wing": {
+    summary: "wPN1 neurons coordinate both hind legs to groom one wing.",
+    viewerUrl: WPN1_CODEX_URL,
+  },
 };
 
 const LEGEND = [
@@ -134,20 +172,61 @@ export default function Home() {
   const threatTimerRef = useRef<number | null>(null);
   const takeoffTimerRef = useRef<number | null>(null);
   const headingTimerRef = useRef<number | null>(null);
-  const resetTimerRef = useRef<number | null>(null);
+  const landingTimerRef = useRef<number | null>(null);
+  const groomTimerRef = useRef<number | null>(null);
+  const relaunchTimerRef = useRef<number | null>(null);
+  const flowerIndexRef = useRef(0);
+  const landingCountRef = useRef(0);
   const epgPreloadedRef = useRef(false);
+  const pointerControlRef = useRef<{ pointerId: number; action: Exclude<Action, "rest">; startedAt: number } | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [spiderWarning, setSpiderWarning] = useState(false);
   const [steps, setSteps] = useState(0);
   const [headingDegrees, setHeadingDegrees] = useState(344);
   const [dodgeFrame, setDodgeFrame] = useState(0);
+  const [groomFrame, setGroomFrame] = useState(0);
+  const [groomPulseComplete, setGroomPulseComplete] = useState(false);
+  const [groomAssetsReady, setGroomAssetsReady] = useState(false);
+  const [groomSide, setGroomSide] = useState<GroomSide>("left");
+  const [flowerIndex, setFlowerIndex] = useState(0);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [mobileHudExpanded, setMobileHudExpanded] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
-  const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
+  const activeNeuronLayer = circuitMode === "groom-wing"
+    ? {
+        ...STATIC_NEURON_LAYERS[circuitMode],
+        src: `${assetBase}/banc-groom-wing-wpn1-anatomical-${groomSide}.webp`,
+      }
+    : STATIC_NEURON_LAYERS[circuitMode];
+  const flowerTarget = FLOWER_TARGETS[flowerIndex];
+  const flowerScreen = toScreenPosition(flowerTarget);
   const isFlightCockpit = circuitMode === "heading" || circuitMode === "flight-forward" || circuitMode === "flight-reverse";
   const isDodgePulse = circuitMode === "dodge";
+  const isGrooming = worldState === "groom-head" || worldState === "groom-wing";
+  const isGroomPulse = isGrooming && groomAssetsReady && !groomPulseComplete;
+  const groomFrameAsset = worldState === "groom-wing"
+    ? WING_GROOM_ASSETS[groomSide][groomFrame]
+    : HEAD_GROOM_ASSETS[groomFrame];
+  const controlsLocked = worldState !== "seeking" && worldState !== "eating" && worldState !== "heading";
+  const flySceneState = worldState === "eating"
+    ? "eating"
+    : worldState === "dodge"
+      ? "dodge"
+      : worldState === "takeoff"
+        ? "takeoff"
+        : worldState === "heading"
+          ? "flight"
+          : worldState === "landing"
+            ? "landing"
+            : worldState === "groom-head"
+              ? "groom-head"
+              : worldState === "groom-wing"
+                ? `groom-wing-${groomSide}` as const
+                : worldState === "relaunch"
+                  ? "relaunch"
+                  : "ground";
   const compassDegrees = (headingDegrees + 90) % 360;
   const epgCounterClockwiseDegrees = (360 - compassDegrees) % 360;
   const epgHeadingIndex = Math.floor(epgCounterClockwiseDegrees / (360 / EPG_HEADING_COUNT)) % EPG_HEADING_COUNT;
@@ -166,7 +245,13 @@ export default function Home() {
       : worldState === "heading"
         ? { title: "Fly to the flower", detail: "Steer with the arrow keys." }
       : worldState === "landing"
-        ? { title: "Safe on the flower", detail: "The spider is gone." }
+        ? { title: "Touchdown!", detail: "Landing neurons guide the final approach." }
+      : worldState === "groom-head"
+        ? { title: "Freshen up!", detail: "Front legs sweep the head clean." }
+      : worldState === "groom-wing"
+        ? { title: "Wing polish!", detail: `Both hind legs clean the ${groomSide} wing.` }
+      : worldState === "relaunch"
+        ? { title: "New flower detected!", detail: "Wings up for another tiny journey." }
         : action === "rest"
           ? { title: "Find the fallen fruit", detail: "A 3 mm journey through a giant garden." }
           : action === "forward"
@@ -186,9 +271,13 @@ export default function Home() {
         ? { title: "LAND HERE", detail: "STEER TO THE FLOWER" }
       : worldState === "landing"
         ? { title: "SAFE FLOWER", detail: "TOUCHING DOWN" }
+      : worldState === "groom-head" || worldState === "groom-wing"
+        ? { title: "GROOMING PERCH", detail: "CLEANING UP" }
+      : worldState === "relaunch"
+        ? { title: "NEW TARGET", detail: "FLOWER DETECTED" }
         : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
-  const missionCopy = worldState === "heading"
-    ? { kicker: "FLIGHT OBJECTIVE", title: "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
+  const missionCopy = worldState === "heading" || worldState === "relaunch"
+    ? { kicker: "FLIGHT OBJECTIVE", title: worldState === "relaunch" ? "NEW FLOWER DETECTED" : "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
     : { kicker: "FORAGING OBJECTIVE", title: "FIND THE RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
   const controlCopy = worldState === "heading"
     ? { title: "Flight controls", detail: "Steer with A/D. Thrust or reverse with W/S." }
@@ -224,6 +313,7 @@ export default function Home() {
         worldStateRef.current = "dodge";
         keysRef.current.clear();
         actionRef.current = "right";
+        setDodgeFrame(0);
         setAction("right");
         setSpiderWarning(false);
         setWorldState("dodge");
@@ -253,11 +343,35 @@ export default function Home() {
     actionRef.current = "rest";
     setAction("rest");
     setWorldState("landing");
-    resetTimerRef.current = window.setTimeout(() => {
-      worldStateRef.current = "seeking";
-      setWorldState("seeking");
-      setCircuitMode("walk");
-    }, 1100);
+    setCircuitMode("landing");
+    landingTimerRef.current = window.setTimeout(() => {
+      if (worldStateRef.current !== "landing") return;
+      const landingNumber = landingCountRef.current;
+      const groomingState: WorldState = landingNumber % 2 === 0 ? "groom-head" : "groom-wing";
+      const nextGroomSide: GroomSide = Math.floor(landingNumber / 2) % 2 === 0 ? "left" : "right";
+      landingCountRef.current += 1;
+      setGroomFrame(0);
+      setGroomPulseComplete(false);
+      setGroomSide(nextGroomSide);
+      worldStateRef.current = groomingState;
+      setWorldState(groomingState);
+      setCircuitMode(groomingState);
+      groomTimerRef.current = window.setTimeout(() => {
+        if (worldStateRef.current !== groomingState) return;
+        const nextFlowerIndex = (flowerIndexRef.current + 1) % FLOWER_TARGETS.length;
+        flowerIndexRef.current = nextFlowerIndex;
+        setFlowerIndex(nextFlowerIndex);
+        worldStateRef.current = "relaunch";
+        setWorldState("relaunch");
+        setCircuitMode("flight-forward");
+        relaunchTimerRef.current = window.setTimeout(() => {
+          if (worldStateRef.current !== "relaunch") return;
+          worldStateRef.current = "heading";
+          setWorldState("heading");
+          setCircuitMode("heading");
+        }, 900);
+      }, 2200);
+    }, 900);
   }, []);
 
   const updateAction = useCallback((next: Action) => {
@@ -300,6 +414,16 @@ export default function Home() {
   }, [worldState]);
 
   useEffect(() => {
+    let cancelled = false;
+    void fetch(`${assetBase}/banc-grooming-manifest.json`, { cache: "no-cache" })
+      .then((response) => {
+        if (!cancelled && response.ok) setGroomAssetsReady(true);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     if (worldState !== "dodge") return;
     const startedAt = performance.now();
     let animationFrame = 0;
@@ -308,10 +432,25 @@ export default function Home() {
       setDodgeFrame(Math.min(DODGE_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / 24))));
       if (elapsed < 500) animationFrame = requestAnimationFrame(advance);
     };
-    setDodgeFrame(0);
     animationFrame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(animationFrame);
   }, [worldState]);
+
+  useEffect(() => {
+    if (!isGrooming || !groomAssetsReady) return;
+    const startedAt = performance.now();
+    const duration = ((GROOM_FRAME_COUNT - 1) / 24) * 1000;
+    let animationFrame = 0;
+    const advance = () => {
+      const elapsed = performance.now() - startedAt;
+      const nextFrame = Math.min(GROOM_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / 24)));
+      setGroomFrame(nextFrame);
+      if (elapsed < duration) animationFrame = requestAnimationFrame(advance);
+      else setGroomPulseComplete(true);
+    };
+    animationFrame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [groomAssetsReady, isGrooming, worldState]);
 
   useEffect(() => {
     const render = (time: number) => {
@@ -362,7 +501,8 @@ export default function Home() {
       if (worldStateRef.current === "seeking" && isInsideEllipse(fly, FOOD_TARGET, FOOD_CONTACT_BOUNDARY)) {
         triggerEating();
       }
-      const flowerDistance = Math.hypot(fly.x - FLOWER_TARGET.x, fly.y - FLOWER_TARGET.y);
+      const currentFlowerTarget = FLOWER_TARGETS[flowerIndexRef.current];
+      const flowerDistance = Math.hypot(fly.x - currentFlowerTarget.x, fly.y - currentFlowerTarget.y);
       if (worldStateRef.current === "heading" && flowerDistance <= FLOWER_CONTACT_RADIUS) {
         triggerLanding();
       }
@@ -387,7 +527,9 @@ export default function Home() {
       if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
       if (takeoffTimerRef.current) window.clearTimeout(takeoffTimerRef.current);
       if (headingTimerRef.current) window.clearTimeout(headingTimerRef.current);
-      if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
+      if (landingTimerRef.current) window.clearTimeout(landingTimerRef.current);
+      if (groomTimerRef.current) window.clearTimeout(groomTimerRef.current);
+      if (relaunchTimerRef.current) window.clearTimeout(relaunchTimerRef.current);
     };
   }, [triggerEating, triggerLanding]);
 
@@ -409,11 +551,62 @@ export default function Home() {
     window.setTimeout(() => updateAction("rest"), 380);
   };
 
+  const controlKey: Record<Exclude<Action, "rest">, string> = {
+    left: "arrowleft",
+    forward: "arrowup",
+    backward: "arrowdown",
+    right: "arrowright",
+  };
+  const controlDisabled = controlsLocked;
+  const beginPointerControl = (event: ReactPointerEvent<HTMLButtonElement>, next: Exclude<Action, "rest">) => {
+    if (controlDisabled) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointerControlRef.current = { pointerId: event.pointerId, action: next, startedAt: performance.now() };
+    keysRef.current.add(controlKey[next]);
+    updateAction(next);
+  };
+  const endPointerControl = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const active = pointerControlRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    keysRef.current.delete(controlKey[active.action]);
+    pointerControlRef.current = null;
+    if (performance.now() - active.startedAt < 140) nudge(active.action);
+    else updateAction("rest");
+  };
+  const cancelPointerControl = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const active = pointerControlRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    keysRef.current.delete(controlKey[active.action]);
+    pointerControlRef.current = null;
+    updateAction("rest");
+  };
+  const handleControlClick = (event: ReactMouseEvent<HTMLButtonElement>, next: Exclude<Action, "rest">) => {
+    if (event.detail === 0) nudge(next);
+  };
+
+  const mobileNeuronLayers = isFlightCockpit ? (
+    <>
+      <img className="mobile-neuron-base" src={EPG_BASE_ASSET} alt="" />
+      <img key={epgHeadingAsset} className="mobile-neuron-active" src={epgHeadingAsset} alt="" />
+    </>
+  ) : (
+    <>
+      <img className="mobile-neuron-base" src={`${assetBase}/banc-context-base.webp`} alt="" />
+      {isDodgePulse ? (
+        <>
+          <img className="mobile-neuron-active" src={DODGE_LEFT_ASSETS[dodgeFrame]} alt="" />
+          <img className="mobile-neuron-active" src={DODGE_RIGHT_ASSETS[dodgeFrame]} alt="" />
+        </>
+      ) : activeNeuronLayer.src ? <img key={activeNeuronLayer.src} className="mobile-neuron-active" src={activeNeuronLayer.src} alt="" /> : null}
+    </>
+  );
+
   return (
     <main>
       <nav className="topbar" aria-label="Primary navigation">
         <a className="brand" href="#top" aria-label="BANC Explorer home">
-          <span className="brand-mark" aria-hidden="true">B</span>
+          <span className="brand-mark" aria-hidden="true"><img src={`${assetBase}/banc-fly-badge.svg`} alt="" /></span>
           <span>BANC <i>/</i> BE THE FLY</span>
         </a>
         <div className="nav-links">
@@ -445,28 +638,58 @@ export default function Home() {
             <FlyHologram
               motionRef={flyRef}
               action={action}
-              escapeState={worldState === "eating" ? "eating" : worldState === "dodge" ? "dodge" : worldState === "takeoff" ? "takeoff" : worldState === "heading" ? "flight" : worldState === "landing" ? "landing" : "ground"}
+              escapeState={flySceneState}
             />
+            <aside
+              className={`mobile-neuron-hud${mobileHudExpanded ? " expanded" : ""}${isFlightCockpit ? " cockpit" : ""}`}
+              style={{ "--layer-accent": activeNeuronLayer.accent } as CSSProperties}
+              aria-label={`Neural HUD showing ${activeNeuronLayer.label.toLowerCase()}`}
+            >
+              <button
+                className="mobile-neuron-toggle"
+                type="button"
+                aria-expanded={mobileHudExpanded}
+                onClick={() => setMobileHudExpanded((value) => !value)}
+              >
+                <span className="hud-corner top-left" aria-hidden="true" />
+                <span className="hud-corner bottom-right" aria-hidden="true" />
+                <span className="mobile-neuron-kicker"><i /> NEURAL HUD</span>
+                <span className="mobile-neuron-preview" aria-hidden="true">{mobileNeuronLayers}</span>
+                <strong>{activeNeuronLayer.label}</strong>
+                <small>{mobileHudExpanded ? "CLOSE" : "TAP TO INSPECT"}</small>
+              </button>
+              {mobileHudExpanded && (
+                <div className="mobile-neuron-details">
+                  <p>{activeCircuit.summary}</p>
+                  <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT</a>
+                </div>
+              )}
+            </aside>
             <img
               className={`snack-fruit${worldState === "eating" ? " found" : ""}`}
               style={FOOD_SCREEN}
               src={`${assetBase}/droso-peach.webp`}
               alt="Glowing slice of peach"
             />
-            {(worldState === "seeking" || worldState === "heading") && (
+            {(worldState === "seeking" || worldState === "heading" || worldState === "relaunch") && (
               <div className={`mission-hud ${worldState}`} role="status" aria-live="polite">
                 <span>{missionCopy.kicker}</span>
                 <strong>{missionCopy.title}</strong>
                 <small>{missionCopy.detail}</small>
               </div>
             )}
-            {(worldState === "takeoff" || worldState === "heading" || worldState === "landing") && (
+            {(worldState === "takeoff" || worldState === "heading" || worldState === "landing" || worldState === "groom-head" || worldState === "groom-wing" || worldState === "relaunch") && (
               <div
                 className={`landing-flower ${worldState}`}
-                style={FLOWER_SCREEN}
+                style={flowerScreen}
               >
                 <img className="safe-flower-art" src={`${assetBase}/safe-flower.webp`} alt="Glowing pink flower, the safe landing target" />
                 <strong>{targetCopy.title}</strong>
+              </div>
+            )}
+            {isGrooming && (
+              <div className={`groom-sparkles ${worldState}`} style={flowerScreen} aria-hidden="true">
+                <i /><i /><i />
               </div>
             )}
             {(worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "heading") && (
@@ -490,10 +713,10 @@ export default function Home() {
               <span>{controlCopy.detail}</span>
             </div>
             <div className="key-controls" aria-label="Fly movement controls">
-              <button onClick={() => nudge("left")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer left">←<kbd>A</kbd></button>
-              <button onClick={() => nudge("forward")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
-              <button onClick={() => nudge("backward")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
-              <button onClick={() => nudge("right")} disabled={worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer right">→<kbd>D</kbd></button>
+              <button className={action === "left" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "left")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "left")} disabled={controlDisabled} aria-label="Steer left">←<kbd>A</kbd></button>
+              <button className={action === "forward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "forward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "forward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
+              <button className={action === "backward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "backward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "backward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
+              <button className={action === "right" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "right")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "right")} disabled={controlDisabled} aria-label="Steer right">→<kbd>D</kbd></button>
             </div>
           </div>
         </div>
@@ -537,12 +760,23 @@ export default function Home() {
                       <img className="neuron-action-layer dodge-frame" src={DODGE_LEFT_ASSETS[dodgeFrame]} alt="" aria-hidden="true" />
                       <img className="neuron-action-layer dodge-frame" src={DODGE_RIGHT_ASSETS[dodgeFrame]} alt="" aria-hidden="true" />
                     </>
-                  ) : activeNeuronLayer.src && <img key={activeNeuronLayer.src} className="neuron-action-layer" src={activeNeuronLayer.src} alt="" aria-hidden="true" />}
+                  ) : isGroomPulse ? (
+                    <img className="neuron-action-layer groom-frame" src={groomFrameAsset} alt="" aria-hidden="true" />
+                  ) : activeNeuronLayer.src && (
+                    <img
+                      key={activeNeuronLayer.src}
+                      className="neuron-action-layer"
+                      src={activeNeuronLayer.src}
+                      alt=""
+                      aria-hidden="true"
+                      onError={(event) => { event.currentTarget.style.display = "none"; }}
+                    />
+                  )}
                 </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
               <div className="neuron-render-label">
-                {(isFlightCockpit || isDodgePulse) && <span><i /> {isDodgePulse ? `DNp03 · ${flightDnp03.count}-CELL PAIR` : circuitMode === "heading" ? "COMPASS COCKPIT" : "FLIGHT POWER"}</span>}
+                {(isFlightCockpit || isDodgePulse || isGrooming) && <span><i /> {isDodgePulse ? `DNp03 · ${flightDnp03.count}-CELL PAIR` : isGrooming ? worldState === "groom-head" ? "DNg12 · DESCENDING CONTROL" : `wPN1 · ${groomSide.toUpperCase()} WING` : circuitMode === "heading" ? "COMPASS COCKPIT" : "FLIGHT POWER"}</span>}
                 <strong>{activeNeuronLayer.label}</strong>
               </div>
             </div>
