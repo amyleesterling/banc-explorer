@@ -62,12 +62,12 @@ const fragmentShader = /* glsl */ `
     float breathing = 0.95 + sin(uTime * 1.7) * 0.05;
     vec3 ice = vec3(0.9, 1.0, 0.97);
     vec3 color = mix(uTint, ice, 0.18 + rim * 0.34) * breathing;
-    float alpha = (0.5 + rim * 0.4) * uOpacity;
-    gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.96));
+    float alpha = (0.74 + rim * 0.24) * uOpacity;
+    gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.98));
   }
 `;
 
-function makeMaterial(color: string, opacity = 1): HologramMaterial {
+function makeMaterial(color: string, opacity = 1, depthWrite = false): HologramMaterial {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -77,7 +77,7 @@ function makeMaterial(color: string, opacity = 1): HologramMaterial {
     vertexShader,
     fragmentShader,
     transparent: true,
-    depthWrite: false,
+    depthWrite,
     depthTest: true,
     side: THREE.DoubleSide,
     blending: THREE.NormalBlending,
@@ -87,7 +87,7 @@ function makeMaterial(color: string, opacity = 1): HologramMaterial {
 function materialFor(name: string, materials: Record<string, HologramMaterial>) {
   if (name.includes("eye")) return materials.eye;
   if (name.includes("wing") || name.includes("haltere")) return materials.wing;
-  if (name.includes("tarsus") || name.includes("tibia")) return materials.leg;
+  if (/^[lr][fmh]_/.test(name)) return materials.leg;
   return materials.body;
 }
 
@@ -128,9 +128,10 @@ export function FlyHologram({
     let disposed = false;
     let animationFrame = 0;
     let lastFrame = 0;
-    const lowPower = window.matchMedia("(max-width: 640px), (prefers-reduced-motion: reduce)").matches;
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !lowPower, powerPreference: "low-power" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 1.35));
+    const compactViewport = window.matchMedia("(max-width: 640px)").matches;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, compactViewport ? 2 : 1.5));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.domElement.setAttribute("aria-label", "Interactive holographic NeuroMechFly model in a miniature foraging garden");
@@ -200,7 +201,7 @@ export function FlyHologram({
       rotation: number,
       material: THREE.Material,
       z = -0.9,
-      segments = lowPower ? 18 : 28,
+      segments = compactViewport ? 22 : 28,
     ) {
       const mesh = new THREE.Mesh(new THREE.CircleGeometry(1, segments), material);
       mesh.position.set(x, y, z);
@@ -338,12 +339,24 @@ export function FlyHologram({
     });
 
     const materials = {
-      body: makeMaterial("#43d5c1", 1),
-      leg: makeMaterial("#77ead8", 0.98),
-      wing: makeMaterial("#b5ddff", 0.84),
-      eye: makeMaterial("#ff6a83", 1.06),
+      body: makeMaterial("#27c9ab", 1.22, true),
+      // The articulated leg meshes are hair-thin at phone scale. A darker
+      // material preserves their silhouette against the moss without turning
+      // the whole animal back into a dark blob.
+      leg: makeMaterial("#07584d", 1.36, true),
+      wing: makeMaterial("#a9d7ff", 0.52),
+      eye: makeMaterial("#ff5f79", 1.28, true),
     };
     const materialList = Object.values(materials);
+    const legOutlineMaterial = new THREE.MeshBasicMaterial({
+      color: 0x032f2a,
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      depthTest: true,
+    });
+    worldMaterials.push(legOutlineMaterial);
     const modelPivot = new THREE.Group();
     const modelRoot = new THREE.Group();
     modelPivot.add(modelRoot);
@@ -392,7 +405,23 @@ export function FlyHologram({
           const geometry = sourceGeometry.clone();
           geometry.scale(manifest.scale, segment.mirrorY ? -manifest.scale : manifest.scale, manifest.scale);
           const mesh = new THREE.Mesh(geometry, materialFor(segment.name, materials));
+          const isWing = segment.name.includes("wing") || segment.name.includes("haltere");
+          const isEye = segment.name.includes("eye");
+          const isLeg = /^[lr][fmh]_/.test(segment.name);
+          mesh.renderOrder = isWing ? 0 : isEye ? 4 : isLeg ? 3 : 2;
           mesh.frustumCulled = false;
+          if (isLeg) {
+            // A subtle back-face shell thickens the real leg geometry by a few
+            // screen pixels. It remains an anatomical mesh, not a drawn tracer.
+            const outlineGeometry = geometry.clone();
+            // NeuroMechFly leg files run along local Z, so thicken X/Y without
+            // making the limbs cartoonishly longer.
+            outlineGeometry.scale(1.46, 1.46, 1.02);
+            const outline = new THREE.Mesh(outlineGeometry, legOutlineMaterial);
+            outline.renderOrder = 2.5;
+            outline.frustumCulled = false;
+            object.add(outline);
+          }
           object.add(mesh);
           if (segment.parent) objects.get(segment.parent)?.add(object);
           else modelRoot.add(object);
@@ -402,7 +431,7 @@ export function FlyHologram({
         const thoraxPivot = objects.get("c_thorax")?.getWorldPosition(new THREE.Vector3())
           ?? bounds.getCenter(new THREE.Vector3());
         modelRoot.position.sub(thoraxPivot);
-        modelPivot.scale.setScalar(0.38);
+        modelPivot.scale.setScalar(compactViewport ? 0.43 : 0.38);
         setStatus("ready");
       } catch (error) {
         console.error(error);
@@ -438,7 +467,7 @@ export function FlyHologram({
     function animate(timeMs: number) {
       if (disposed) return;
       animationFrame = requestAnimationFrame(animate);
-      if (timeMs - lastFrame < (lowPower ? 50 : 30)) return;
+      if (timeMs - lastFrame < (reducedMotion ? 50 : 30)) return;
       const frameDelta = Math.min((timeMs - lastFrame) / 1000, 0.08);
       lastFrame = timeMs;
       const time = timeMs / 1000;
@@ -468,9 +497,15 @@ export function FlyHologram({
           const isFrontLeg = prefix.endsWith("f");
           const sweep = Math.sin(phaseAge * 7.4 + (side > 0 ? 0 : Math.PI));
           if (isFrontLeg) {
-            if (name.endsWith("coxa")) object.rotateZ(side * (0.46 + sweep * 0.15));
-            if (name.endsWith("trochanterfemur")) object.rotateY(-0.82 + sweep * 0.2);
-            if (name.endsWith("tibia")) object.rotateY(1.08 - sweep * 0.26);
+            if (name.endsWith("coxa")) object.rotateZ(side * (0.62 + sweep * 0.24));
+            if (name.endsWith("trochanterfemur")) {
+              object.rotateZ(side * (-0.74 + sweep * 0.28));
+              object.rotateY(-0.38 + sweep * 0.12);
+            }
+            if (name.endsWith("tibia")) {
+              object.rotateZ(side * (1.02 - sweep * 0.4));
+              object.rotateY(0.46 - sweep * 0.15);
+            }
           } else {
             if (name.endsWith("coxa")) object.rotateZ(side * 0.07);
             if (name.endsWith("trochanterfemur")) object.rotateY(-0.08);
@@ -483,9 +518,15 @@ export function FlyHologram({
           const selectedSide = sceneState === "groom-wing-left" ? 1 : -1;
           const sweep = 0.5 + 0.5 * Math.sin(phaseAge * 8.1 + (side > 0 ? 0 : 0.48));
           if (isHindLeg) {
-            if (name.endsWith("coxa")) object.rotateZ(selectedSide * (0.26 + sweep * 0.22) + side * 0.08);
-            if (name.endsWith("trochanterfemur")) object.rotateY(-0.62 - sweep * 0.22);
-            if (name.endsWith("tibia")) object.rotateY(0.78 + sweep * 0.38);
+            if (name.endsWith("coxa")) object.rotateZ(selectedSide * (0.34 + sweep * 0.31) + side * 0.1);
+            if (name.endsWith("trochanterfemur")) {
+              object.rotateZ(selectedSide * (-0.58 - sweep * 0.28));
+              object.rotateY(-0.28 - sweep * 0.12);
+            }
+            if (name.endsWith("tibia")) {
+              object.rotateZ(selectedSide * (0.82 + sweep * 0.42));
+              object.rotateY(0.34 + sweep * 0.16);
+            }
           } else {
             if (name.endsWith("coxa")) object.rotateZ(side * 0.06);
             if (name.endsWith("trochanterfemur")) object.rotateY(-0.06);
@@ -520,7 +561,7 @@ export function FlyHologram({
         const phase = name.startsWith("l") ? 0 : 0.65;
         const flutter = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(wingWindow * 34 + phase));
         const groomingThisWing = groomingWing && (sceneState === "groom-wing-left" ? name.startsWith("l") : name.startsWith("r"));
-        const groomOpen = groomingThisWing ? 0.2 + Math.sin(phaseAge * 8.1) * 0.055 : 0;
+        const groomOpen = groomingThisWing ? 0.31 + Math.sin(phaseAge * 8.1) * 0.075 : 0;
         const flick = flying
           ? 0.68 + Math.sin(time * 58 + phase) * 0.38
           : groomingWing
@@ -540,21 +581,25 @@ export function FlyHologram({
         modelPivot.rotation.z = -motion.angle;
         modelPivot.rotation.x = 0;
         modelPivot.rotation.y = 0;
-        modelPivot.scale.setScalar(0.38);
+        const baseModelScale = compactViewport ? 0.43 : 0.38;
+        modelPivot.scale.setScalar(baseModelScale);
 
         if (eating) {
           const nibble = Math.sin(time * 10.5);
           modelPivot.position.y += nibble * 0.025;
           modelPivot.rotation.z += nibble * 0.018;
-          modelPivot.scale.setScalar(0.38 * (1 + Math.max(0, nibble) * 0.018));
+          modelPivot.scale.setScalar(baseModelScale * (1 + Math.max(0, nibble) * 0.018));
         }
 
         if (groomingHead) {
           const sweep = Math.sin(phaseAge * 7.4);
           modelPivot.position.y += Math.abs(sweep) * 0.018;
           modelPivot.rotation.z += sweep * 0.025;
-          modelPivot.rotation.x = 0.055 + Math.abs(sweep) * 0.018;
-          modelPivot.scale.setScalar(0.38 * (1 - Math.abs(sweep) * 0.012));
+          // A small three-quarter tilt exposes the real front-leg meshes that
+          // otherwise sit beneath the body in the dorsal world camera.
+          modelPivot.rotation.x = 0.2 + Math.abs(sweep) * 0.045;
+          modelPivot.rotation.y = sweep * 0.055;
+          modelPivot.scale.setScalar(baseModelScale * (1.18 - Math.abs(sweep) * 0.018));
         }
 
         if (groomingWing) {
@@ -562,7 +607,9 @@ export function FlyHologram({
           const selectedSide = sceneState === "groom-wing-left" ? 1 : -1;
           modelPivot.position.x += selectedSide * Math.abs(polish) * 0.014;
           modelPivot.rotation.z += selectedSide * (0.045 + polish * 0.018);
-          modelPivot.rotation.y = selectedSide * 0.055;
+          modelPivot.rotation.x = 0.15 + Math.abs(polish) * 0.035;
+          modelPivot.rotation.y = selectedSide * 0.13;
+          modelPivot.scale.setScalar(baseModelScale * (1.16 + Math.abs(polish) * 0.025));
         }
 
         if (flying && phaseStartedRef.current !== null) {
@@ -580,7 +627,7 @@ export function FlyHologram({
           modelPivot.rotation.z += displayedTurn * (sceneState === "dodge" ? 0.15 : 0.055) + cruise * 0.025;
           modelPivot.rotation.x = lift * ((sceneState === "dodge" ? 0.14 : 0.07) + wingLift * 0.018);
           modelPivot.rotation.y = displayedTurn * (sceneState === "dodge" ? 0.28 : 0.13);
-          modelPivot.scale.setScalar(0.38 * (1 + lift * 0.13 + wingLift * 0.012));
+          modelPivot.scale.setScalar(baseModelScale * (1 + lift * 0.13 + wingLift * 0.012));
         }
       }
       modelPivot.position.z = Math.sin(time * 2.2) * 0.025;

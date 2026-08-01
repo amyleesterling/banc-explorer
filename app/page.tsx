@@ -178,7 +178,7 @@ export default function Home() {
   const flowerIndexRef = useRef(0);
   const landingCountRef = useRef(0);
   const epgPreloadedRef = useRef(false);
-  const pointerControlRef = useRef<{ pointerId: number; action: Exclude<Action, "rest">; startedAt: number } | null>(null);
+  const pointerControlRef = useRef<{ pointerId: number; action: Exclude<Action, "rest"> } | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [spiderWarning, setSpiderWarning] = useState(false);
@@ -370,7 +370,7 @@ export default function Home() {
           setWorldState("heading");
           setCircuitMode("heading");
         }, 900);
-      }, 2200);
+      }, 3200);
     }, 900);
   }, []);
 
@@ -562,17 +562,18 @@ export default function Home() {
     if (controlDisabled) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    pointerControlRef.current = { pointerId: event.pointerId, action: next, startedAt: performance.now() };
+    pointerControlRef.current = { pointerId: event.pointerId, action: next };
+    // Give every tap an immediate, visible step. Keeping the key active after
+    // this first nudge preserves continuous movement for a press-and-hold.
+    nudge(next);
     keysRef.current.add(controlKey[next]);
-    updateAction(next);
   };
   const endPointerControl = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const active = pointerControlRef.current;
     if (!active || active.pointerId !== event.pointerId) return;
     keysRef.current.delete(controlKey[active.action]);
     pointerControlRef.current = null;
-    if (performance.now() - active.startedAt < 140) nudge(active.action);
-    else updateAction("rest");
+    updateAction("rest");
   };
   const cancelPointerControl = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const active = pointerControlRef.current;
