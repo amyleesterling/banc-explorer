@@ -41,6 +41,9 @@ const DODGE_RIGHT_ASSETS = Array.from(
   (_, index) => `${assetBase}/banc-flight-dodge-anatomical-right/frame-${String(index).padStart(2, "0")}.webp`,
 );
 const GROOM_FRAME_COUNT = 16;
+const GROOM_NEURAL_FRAME_RATE = 6;
+const HEAD_GROOM_DURATION_MS = 7200;
+const WING_GROOM_DURATION_MS = 8200;
 const HEAD_GROOM_ASSETS = Array.from(
   { length: GROOM_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-groom-head-dng12/frame-${String(index).padStart(2, "0")}.webp`,
@@ -356,6 +359,9 @@ export default function Home() {
       worldStateRef.current = groomingState;
       setWorldState(groomingState);
       setCircuitMode(groomingState);
+      const groomingDuration = groomingState === "groom-head"
+        ? HEAD_GROOM_DURATION_MS
+        : WING_GROOM_DURATION_MS;
       groomTimerRef.current = window.setTimeout(() => {
         if (worldStateRef.current !== groomingState) return;
         const nextFlowerIndex = (flowerIndexRef.current + 1) % FLOWER_TARGETS.length;
@@ -370,7 +376,7 @@ export default function Home() {
           setWorldState("heading");
           setCircuitMode("heading");
         }, 900);
-      }, 3200);
+      }, groomingDuration);
     }, 900);
   }, []);
 
@@ -439,11 +445,11 @@ export default function Home() {
   useEffect(() => {
     if (!isGrooming || !groomAssetsReady) return;
     const startedAt = performance.now();
-    const duration = ((GROOM_FRAME_COUNT - 1) / 24) * 1000;
+    const duration = ((GROOM_FRAME_COUNT - 1) / GROOM_NEURAL_FRAME_RATE) * 1000;
     let animationFrame = 0;
     const advance = () => {
       const elapsed = performance.now() - startedAt;
-      const nextFrame = Math.min(GROOM_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / 24)));
+      const nextFrame = Math.min(GROOM_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / GROOM_NEURAL_FRAME_RATE)));
       setGroomFrame(nextFrame);
       if (elapsed < duration) animationFrame = requestAnimationFrame(advance);
       else setGroomPulseComplete(true);
