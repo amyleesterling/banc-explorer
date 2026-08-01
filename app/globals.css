@@ -183,6 +183,10 @@ h1 em { color: var(--moss); font-weight: 400; }
 .epg-cockpit-turn { position: absolute; z-index: 4; left: 50%; bottom: 48px; transform: translateX(-50%); width: min(300px, 58%); display: flex; align-items: center; justify-content: space-between; gap: 16px; color: rgba(240,217,233,.62); font-size: 10px; font-weight: 900; letter-spacing: .11em; }
 .epg-cockpit-turn b { color: #f2cde1; font-size: 10px; }
 .epg-cockpit.turn-left .epg-cockpit-turn span:first-child, .epg-cockpit.turn-right .epg-cockpit-turn span:last-child { color: #fff0f8; text-shadow: 0 0 12px #f3b8dc; }
+.flight-drive-readout { position: absolute; z-index: 4; left: 22px; top: 22px; display: grid; gap: 3px; min-width: 158px; padding: 10px 13px; border: 1px solid rgba(112,216,206,.42); border-radius: 8px; background: rgba(13,45,43,.76); color: #c7fff7; box-shadow: 0 0 26px rgba(112,216,206,.1); backdrop-filter: blur(8px); }
+.flight-drive-readout span { font-size: 9px; font-weight: 900; letter-spacing: .12em; opacity: .72; }
+.flight-drive-readout strong { font-family: Georgia, serif; font-size: 24px; font-weight: 400; }
+.flight-drive-readout.flight-reverse { border-color: rgba(239,183,220,.45); background: rgba(48,27,43,.76); color: #ffd9ef; box-shadow: 0 0 26px rgba(239,183,220,.1); }
 @keyframes epg-sector-arrive { from { opacity: .25; } }
 @keyframes neuron-ignite { from { opacity: 0; filter: saturate(.35) brightness(.65) drop-shadow(0 0 0 transparent); } to { opacity: .96; filter: saturate(1.16) brightness(1) drop-shadow(0 0 7px color-mix(in srgb, var(--layer-accent, #ff1493) 38%, transparent)); } }
 .inline-neuroglancer { position: absolute; inset: 0; z-index: 2; display: grid; grid-template-rows: 0 minmax(0, 1fr) 28px; overflow: hidden; background: #000; }
@@ -204,6 +208,8 @@ h1 em { color: var(--moss); font-weight: 400; }
 .signal-story.mode-eat { background: #fff0d4; color: #6d5738; }
 .signal-story.mode-threat { background: #fde6df; color: #6e4747; }
 .signal-story.mode-heading { background: #eee7f6; color: #594667; }
+.signal-story.mode-flight-forward { background: #e2f5f1; color: #275b58; }
+.signal-story.mode-flight-reverse { background: #f3e5f0; color: #67475f; }
 .signal-topline { font-size: 12px; font-weight: 800; letter-spacing: .12em; color: currentColor; opacity: .62; }
 .signal-story h2 { margin: 7px 0 5px; font-family: Georgia, serif; font-weight: 400; letter-spacing: -.03em; font-size: 36px; line-height: 1.02; color: currentColor; }
 .signal-story > p { margin: 0; color: currentColor; opacity: .84; font-size: 16px; line-height: 1.45; }

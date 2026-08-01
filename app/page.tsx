@@ -3,10 +3,11 @@
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
+import flightDng02 from "./data/flight-dng02.json";
 import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
-type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "heading";
+type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "heading" | "flight-forward" | "flight-reverse";
 type WorldState = "seeking" | "eating" | "threat" | "takeoff" | "heading" | "landing";
 
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
@@ -16,6 +17,7 @@ const INTERACTIVE_NEURON_URL = `https://spelunker.cave-explorer.org/#!${encodeUR
 const STEERING_CODEX_URL = "https://codex.flywire.ai/app/connectivity?cell_names_or_ids=cell_type+%3D%3D+DNa01+%7C%7C+cell_type+%3D%3D+DNa02&dataset=banc";
 const MDN_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+MDN&dataset=banc";
 const EPG_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+EPG&dataset=banc";
+const DNG02_CODEX_URL = "https://codex.flywire.ai/app/search?filter_string=cell_type+%3D%3D+DNg02&dataset=banc";
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const EPG_HEADING_COUNT = 16;
 const EPG_HEADING_ASSETS = Array.from(
@@ -24,7 +26,7 @@ const EPG_HEADING_ASSETS = Array.from(
 );
 const EPG_BASE_ASSET = `${assetBase}/epg/epg-base.webp`;
 const FOOD_TARGET = { x: 0.88, y: 0.18 };
-const FOOD_CONTACT_RADIUS = 0.095;
+const FOOD_CONTACT_BOUNDARY = { halfWidth: 0.15, halfHeight: 0.11 };
 const FLOWER_TARGET = { x: 0.2, y: 0.72 };
 const FLOWER_CONTACT_RADIUS = 0.105;
 const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
@@ -33,6 +35,15 @@ const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
 });
 const FOOD_SCREEN = toScreenPosition(FOOD_TARGET);
 const FLOWER_SCREEN = toScreenPosition(FLOWER_TARGET);
+const isInsideEllipse = (
+  point: { x: number; y: number },
+  center: { x: number; y: number },
+  boundary: { halfWidth: number; halfHeight: number },
+) => {
+  const x = (point.x - center.x) / boundary.halfWidth;
+  const y = (point.y - center.y) / boundary.halfHeight;
+  return x * x + y * y <= 1;
+};
 
 const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; accent: string }> = {
   walk: { src: `${assetBase}/banc-forward.webp`, label: "FORWARD WALK", accent: "#ff4fa3" },
@@ -42,6 +53,8 @@ const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; a
   eat: { src: `${assetBase}/banc-eat.webp`, label: "FEEDING", accent: "#ffc857" },
   threat: { src: `${assetBase}/banc-threat-walk.webp`, label: "THREAT RESPONSE", accent: "#ff7b72" },
   heading: { label: "EPG COCKPIT", accent: "#bd9bd1" },
+  "flight-forward": { label: "FORWARD THRUST", accent: "#70d8ce" },
+  "flight-reverse": { label: "REVERSE FLIGHT", accent: "#efb7dc" },
 };
 
 const CIRCUITS: Record<CircuitMode, {
@@ -76,6 +89,14 @@ const CIRCUITS: Record<CircuitMode, {
     summary: "EPG neurons maintain the fly's heading as it turns.",
     viewerUrl: EPG_CODEX_URL,
   },
+  "flight-forward": {
+    summary: `The ${flightDng02.count}-cell BANC DNg02 population regulates wingbeat amplitude and contributes to flight thrust.`,
+    viewerUrl: DNG02_CODEX_URL,
+  },
+  "flight-reverse": {
+    summary: "Reverse is simulated by reducing and redirecting DNg02-powered thrust; no dedicated backward-flight cell type is claimed.",
+    viewerUrl: DNG02_CODEX_URL,
+  },
 };
 
 const LEGEND = [
@@ -108,6 +129,7 @@ export default function Home() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const activeCircuit = CIRCUITS[circuitMode];
   const activeNeuronLayer = STATIC_NEURON_LAYERS[circuitMode];
+  const isFlightCockpit = circuitMode === "heading" || circuitMode === "flight-forward" || circuitMode === "flight-reverse";
   const compassDegrees = (headingDegrees + 90) % 360;
   const epgCounterClockwiseDegrees = (360 - compassDegrees) % 360;
   const epgHeadingIndex = Math.floor(epgCounterClockwiseDegrees / (360 / EPG_HEADING_COUNT)) % EPG_HEADING_COUNT;
@@ -147,7 +169,7 @@ export default function Home() {
     ? { kicker: "FLIGHT OBJECTIVE", title: "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
     : { kicker: "FORAGING OBJECTIVE", title: "FIND THE RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
   const controlCopy = worldState === "heading"
-    ? { title: "Flight controls", detail: "Steer with A/D. Fly with W." }
+    ? { title: "Flight controls", detail: "Steer with A/D. Thrust or reverse with W/S." }
     : worldCopy;
 
   useEffect(() => {
@@ -220,6 +242,8 @@ export default function Home() {
     setAction(next);
     if (next !== "rest" && currentState === "seeking") {
       setCircuitMode(next === "forward" ? "walk" : next);
+    } else if (currentState === "heading") {
+      setCircuitMode(next === "forward" ? "flight-forward" : next === "backward" ? "flight-reverse" : "heading");
     }
   }, []);
 
@@ -290,8 +314,7 @@ export default function Home() {
       }
       fly.x = Math.max(0.1, Math.min(0.9, fly.x));
       fly.y = Math.max(0.16, Math.min(0.86, fly.y));
-      const foodDistance = Math.hypot(fly.x - FOOD_TARGET.x, fly.y - FOOD_TARGET.y);
-      if (worldStateRef.current === "seeking" && foodDistance <= FOOD_CONTACT_RADIUS) {
+      if (worldStateRef.current === "seeking" && isInsideEllipse(fly, FOOD_TARGET, FOOD_CONTACT_BOUNDARY)) {
         triggerEating();
       }
       const flowerDistance = Math.hypot(fly.x - FLOWER_TARGET.x, fly.y - FLOWER_TARGET.y);
@@ -305,6 +328,8 @@ export default function Home() {
         if (nextAction !== "rest" && worldStateRef.current === "seeking") {
           setCircuitMode(nextAction === "forward" ? "walk" : nextAction);
           setSteps((value) => value + 1);
+        } else if (worldStateRef.current === "heading") {
+          setCircuitMode(nextAction === "forward" ? "flight-forward" : nextAction === "backward" ? "flight-reverse" : "heading");
         }
       }
 
@@ -422,7 +447,7 @@ export default function Home() {
             <div className="key-controls" aria-label="Fly movement controls">
               <button onClick={() => nudge("left")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer left">←<kbd>A</kbd></button>
               <button onClick={() => nudge("forward")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
-              <button onClick={() => nudge("backward")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Slow or reverse in flight" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
+              <button onClick={() => nudge("backward")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
               <button onClick={() => nudge("right")} disabled={worldState === "threat" || worldState === "takeoff" || worldState === "landing"} aria-label="Steer right">→<kbd>D</kbd></button>
             </div>
           </div>
@@ -437,21 +462,27 @@ export default function Home() {
           </header>
           <div className="circuit-canvas-wrap">
             <div
-              className={`neuron-render-stage${circuitMode === "heading" ? " heading" : ""}`}
+              className={`neuron-render-stage${isFlightCockpit ? " heading" : ""}`}
               role="img"
-              aria-label={circuitMode === "heading" ? `Front-view EPG cockpit with heading sector ${epgHeadingIndex} selected at ${compassDegrees} compass degrees` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
+              aria-label={isFlightCockpit ? `Front-view EPG cockpit at ${compassDegrees} compass degrees with ${activeNeuronLayer.label.toLowerCase()} selected` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
               style={{
                 "--layer-accent": activeNeuronLayer.accent,
                 "--heading-angle": `${headingDegrees + 90}deg`,
               } as CSSProperties}
             >
-              {circuitMode === "heading" ? (
+              {isFlightCockpit ? (
                 <div className={`epg-cockpit turn-${action}`} aria-hidden="true">
                   <img className="epg-cockpit-base" src={EPG_BASE_ASSET} alt="" />
                   <img key={epgHeadingAsset} className="epg-cockpit-active" src={epgHeadingAsset} alt="" />
                   <div className="epg-cockpit-reticle"><span /></div>
                   <div className="epg-cockpit-readout"><span>FLY HEADING · EPG {String(epgHeadingIndex).padStart(2, "0")}</span><strong>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</strong></div>
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
+                  {circuitMode !== "heading" && (
+                    <div className={`flight-drive-readout ${circuitMode}`}>
+                      <span>DNg02 · {flightDng02.count}-CELL POPULATION</span>
+                      <strong>{circuitMode === "flight-forward" ? "THRUST ↑" : "THRUST ↓"}</strong>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -461,7 +492,7 @@ export default function Home() {
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
               <div className="neuron-render-label">
-                {circuitMode === "heading" && <span><i /> COMPASS COCKPIT</span>}
+                {isFlightCockpit && <span><i /> {circuitMode === "heading" ? "COMPASS COCKPIT" : "FLIGHT POWER"}</span>}
                 <strong>{activeNeuronLayer.label}</strong>
               </div>
             </div>
