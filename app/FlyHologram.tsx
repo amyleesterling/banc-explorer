@@ -39,6 +39,13 @@ type HologramMaterial = THREE.ShaderMaterial & {
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const HEAD_GROOM_CYCLE_SPEED = 3.2;
 const WING_GROOM_CYCLE_SPEED = 2.7;
+const HEAD_GROOM_DURATION_SECONDS = 7.2;
+const WING_GROOM_DURATION_SECONDS = 8.2;
+
+function smoothstep(edge0: number, edge1: number, value: number) {
+  const amount = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return amount * amount * (3 - 2 * amount);
+}
 
 const vertexShader = /* glsl */ `
   varying vec3 vNormal;
@@ -88,6 +95,8 @@ function makeMaterial(color: string, opacity = 1, depthWrite = false): HologramM
 
 function materialFor(name: string, materials: Record<string, HologramMaterial>) {
   if (name.includes("eye")) return materials.eye;
+  if (name === "l_wing") return materials.leftWing;
+  if (name === "r_wing") return materials.rightWing;
   if (name.includes("wing") || name.includes("haltere")) return materials.wing;
   if (/^[lr]f_/.test(name)) return materials.frontLeg;
   if (/^[lr]h_/.test(name)) return materials.hindLeg;
@@ -351,17 +360,19 @@ export function FlyHologram({
       frontLeg: makeMaterial("#07584d", 1.36, true),
       hindLeg: makeMaterial("#07584d", 1.36, true),
       wing: makeMaterial("#a9d7ff", 0.52),
+      leftWing: makeMaterial("#a9d7ff", 0.52),
+      rightWing: makeMaterial("#a9d7ff", 0.52),
       eye: makeMaterial("#ff5f79", 1.28, true),
     };
     const materialList = Object.values(materials);
     const makeLegOutlineMaterial = () => new THREE.MeshBasicMaterial({
-        color: 0x032f2a,
-        side: THREE.BackSide,
-        transparent: true,
-        opacity: 0.9,
-        depthWrite: false,
-        depthTest: true,
-      });
+      color: 0x032f2a,
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      depthTest: true,
+    });
     const legOutlineMaterial = makeLegOutlineMaterial();
     const frontLegOutlineMaterial = makeLegOutlineMaterial();
     const hindLegOutlineMaterial = makeLegOutlineMaterial();
@@ -376,6 +387,7 @@ export function FlyHologram({
     const basePositions = new Map<string, THREE.Vector3>();
     const legMeshes = new Map<string, THREE.Mesh>();
     const legOutlines = new Map<string, THREE.Mesh>();
+    const wingMeshes = new Map<string, THREE.Mesh>();
 
     const loader = new STLLoader();
 
@@ -400,7 +412,7 @@ export function FlyHologram({
           object.position.fromArray(segment.pos);
           object.quaternion.set(segment.quat[1], segment.quat[2], segment.quat[3], segment.quat[0]);
           objects.set(segment.name, object);
-          if (/^[lr][fmh]_(coxa|tibia|trochanterfemur)$/.test(segment.name)) {
+          if (/^[lr][fmh]_(coxa|tibia|trochanterfemur|tarsus1)$/.test(segment.name)) {
             animatedSegments.set(segment.name, object);
             baseQuaternions.set(segment.name, object.quaternion.clone());
             basePositions.set(segment.name, object.position.clone());
@@ -443,6 +455,7 @@ export function FlyHologram({
             legMeshes.set(segment.name, mesh);
             legOutlines.set(segment.name, outline);
           }
+          if (/^[lr]_wing$/.test(segment.name)) wingMeshes.set(segment.name, mesh);
           object.add(mesh);
           if (segment.parent) objects.get(segment.parent)?.add(object);
           else modelRoot.add(object);
@@ -499,7 +512,13 @@ export function FlyHologram({
       const groomingWing = sceneState === "groom-wing-left" || sceneState === "groom-wing-right";
       const grooming = groomingHead || groomingWing;
       const phaseAge = phaseStartedRef.current === null ? 0 : Math.max(0, time - phaseStartedRef.current);
-      const groomingPose = Math.min(1, phaseAge / 0.55);
+      const groomingDuration = groomingHead
+        ? HEAD_GROOM_DURATION_SECONDS
+        : WING_GROOM_DURATION_SECONDS;
+      const groomingPose = grooming
+        ? smoothstep(0, 0.8, phaseAge) * (1 - smoothstep(groomingDuration - 1.05, groomingDuration, phaseAge))
+        : 0;
+      const groomingMotionTime = Math.max(0, phaseAge - 0.72);
       const moving = !flying && !grooming && actionRef.current !== "rest";
       const turn = actionRef.current === "left" ? -1 : actionRef.current === "right" ? 1 : 0;
       const gaitDirection = actionRef.current === "backward" ? -1 : 1;
@@ -512,19 +531,27 @@ export function FlyHologram({
       // biologically correct raised leg disappear beneath the thorax.
       materials.frontLeg.depthTest = !groomingHead;
       materials.frontLeg.depthWrite = !groomingHead;
-      materials.frontLeg.uniforms.uTint.value.set(groomingHead ? "#8ff1d2" : "#07584d");
-      materials.frontLeg.uniforms.uOpacity.value = groomingHead ? 1.62 : 1.36;
+      materials.frontLeg.uniforms.uTint.value.set(groomingHead ? "#b7ffe9" : "#07584d");
+      materials.frontLeg.uniforms.uOpacity.value = groomingHead ? 1.72 : 1.36;
       frontLegOutlineMaterial.depthTest = !groomingHead;
       materials.hindLeg.depthTest = !groomingWing;
       materials.hindLeg.depthWrite = !groomingWing;
-      materials.hindLeg.uniforms.uTint.value.set(groomingWing ? "#8ff1d2" : "#07584d");
-      materials.hindLeg.uniforms.uOpacity.value = groomingWing ? 1.58 : 1.36;
+      materials.hindLeg.uniforms.uTint.value.set(groomingWing ? "#b7ffe9" : "#07584d");
+      materials.hindLeg.uniforms.uOpacity.value = groomingWing ? 1.68 : 1.36;
       hindLegOutlineMaterial.depthTest = !groomingWing;
       for (const [name, mesh] of legMeshes) {
         const emphasized = groomingHead ? /^[lr]f_/.test(name) : groomingWing && /^[lr]h_/.test(name);
         mesh.renderOrder = emphasized ? 6 : 3;
         const outline = legOutlines.get(name);
         if (outline) outline.renderOrder = emphasized ? 5.8 : 2.5;
+      }
+      for (const [name, mesh] of wingMeshes) {
+        const selected = groomingWing && (sceneState === "groom-wing-left" ? name.startsWith("l") : name.startsWith("r"));
+        const wingMaterial = name.startsWith("l") ? materials.leftWing : materials.rightWing;
+        wingMaterial.depthTest = !selected;
+        wingMaterial.uniforms.uTint.value.set(selected ? "#ead6ff" : "#a9d7ff");
+        wingMaterial.uniforms.uOpacity.value = selected ? 0.82 : 0.52;
+        mesh.renderOrder = selected ? 5.4 : 0;
       }
 
       for (const [name, object] of animatedSegments) {
@@ -539,23 +566,28 @@ export function FlyHologram({
         const side = prefix.startsWith("l") ? 1 : -1;
         if (groomingHead) {
           const isFrontLeg = prefix.endsWith("f");
-          const sweepPhase = phaseAge * HEAD_GROOM_CYCLE_SPEED + (side > 0 ? 0 : Math.PI);
+          const sweepPhase = groomingMotionTime * HEAD_GROOM_CYCLE_SPEED + (side > 0 ? 0 : 0.34);
           const sweep = Math.sin(sweepPhase);
-          const reach = 0.5 + 0.5 * sweep;
+          const reach = 0.5 - 0.5 * Math.cos(sweepPhase);
+          const rub = Math.sin(sweepPhase * 2) * (1 - reach) * 0.12;
           if (isFrontLeg) {
             if (name.endsWith("coxa")) {
-              object.position.z += 0.52 * groomingPose;
-              object.rotateY((-0.42 - reach * 0.16) * groomingPose);
-              object.rotateX(-side * (0.24 + reach * 0.14) * groomingPose);
+              object.position.z += 0.58 * groomingPose;
+              object.rotateY((-0.4 - reach * 0.2) * groomingPose);
+              object.rotateX(-side * (0.26 + reach * 0.18 + rub) * groomingPose);
             }
             if (name.endsWith("trochanterfemur")) {
-              object.rotateY((-0.78 - reach * 0.34) * groomingPose);
-              object.rotateX(-side * (0.52 - reach * 0.14) * groomingPose);
-              object.rotateZ(side * sweep * 0.12 * groomingPose);
+              object.rotateY((-0.74 - reach * 0.42) * groomingPose);
+              object.rotateX(-side * (0.56 - reach * 0.18 + rub) * groomingPose);
+              object.rotateZ(side * sweep * 0.14 * groomingPose);
             }
             if (name.endsWith("tibia")) {
-              object.rotateY((1.08 - reach * 0.26) * groomingPose);
-              object.rotateX(side * (0.2 + sweep * 0.08) * groomingPose);
+              object.rotateY((1.12 - reach * 0.34) * groomingPose);
+              object.rotateX(side * (0.22 + sweep * 0.1) * groomingPose);
+            }
+            if (name.endsWith("tarsus1")) {
+              object.rotateY((-0.42 + reach * 0.28) * groomingPose);
+              object.rotateX(side * rub * groomingPose);
             }
           } else {
             if (name.endsWith("coxa")) object.rotateZ(side * 0.07);
@@ -568,22 +600,27 @@ export function FlyHologram({
           const isHindLeg = prefix.endsWith("h");
           const selectedSide = sceneState === "groom-wing-left" ? 1 : -1;
           const ipsilateral = side === selectedSide;
-          const polishPhase = phaseAge * WING_GROOM_CYCLE_SPEED + (ipsilateral ? 0 : 0.42);
-          const sweep = 0.5 + 0.5 * Math.sin(polishPhase);
+          const polishPhase = groomingMotionTime * WING_GROOM_CYCLE_SPEED + (ipsilateral ? 0 : 0.46);
+          const sweep = 0.5 - 0.5 * Math.cos(polishPhase);
+          const stroke = Math.sin(polishPhase) * 0.5 + 0.5;
           if (isHindLeg) {
             if (name.endsWith("coxa")) {
-              object.position.z += 0.62 * groomingPose;
-              object.rotateY((-0.3 - sweep * 0.12) * groomingPose);
-              object.rotateX(selectedSide * ((ipsilateral ? 0.26 : 0.52) + sweep * 0.12) * groomingPose);
+              object.position.z += 0.66 * groomingPose;
+              object.rotateY((-0.28 - sweep * 0.16) * groomingPose);
+              object.rotateX(selectedSide * ((ipsilateral ? 0.3 : 0.5) + stroke * 0.16) * groomingPose);
             }
             if (name.endsWith("trochanterfemur")) {
-              object.rotateY((-0.56 - sweep * 0.24) * groomingPose);
-              object.rotateX(selectedSide * ((ipsilateral ? 0.42 : 0.76) + sweep * 0.16) * groomingPose);
-              object.rotateZ(side * (0.08 + sweep * 0.1) * groomingPose);
+              object.rotateY((-0.52 - sweep * 0.3) * groomingPose);
+              object.rotateX(selectedSide * ((ipsilateral ? 0.46 : 0.72) + stroke * 0.2) * groomingPose);
+              object.rotateZ(side * (0.08 + sweep * 0.12) * groomingPose);
             }
             if (name.endsWith("tibia")) {
-              object.rotateY((0.86 + sweep * 0.3) * groomingPose);
-              object.rotateX(-selectedSide * (0.16 + sweep * 0.12) * groomingPose);
+              object.rotateY((0.82 + stroke * 0.38) * groomingPose);
+              object.rotateX(-selectedSide * (0.18 + sweep * 0.14) * groomingPose);
+            }
+            if (name.endsWith("tarsus1")) {
+              object.rotateY((-0.34 + stroke * 0.24) * groomingPose);
+              object.rotateX(selectedSide * sweep * 0.08 * groomingPose);
             }
           } else {
             if (name.endsWith("coxa")) object.rotateZ(side * 0.06);
@@ -618,25 +655,30 @@ export function FlyHologram({
         object.quaternion.copy(base);
         if (basePosition) object.position.copy(basePosition);
         const side = name.startsWith("l") ? 1 : -1;
-        const phase = name.startsWith("l") ? 0 : 0.65;
+        const phase = name.startsWith("l") ? 0 : 0.12;
         const flutter = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(wingWindow * 34 + phase));
         const groomingThisWing = groomingWing && (sceneState === "groom-wing-left" ? name.startsWith("l") : name.startsWith("r"));
         if (groomingThisWing) {
           // Wing grooming is a held posterior-lateral presentation, not a
           // backwards-looking flap. The legs provide the polishing motion.
-          const polish = 0.5 + 0.5 * Math.sin(phaseAge * WING_GROOM_CYCLE_SPEED);
-          object.position.x -= 0.035 * groomingPose;
-          object.position.y += side * 0.035 * groomingPose;
-          object.rotateZ(-side * (0.16 + polish * 0.035) * groomingPose);
-          object.rotateX((0.07 + polish * 0.025) * groomingPose);
+          const polish = 0.5 - 0.5 * Math.cos(groomingMotionTime * WING_GROOM_CYCLE_SPEED);
+          object.position.x -= 0.028 * groomingPose;
+          object.position.y += side * 0.052 * groomingPose;
+          object.rotateZ(-side * (0.17 + polish * 0.025) * groomingPose);
+          object.rotateX((0.06 + polish * 0.018) * groomingPose);
         } else {
-          const flick = flying
-            ? 0.68 + Math.sin(time * 58 + phase) * 0.38
-            : groomingWing
-              ? 0
-              : wingEnvelope * flutter;
-          object.rotateZ(side * flick);
-          object.rotateX(flick * (flying ? 0.56 : 0.24));
+          if (flying) {
+            // Flight is primarily a fast elevation stroke. Keeping fore-aft
+            // sweep small prevents the dorsal view from reading as a wing
+            // repeatedly folding backward through the body.
+            const beat = Math.sin(time * 58 + phase);
+            object.rotateZ(side * (0.34 + beat * 0.055));
+            object.rotateX(beat * 0.72);
+          } else {
+            const flick = groomingWing ? 0 : wingEnvelope * flutter;
+            object.rotateZ(side * flick);
+            object.rotateX(flick * 0.24);
+          }
         }
       }
 
@@ -661,24 +703,24 @@ export function FlyHologram({
         }
 
         if (groomingHead) {
-          const sweep = Math.sin(phaseAge * HEAD_GROOM_CYCLE_SPEED);
-          modelPivot.position.y += Math.abs(sweep) * 0.018;
-          modelPivot.rotation.z += sweep * 0.018;
+          const sweep = Math.sin(groomingMotionTime * HEAD_GROOM_CYCLE_SPEED);
+          modelPivot.position.y += Math.abs(sweep) * 0.015 * groomingPose;
+          modelPivot.rotation.z += sweep * 0.014 * groomingPose;
           // A small three-quarter tilt exposes the real front-leg meshes that
           // otherwise sit beneath the body in the dorsal world camera.
-          modelPivot.rotation.x = 0.16 + Math.abs(sweep) * 0.035;
-          modelPivot.rotation.y = sweep * 0.04;
-          modelPivot.scale.setScalar(baseModelScale * (1.24 - Math.abs(sweep) * 0.014));
+          modelPivot.rotation.x = groomingPose * (0.17 + Math.abs(sweep) * 0.03);
+          modelPivot.rotation.y = sweep * 0.035 * groomingPose;
+          modelPivot.scale.setScalar(baseModelScale * (1 + groomingPose * (0.25 - Math.abs(sweep) * 0.012)));
         }
 
         if (groomingWing) {
-          const polish = Math.sin(phaseAge * WING_GROOM_CYCLE_SPEED);
+          const polish = Math.sin(groomingMotionTime * WING_GROOM_CYCLE_SPEED);
           const selectedSide = sceneState === "groom-wing-left" ? 1 : -1;
-          modelPivot.position.x += selectedSide * Math.abs(polish) * 0.014;
-          modelPivot.rotation.z += selectedSide * (0.035 + polish * 0.012);
-          modelPivot.rotation.x = 0.13 + Math.abs(polish) * 0.025;
-          modelPivot.rotation.y = selectedSide * 0.1;
-          modelPivot.scale.setScalar(baseModelScale * (1.2 + Math.abs(polish) * 0.018));
+          modelPivot.position.x += selectedSide * Math.abs(polish) * 0.012 * groomingPose;
+          modelPivot.rotation.z += selectedSide * (0.032 + polish * 0.01) * groomingPose;
+          modelPivot.rotation.x = groomingPose * (0.14 + Math.abs(polish) * 0.022);
+          modelPivot.rotation.y = selectedSide * 0.09 * groomingPose;
+          modelPivot.scale.setScalar(baseModelScale * (1 + groomingPose * (0.22 + Math.abs(polish) * 0.014)));
         }
 
         if (flying && phaseStartedRef.current !== null) {
