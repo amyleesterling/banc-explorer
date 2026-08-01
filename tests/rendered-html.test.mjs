@@ -62,3 +62,20 @@ test("ships the verified 12-frame DNp03 quick-dodge package", async () => {
     assert.ok(details.size > 100, `${asset} should contain a rendered image`);
   }
 });
+
+test("ships the audited DNg12 anterior-grooming package without an unsupported wing-grooming slot", async () => {
+  const [page, frames, staticLayer, contextBase] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readdir(new URL("../public/banc-groom-head-dng12/", import.meta.url)),
+    stat(new URL("../public/banc-groom-head-dng12.webp", import.meta.url)),
+    stat(new URL("../public/banc-context-base.webp", import.meta.url)),
+  ]);
+
+  assert.deepEqual(frames.sort(), Array.from({ length: 16 }, (_, index) => `frame-${String(index).padStart(2, "0")}.webp`));
+  assert.ok(staticLayer.size > 100, "the DNg12 static layer should contain a rendered image");
+  assert.ok(contextBase.size > 100, "the regenerated 122-cell context should contain a rendered image");
+  assert.match(page, /GROOM_NEURAL_FRAME_RATE = 24/);
+  assert.match(page, /BANC DNg12-annotated population — anterior grooming/);
+  assert.match(page, /dng12-122/);
+  assert.doesNotMatch(page, /wPN1|groom-wing/);
+});
