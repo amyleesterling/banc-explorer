@@ -40,7 +40,10 @@ const DODGE_RIGHT_ASSETS = Array.from(
   (_, index) => `${assetBase}/banc-flight-dodge-anatomical-right/frame-${String(index).padStart(2, "0")}.webp`,
 );
 const GROOM_FRAME_COUNT = 16;
-const GROOM_NEURAL_FRAME_RATE = 24;
+const GROOM_NEURAL_SOURCE_FPS = 24;
+// Replay the explanatory render at one tenth of its encoded rate so the
+// brain-to-T1 progression is visible, then repeat it while grooming continues.
+const GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS / 10;
 const GROOM_SIGNAL_DELAY_MS = 520;
 // One complete 10x-slowed articulated grooming cycle, including ease in/out.
 const HEAD_GROOM_DURATION_MS = 22500;
@@ -142,9 +145,9 @@ const CIRCUITS: Record<CircuitMode, {
     viewerUrl: LANDING_CODEX_URL,
   },
   "groom-head": {
-    summary: "This is the BANC-native DNg12 annotation population. It does not imply that every rendered cell was independently function-tested.",
+    summary: "These 28 DNg12 neurons descend from brain inputs to outputs in the T1 front-leg region of the VNC.",
     viewerUrl: DNG12_CODEX_URL,
-    note: "Explanatory signal animation derived from skeleton geometry and synapse-polarity distributions; not recorded action potentials or measured conduction timing.",
+    note: "This is the BANC-native DNg12 annotation population. It does not imply that every rendered cell was independently function-tested. Slow looping replay is derived from skeleton geometry and synapse polarity—not recorded activity or timing.",
   },
 };
 
@@ -180,7 +183,6 @@ export default function Home() {
   const [headingDegrees, setHeadingDegrees] = useState(344);
   const [dodgeFrame, setDodgeFrame] = useState(0);
   const [groomFrame, setGroomFrame] = useState(0);
-  const [groomPulseComplete, setGroomPulseComplete] = useState(false);
   const [groomAssetsReady, setGroomAssetsReady] = useState(false);
   const [flowerIndex, setFlowerIndex] = useState(0);
   const [circuitMode, setCircuitMode] = useState<CircuitMode>("walk");
@@ -193,7 +195,7 @@ export default function Home() {
   const isFlightCockpit = circuitMode === "heading" || circuitMode === "flight-forward" || circuitMode === "flight-reverse";
   const isDodgePulse = circuitMode === "dodge";
   const isGrooming = worldState === "groom-head";
-  const isGroomPulse = isGrooming && groomAssetsReady && !groomPulseComplete;
+  const isGroomPulse = isGrooming && groomAssetsReady;
   const groomFrameAsset = HEAD_GROOM_ASSETS[groomFrame];
   const controlsLocked = worldState !== "seeking" && worldState !== "eating" && worldState !== "heading";
   const flySceneState = worldState === "eating"
@@ -329,7 +331,6 @@ export default function Home() {
     landingTimerRef.current = window.setTimeout(() => {
       if (worldStateRef.current !== "landing") return;
       setGroomFrame(0);
-      setGroomPulseComplete(false);
       worldStateRef.current = "groom-head";
       setWorldState("groom-head");
       setCircuitMode("groom-head");
@@ -419,17 +420,16 @@ export default function Home() {
   useEffect(() => {
     if (!isGrooming || !groomAssetsReady) return;
     const startedAt = performance.now();
-    const frameDuration = 1000 / GROOM_NEURAL_FRAME_RATE;
-    const duration = GROOM_FRAME_COUNT * frameDuration;
+    const frameDuration = 1000 / GROOM_NEURAL_PLAYBACK_FPS;
+    const cycleDuration = GROOM_FRAME_COUNT * frameDuration;
     let animationFrame = 0;
     const advance = () => {
       const elapsed = performance.now() - startedAt - GROOM_SIGNAL_DELAY_MS;
       const nextFrame = elapsed <= 0
         ? 0
-        : Math.min(GROOM_FRAME_COUNT - 1, Math.floor(elapsed / frameDuration));
+        : Math.floor((elapsed % cycleDuration) / frameDuration) % GROOM_FRAME_COUNT;
       setGroomFrame(nextFrame);
-      if (elapsed < duration) animationFrame = requestAnimationFrame(advance);
-      else setGroomPulseComplete(true);
+      animationFrame = requestAnimationFrame(advance);
     };
     animationFrame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(animationFrame);

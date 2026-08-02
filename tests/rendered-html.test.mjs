@@ -75,7 +75,10 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
   assert.deepEqual(frames.sort(), Array.from({ length: 16 }, (_, index) => `frame-${String(index).padStart(2, "0")}.webp`));
   assert.ok(staticLayer.size > 100, "the DNg12 static layer should contain a rendered image");
   assert.ok(contextBase.size > 100, "the regenerated 122-cell context should contain a rendered image");
-  assert.match(page, /GROOM_NEURAL_FRAME_RATE = 24/);
+  assert.match(page, /GROOM_NEURAL_SOURCE_FPS = 24/);
+  assert.match(page, /GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS \/ 10/);
+  assert.match(page, /elapsed % cycleDuration/);
+  assert.doesNotMatch(page, /groomPulseComplete|setGroomPulseComplete/);
   assert.match(page, /HEAD_GROOM_DURATION_MS = 22500/);
   assert.match(flyModel, /HEAD_GROOM_CYCLE_SPEED = 0\.32/);
   assert.match(flyModel, /HEAD_GROOM_DURATION_SECONDS = 22\.5/);
