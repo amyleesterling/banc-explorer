@@ -207,17 +207,20 @@ test("records the audited four-cell BANC landing selection", async () => {
 
 test("keeps executable render and project-memory handoffs", async () => {
   const [renderGuide, groomingGuide, memory] = await Promise.all([
-    readFile(new URL("../RENDER_GUIDE_MISSING_FLIGHT_CELLS.md", import.meta.url), "utf8"),
-    readFile(new URL("../GROOMING_ANIMATION_REVISION.md", import.meta.url), "utf8"),
+    readFile(new URL("../docs/handoffs/v2/RENDER_GUIDE_MISSING_FLIGHT_CELLS_V2.md", import.meta.url), "utf8"),
+    readFile(new URL("../docs/handoffs/v2/GROOMING_ANIMATION_REVISION_V2.md", import.meta.url), "utf8"),
     readFile(new URL("../CODEX_MEMORY.md", import.meta.url), "utf8"),
   ]);
 
   assert.match(renderGuide, /720575941521196211/);
   assert.match(renderGuide, /720575941549822781/);
+  assert.match(renderGuide, /Version: \*\*v2/);
   assert.match(renderGuide, /154 unique cells/);
   assert.match(groomingGuide, /population-level pooled distance scale/);
+  assert.match(groomingGuide, /Version: \*\*v2/);
   assert.match(groomingGuide, /The fly remains steerable during grooming/);
   assert.match(memory, /DNg02 is exposed as the W\/S flight-drive throttle/);
+  assert.match(memory, /project memory — v2/);
   assert.match(memory, /Anatomical left\/right is not automatically behavioral left\/right/);
 });
 
