@@ -672,18 +672,6 @@ export default function Home() {
 
   return (
     <main>
-      <nav className="topbar" aria-label="Primary navigation">
-        <a className="brand" href="#top" aria-label="BANC Explorer home">
-          <span className="brand-mark" aria-hidden="true"><img src={`${assetBase}/banc-explorer-fly-icon.svg`} alt="" /></span>
-          <span>BE THE FLY</span>
-        </a>
-        <div className="nav-links">
-          <a href="#how">How it works</a>
-          <a href="https://codex.flywire.ai/?dataset=banc" target="_blank" rel="noreferrer">Explore data ↗</a>
-          <a className="about-button" href="#how">About BANC</a>
-        </div>
-      </nav>
-
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow"><span /> AN INTERACTIVE CONNECTOME</p>
@@ -698,9 +686,11 @@ export default function Home() {
 
       <section className="lab-shell" aria-label="Interactive BANC fly cockpit">
         <div className="arena-panel">
-          <header className="panel-heading light-heading">
-            <div><span>01</span><p>FLY WORLD</p></div>
-            <div className="metric"><small>STEPS</small><strong>{String(steps).padStart(3, "0")}</strong></div>
+          <header className="panel-heading cockpit-topbar">
+            <span className="brand">
+              <span className="brand-mark" aria-hidden="true"><img src={`${assetBase}/banc-explorer-fly-icon.svg`} alt="" /></span>
+              <span>BE THE FLY</span>
+            </span>
           </header>
           <div className="arena-wrap" style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}>
             <FlyHologram
@@ -748,7 +738,7 @@ export default function Home() {
                     <i aria-hidden="true" />
                   </span>
                 )}
-                <small>{mobileHudExpanded ? "3 LOOPS · TAP TO CLOSE" : "TAP TO FOCUS"}</small>
+                <small>{mobileHudExpanded ? "3 LOOPS · TAP TO CLOSE" : "TAP TO FOCUS"}<em>{String(steps).padStart(3, "0")} STEPS</em></small>
               </button>
               {mobileHudExpanded && (
                 <div className="mobile-neuron-details">
@@ -929,11 +919,11 @@ export default function Home() {
 
       <section className="how-section" id="how">
         <div>
-          <p className="eyebrow"><span /> WHY WALKING?</p>
-          <h2>The brain doesn’t walk alone.</h2>
+          <p className="eyebrow"><span /> WHY BANC?</p>
+          <h2>A whole nervous system, in one map.</h2>
         </div>
         <div className="how-copy">
-          <p>The BANC (Brain and Nerve Cord) is the first fly connectome that includes the whole central nervous system, mapped down to the synapse. Walking emerges from distributed coordination: body sensors, local feedback loops, long-range pathways, and motor neurons working together.</p>
+          <p>The BANC (Brain and Nerve Cord) is the first fly connectome that includes the whole central nervous system, mapped down to the synapse. Because the brain and the nerve cord were reconstructed together, a single pathway can be followed from the brain all the way to the motor neurons that move a leg or a wing.</p>
           <div className="how-links">
             <a href="https://www.nature.com/articles/s41586-026-10735-w" target="_blank" rel="noreferrer">Read the BANC paper <span>↗</span></a>
             <a href="https://codex.flywire.ai/?dataset=banc" target="_blank" rel="noreferrer">Explore BANC in Codex <span>↗</span></a>

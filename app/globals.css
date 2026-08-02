@@ -28,22 +28,6 @@ a { color: inherit; text-decoration: none; }
 ::selection { background: #bceade; color: #17382f; }
 :where(a, button):focus-visible { outline: 3px solid rgba(45,143,145,.42); outline-offset: 3px; }
 
-.topbar {
-  position: sticky;
-  z-index: 30;
-  top: 0;
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  padding: 0 var(--page-gutter);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  background: rgba(237, 246, 240, .86);
-  backdrop-filter: blur(16px);
-}
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark {
   width: 34px; height: 34px; display: grid; place-items: center;
@@ -51,11 +35,7 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
 }
 .brand-mark img { width: 132%; height: 132%; max-width: none; display: block; }
-.brand i { opacity: .32; margin: 0 5px; }
-.nav-links { display: flex; align-items: center; gap: 28px; }
-.nav-links a { opacity: .75; }
-.nav-links a:hover { opacity: 1; }
-.about-button, .viewer-button {
+.viewer-button {
   border: 1px solid currentColor; border-radius: 999px; background: transparent;
   padding: 10px 16px; font-size: 11px; font-weight: 800; letter-spacing: .08em;
 }
@@ -77,7 +57,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .pulse-dot { width: 9px; height: 9px; background: #65ad68; border-radius: 50%; box-shadow: 0 0 0 6px rgba(101,173,104,.12); }
 
 .lab-shell {
-  width: 100%; height: calc(100svh - 72px); min-height: 0; margin: 0;
+  width: 100%; height: 100svh; min-height: 0; margin: 0;
   position: relative; display: block;
   border-top: 0; border-right: 0; border-bottom: 1px solid rgba(23,37,31,.62); border-left: 0; border-radius: 0; overflow: hidden;
   box-shadow: none;
@@ -86,16 +66,16 @@ h1 em { color: var(--moss); font-weight: 400; }
 .circuit-panel { position: absolute; z-index: 10; inset: 0; min-width: 0; min-height: 0; display: block; overflow: hidden; border: 0; background: transparent; color: #e5eadb; pointer-events: none; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid; }
 .panel-heading > div:first-child { display: flex; align-items: center; gap: 12px; }
-.panel-heading span { width: 29px; height: 29px; border: 1px solid; border-radius: 50%; display: grid; place-items: center; font-size: 11px; }
+.panel-heading > div:first-child > span { width: 29px; height: 29px; border: 1px solid; border-radius: 50%; display: grid; place-items: center; font-size: 11px; }
 .panel-heading p { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; }
-.light-heading { position: absolute; z-index: 14; left: 0; right: 0; top: 0; height: 62px; padding-right: min(470px, 43vw); border-color: rgba(23,37,31,.2); background: linear-gradient(90deg, rgba(240,248,243,.92), rgba(225,242,233,.72) 55%, rgba(225,242,233,.18)); color: #18382f; backdrop-filter: blur(12px) saturate(1.08); pointer-events: none; }
+/* The cockpit's single top bar: the fly mark and wordmark over the world.
+   Dark to match the neural interface — there is no separate light nav bar. */
+.cockpit-topbar { position: absolute; z-index: 14; left: 0; right: 0; top: 0; height: 62px; padding-right: min(470px, 43vw); border-color: rgba(120,214,198,.22); background: linear-gradient(90deg, rgba(5,18,17,.95), rgba(7,24,22,.78) 55%, rgba(7,24,22,.16)); color: #e6f6f0; font-size: 13px; font-weight: 700; letter-spacing: .08em; backdrop-filter: blur(12px) saturate(1.1); pointer-events: none; }
+.cockpit-topbar .brand-mark { color: var(--acid); }
 .dark-heading { position: absolute; z-index: 14; right: 18px; top: 10px; width: min(430px, 40vw); height: 43px; padding: 0 10px 0 14px; border: 1px solid rgba(143,224,211,.28); border-radius: 4px; background: repeating-linear-gradient(0deg, rgba(174,226,246,.025) 0 1px, transparent 1px 3px), linear-gradient(145deg, rgba(7,28,27,.88), rgba(11,42,38,.72)); color: #e8fff9; box-shadow: 0 10px 30px rgba(4,30,26,.18), inset 0 1px rgba(220,246,255,.08); backdrop-filter: blur(12px) saturate(1.12); pointer-events: auto; }
 .dark-heading > div:first-child { gap: 8px; }
 .dark-heading span { width: 23px; height: 23px; font-size: 9px; color: #9fe9de; }
 .dark-heading p { font-size: 10px; color: #c9f5ec; }
-.metric { gap: 9px; }
-.metric small { font-size: 11px; letter-spacing: .11em; opacity: .68; }
-.metric strong { font-family: Georgia, serif; font-size: 21px; }
 .viewer-button { color: #c9f5ec; border-color: rgba(150,225,212,.42); padding: 7px 11px; font-size: 9px; cursor: pointer; pointer-events: auto; }
 .viewer-button.active { color: var(--acid); border-color: rgba(104,214,196,.65); }
 
@@ -308,16 +288,15 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 }
 
 @media (max-width: 900px) {
-  .nav-links a { display: none; }
   .hero { grid-template-columns: 1fr; }
   .live-note { display: none; }
-  .lab-shell { height: calc(100svh - 72px); display: block; min-height: 0; }
+  .lab-shell { height: 100svh; display: block; min-height: 0; }
   .arena-panel { position: absolute; inset: 0; height: 100%; min-height: 0; display: block; }
   .circuit-panel { display: none; }
   .arena-wrap { position: absolute; inset: 0; min-height: 0; }
   .fly-hologram canvas { filter: brightness(1.12) saturate(1.24) contrast(1.42) drop-shadow(0 0 2px rgba(4,42,36,.88)) drop-shadow(0 0 9px rgba(218,255,247,.62)) drop-shadow(0 10px 9px rgba(13,55,45,.38)); }
   .hud-frame { display: block; }
-  .light-heading { position: absolute; z-index: 14; left: 0; right: 0; top: 0; height: 62px; padding-right: 22px; pointer-events: none; border-color: rgba(120,214,198,.22); color: #dff5ee; background: linear-gradient(90deg, rgba(6,20,19,.94), rgba(8,26,24,.72) 55%, rgba(8,26,24,.12)); backdrop-filter: blur(12px) saturate(1.1); }
+  .cockpit-topbar { padding-right: 22px; }
   .controls { position: absolute; z-index: 15; left: 50%; bottom: 12px; width: auto; min-width: 0; min-height: 0; transform: translateX(-50%); border: 0; background: transparent; box-shadow: none; }
   /* One HUD on mobile: fold the world narration into the neural card and hide
      the standalone objective, event, and throttle cards so nothing overlaps. */
@@ -361,7 +340,8 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   .mobile-neuron-throttle b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-neuron-throttle i { position: relative; height: 4px; border-radius: 3px; background: rgba(140,220,208,.14); box-shadow: inset 0 0 4px rgba(1,12,11,.5); overflow: hidden; }
   .mobile-neuron-throttle i:after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--throttle-level, 0) * 100%); border-radius: 3px; background: linear-gradient(90deg, color-mix(in srgb, var(--throttle-tint) 35%, transparent), var(--throttle-tint)); box-shadow: 0 0 8px var(--throttle-tint); transition: width .12s linear; }
-  .mobile-neuron-toggle small { color: #8fb6ab; font-size: 8px; font-weight: 900; letter-spacing: .13em; }
+  .mobile-neuron-toggle small { display: flex; align-items: center; gap: 8px; color: #8fb6ab; font-size: 8px; font-weight: 900; letter-spacing: .13em; }
+  .mobile-neuron-toggle small em { margin-left: auto; color: #6fae9f; font-style: normal; letter-spacing: .1em; font-variant-numeric: tabular-nums; }
   .hud-corner { position: absolute; width: 13px; height: 13px; border-color: rgba(130,226,210,.5); transition: transform .2s ease; }
   .hud-corner.top-left { left: 4px; top: 4px; border-left: 1px solid; border-top: 1px solid; }
   .hud-corner.bottom-right { right: 4px; bottom: 4px; border-right: 1px solid; border-bottom: 1px solid; }
@@ -380,21 +360,16 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 }
 
 @media (max-width: 560px) {
-  .topbar { min-height: 64px; padding: 0 20px; }
-  .brand i, .brand span span { display: none; }
-  .about-button { padding: 8px 11px; }
   .hero { padding: 42px 20px 30px; }
   h1 { font-size: 51px; line-height: .94; }
   .lede { width: 100%; font-size: 16px; }
   .lab-shell { margin: 0; border-left: 0; border-right: 0; border-radius: 0; }
   .legend-band { margin: 12px 0 0; border-left: 0; border-right: 0; border-radius: 0; }
-  .lab-shell { height: calc(100svh - 64px); }
+  .lab-shell { height: 100svh; }
   .arena-panel { min-height: 0; }
   .panel-heading { padding: 0 14px; }
-  .panel-heading span { width: 26px; height: 26px; font-size: 10px; }
+  .panel-heading > div:first-child > span { width: 26px; height: 26px; font-size: 10px; }
   .panel-heading p { font-size: 11px; }
-  .metric small { display: none; }
-  .metric strong { font-size: 19px; }
   .arena-wrap { min-height: 0; }
   .mobile-neuron-hud { left: 12px; right: auto; top: 76px; width: 184px; }
   .mobile-neuron-hud.expanded { inset: 70px 8px 76px; width: auto; }

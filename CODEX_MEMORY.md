@@ -93,3 +93,5 @@ Timing is intentionally gentle. Current key constants are in `app/page.tsx`; avo
 - MNb1 is verified for rendering but not wired into the app until assets land.
 - Preserve the user-owned untracked `public/banc-walking-steering-poster.webp` unless explicitly asked to remove it.
 - Keep the top-level simulator fullscreen. Do not return to a split card below a large hero.
+- There is exactly one top bar: a dark cockpit bar (`.cockpit-topbar`) carrying the fly mark and “BE THE FLY”. Do not reintroduce a separate light nav bar above it, and do not put a “FLY WORLD” label or a steps metric back in it — the steps readout lives inside the Neural Interface HUD.
+- The BANC headline must not claim that walking requires the brain and nerve cord acting together; the paper reports the brain can drive many behaviours on its own. Describe what BANC *is* (a whole-CNS map) instead.
