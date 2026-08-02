@@ -8,6 +8,14 @@ Repository: [github.com/amyleesterling/banc-explorer](https://github.com/amylees
 
 Live site: [amyleesterling.github.io/banc-explorer](https://amyleesterling.github.io/banc-explorer/)
 
+## Agent handoffs
+
+The current implementation and rendering handoffs are collected in [docs/handoffs/v2](docs/handoffs/v2/README.md):
+
+- [Missing flight-cell render guide — v2](docs/handoffs/v2/RENDER_GUIDE_MISSING_FLIGHT_CELLS_V2.md)
+- [Grooming animation revision — v2](docs/handoffs/v2/GROOMING_ANIMATION_REVISION_V2.md)
+- [Project memory — v2](CODEX_MEMORY.md)
+
 > The current prototype presents connectome-derived explanatory pathways. BANC is a wiring diagram, not a recording of neural activity; animated signal sequences are clearly framed as interpretation rather than measured firing.
 
 ## Current prototype

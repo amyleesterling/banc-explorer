@@ -1,6 +1,6 @@
-# BANC Explorer project memory
+# BANC Explorer project memory — v2
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 ## Project
 
@@ -82,8 +82,9 @@ Timing is intentionally gentle. Current key constants are in `app/page.tsx`; avo
 - Current base: 122 cells. It must be regenerated whenever new action cells are added so selected cells never appear from nothing.
 - Action layers preserve the full canvas and use the identical camera.
 - Require alignment audit, 3 px shifted negative control, alpha audit, checksums, manifest, and contact sheet.
-- Next batch guide: `RENDER_GUIDE_MISSING_FLIGHT_CELLS.md`.
-- Grooming revision: `GROOMING_ANIMATION_REVISION.md`.
+- Versioned handoff index: `docs/handoffs/v2/README.md`.
+- Next batch guide: `docs/handoffs/v2/RENDER_GUIDE_MISSING_FLIGHT_CELLS_V2.md`.
+- Grooming revision: `docs/handoffs/v2/GROOMING_ANIMATION_REVISION_V2.md`.
 
 ## Asset and UX caveats
 
