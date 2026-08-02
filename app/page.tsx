@@ -724,6 +724,10 @@ export default function Home() {
                 <span className="mobile-neuron-kicker"><i /> NEURAL HUD</span>
                 <span className="mobile-neuron-preview" aria-hidden="true">{mobileNeuronLayers}</span>
                 <strong>{activeNeuronLayer.label}</strong>
+                <span className="mobile-neuron-moment">
+                  <b>{worldCopy.title}</b>
+                  <i>{worldCopy.detail}</i>
+                </span>
                 {worldState === "heading" && (
                   <span className={`mobile-flight-telemetry ${velocityDirection}`}>
                     <b>{headingCardinal} {String(compassDegrees).padStart(3, "0")}°</b>
