@@ -21,7 +21,7 @@ test("server renders the BANC fly simulator", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>BANC Explorer — Be the Fly<\/title>/i);
-  assert.match(html, /FLY WORLD/);
+  assert.match(html, /BE THE FLY/);
   assert.match(html, /NEURAL INTERFACE/);
   assert.match(html, /FIND THE RIPE FRUIT/);
   assert.match(html, /banc-context-base\.webp/);
