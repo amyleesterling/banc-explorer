@@ -651,7 +651,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="lab-shell" aria-label="Interactive walking lab">
+      <section className="lab-shell" aria-label="Interactive BANC fly cockpit">
         <div className="arena-panel">
           <header className="panel-heading light-heading">
             <div><span>01</span><p>FLY WORLD</p></div>
@@ -754,7 +754,7 @@ export default function Home() {
 
         <div className="circuit-panel">
           <header className="panel-heading dark-heading">
-            <div><span>02</span><p>CONNECTOME LENS</p></div>
+            <div><span>02</span><p>NEURAL HUD</p></div>
             <button className="viewer-button" type="button" onClick={() => setViewerOpen(true)}>
               EXPLORE IN 3D ↗
             </button>

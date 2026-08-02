@@ -22,7 +22,7 @@ test("server renders the BANC fly simulator", async () => {
   const html = await response.text();
   assert.match(html, /<title>BANC Explorer — Be the Fly<\/title>/i);
   assert.match(html, /FLY WORLD/);
-  assert.match(html, /CONNECTOME LENS/);
+  assert.match(html, /NEURAL HUD/);
   assert.match(html, /Find the fallen fruit/);
   assert.match(html, /banc-context-base\.webp/);
   assert.match(html, /banc-forward\.webp/);
@@ -134,6 +134,22 @@ test("uses one botanical sci-fi HUD language over the natural fly world", async 
   assert.match(css, /\.world-label[^}]+linear-gradient\(135deg, var\(--field-glass-a\), var\(--field-glass-b\)\)/);
   assert.doesNotMatch(css, /\.world-event \{[^}]*border-radius: 12px/);
   assert.doesNotMatch(css, /\.landing-flower > strong \{[^}]*border-radius: 999px/);
+});
+
+test("uses the fly world as a full-viewport cockpit with neurons overlaid as a HUD", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /Interactive BANC fly cockpit/);
+  assert.match(page, /<p>NEURAL HUD<\/p>/);
+  assert.match(css, /\.lab-shell \{[^}]*position: relative; display: block/);
+  assert.match(css, /\.arena-panel \{[^}]*position: absolute;[^}]*inset: 0/);
+  assert.match(css, /\.circuit-panel \{[^}]*position: absolute;[^}]*inset: 0;[^}]*background: transparent/);
+  assert.match(css, /\.circuit-canvas-wrap \{[^}]*position: absolute;[^}]*width: min\(52vw, 900px\)/);
+  assert.match(css, /\.epg-cockpit \{[^}]*background: transparent/);
+  assert.doesNotMatch(css, /grid-template-columns: minmax\(0, 1\.12fr\) minmax\(360px, \.88fr\)/);
 });
 
 test("shows signed flight velocity measured from simulated displacement", async () => {
