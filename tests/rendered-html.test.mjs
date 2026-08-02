@@ -87,6 +87,15 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
   assert.doesNotMatch(page, /wPN1|groom-wing/);
 });
 
+test("keeps movement controls live while the fly is grooming", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /PLAYER_CONTROL_STATES = new Set<WorldState>\(\["seeking", "eating", "heading", "groom-head"\]\)/);
+  assert.match(page, /const controlsLocked = !isPlayerControllableState\(worldState\)/);
+  assert.match(page, /if \(!isPlayerControllableState\(currentState\)\) return;/);
+  assert.match(page, /if \(!isPlayerControllableState\(worldStateRef\.current\) && worldStateRef\.current !== "dodge"\) nextAction = "rest";/);
+});
+
 test("keeps the flight-drive readout from overlapping the cockpit title", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 

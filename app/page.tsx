@@ -11,6 +11,9 @@ type Action = "rest" | "forward" | "backward" | "left" | "right";
 type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "dodge" | "heading" | "flight-forward" | "flight-reverse" | "landing" | "groom-head";
 type WorldState = "seeking" | "eating" | "threat" | "dodge" | "takeoff" | "heading" | "landing" | "groom-head" | "relaunch";
 
+const PLAYER_CONTROL_STATES = new Set<WorldState>(["seeking", "eating", "heading", "groom-head"]);
+const isPlayerControllableState = (state: WorldState) => PLAYER_CONTROL_STATES.has(state);
+
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
 const WALKING_SCENE_URL = "https://ng.banc.community/2026a/walking";
 const FEEDING_SCENE_URL = "https://ng.banc.community/2026a/feeding";
@@ -212,7 +215,7 @@ export default function Home() {
   const isGrooming = worldState === "groom-head";
   const isGroomPulse = isGrooming && groomAssetsReady;
   const groomFrameAsset = HEAD_GROOM_ASSETS[groomFrame];
-  const controlsLocked = worldState !== "seeking" && worldState !== "eating" && worldState !== "heading";
+  const controlsLocked = !isPlayerControllableState(worldState);
   const flySceneState = worldState === "eating"
     ? "eating"
     : worldState === "dodge"
@@ -369,7 +372,7 @@ export default function Home() {
 
   const updateAction = useCallback((next: Action) => {
     const currentState = worldStateRef.current;
-    if (currentState !== "seeking" && currentState !== "eating" && currentState !== "heading") return;
+    if (!isPlayerControllableState(currentState)) return;
     actionRef.current = next;
     setAction(next);
     if (next !== "rest" && currentState === "seeking") {
@@ -385,7 +388,7 @@ export default function Home() {
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "s", "a", "d"].includes(key)) {
         event.preventDefault();
         const currentState = worldStateRef.current;
-        if (currentState !== "seeking" && currentState !== "eating" && currentState !== "heading") return;
+        if (!isPlayerControllableState(currentState)) return;
         keysRef.current.add(key);
       }
     };
@@ -525,7 +528,7 @@ export default function Home() {
       if (worldStateRef.current === "heading" && flowerDistance <= FLOWER_CONTACT_RADIUS) {
         triggerLanding();
       }
-      if (worldStateRef.current !== "seeking" && worldStateRef.current !== "eating" && worldStateRef.current !== "heading" && worldStateRef.current !== "dodge") nextAction = "rest";
+      if (!isPlayerControllableState(worldStateRef.current) && worldStateRef.current !== "dodge") nextAction = "rest";
       if (nextAction !== actionRef.current) {
         actionRef.current = nextAction;
         setAction(nextAction);
