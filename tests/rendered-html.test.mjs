@@ -64,8 +64,9 @@ test("ships the verified 12-frame DNp03 quick-dodge package", async () => {
 });
 
 test("ships the audited DNg12 anterior-grooming package without an unsupported wing-grooming slot", async () => {
-  const [page, frames, staticLayer, contextBase] = await Promise.all([
+  const [page, flyModel, frames, staticLayer, contextBase] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/FlyHologram.tsx", import.meta.url), "utf8"),
     readdir(new URL("../public/banc-groom-head-dng12/", import.meta.url)),
     stat(new URL("../public/banc-groom-head-dng12.webp", import.meta.url)),
     stat(new URL("../public/banc-context-base.webp", import.meta.url)),
@@ -75,6 +76,9 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
   assert.ok(staticLayer.size > 100, "the DNg12 static layer should contain a rendered image");
   assert.ok(contextBase.size > 100, "the regenerated 122-cell context should contain a rendered image");
   assert.match(page, /GROOM_NEURAL_FRAME_RATE = 24/);
+  assert.match(page, /HEAD_GROOM_DURATION_MS = 22500/);
+  assert.match(flyModel, /HEAD_GROOM_CYCLE_SPEED = 0\.32/);
+  assert.match(flyModel, /HEAD_GROOM_DURATION_SECONDS = 22\.5/);
   assert.match(page, /BANC DNg12-annotated population — anterior grooming/);
   assert.match(page, /dng12-122/);
   assert.doesNotMatch(page, /wPN1|groom-wing/);

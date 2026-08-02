@@ -37,8 +37,10 @@ type HologramMaterial = THREE.ShaderMaterial & {
 };
 
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const HEAD_GROOM_CYCLE_SPEED = 3.2;
-const HEAD_GROOM_DURATION_SECONDS = 7.2;
+// Intentionally slow enough that a child can follow each front foot from its
+// resting pose, across the head, and back again.
+const HEAD_GROOM_CYCLE_SPEED = 0.32;
+const HEAD_GROOM_DURATION_SECONDS = 22.5;
 
 function smoothstep(edge0: number, edge1: number, value: number) {
   const amount = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);

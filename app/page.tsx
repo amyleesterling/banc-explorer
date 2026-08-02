@@ -42,7 +42,8 @@ const DODGE_RIGHT_ASSETS = Array.from(
 const GROOM_FRAME_COUNT = 16;
 const GROOM_NEURAL_FRAME_RATE = 24;
 const GROOM_SIGNAL_DELAY_MS = 520;
-const HEAD_GROOM_DURATION_MS = 7200;
+// One complete 10x-slowed articulated grooming cycle, including ease in/out.
+const HEAD_GROOM_DURATION_MS = 22500;
 const HEAD_GROOM_ASSETS = Array.from(
   { length: GROOM_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-groom-head-dng12/frame-${String(index).padStart(2, "0")}.webp`,
