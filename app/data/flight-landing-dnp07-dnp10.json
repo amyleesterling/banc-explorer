@@ -1,0 +1,18 @@
+{
+  "cell_types": ["DNp07", "DNp10"],
+  "dataset": "BANC v888",
+  "count": 4,
+  "status": "verified for rendering",
+  "verification": "Exact BANC v888 cell_info tag matches. All four roots are current and all four frozen BANC mesh URLs return HTTP 200.",
+  "cells": [
+    { "root_id": "720575941407841071", "cell_type": "DNp07" },
+    { "root_id": "720575941545991429", "cell_type": "DNp07" },
+    { "root_id": "720575941440683743", "cell_type": "DNp10" },
+    { "root_id": "720575941593683051", "cell_type": "DNp10" }
+  ],
+  "app_role": "Visually evoked landing response. Display during final approach and leg-extension preparation, not during takeoff.",
+  "scientific_caveat": "DNp07 and DNp10 are significant contributors to visually evoked landing and can drive landing-like extension of all six legs. Do not claim that they are the only landing neurons or that the connectome render is measured activity.",
+  "sources": [
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC7444277/"
+  ]
+}

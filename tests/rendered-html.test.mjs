@@ -96,11 +96,38 @@ test("keeps movement controls live while the fly is grooming", async () => {
   assert.match(page, /if \(!isPlayerControllableState\(worldStateRef\.current\) && worldStateRef\.current !== "dodge"\) nextAction = "rest";/);
 });
 
-test("keeps the flight-drive readout from overlapping the cockpit title", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG compass", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
 
-  assert.match(page, /!isFlightCockpit \|\| circuitMode === "heading"/);
-  assert.match(page, /className={`flight-drive-readout \$\{circuitMode\}`}/);
+  assert.match(page, /const \[flightThrottle, setFlightThrottle\] = useState\(0\)/);
+  assert.match(page, /const throttleCommand = interactiveFlight/);
+  assert.match(page, /\? -0\.55/);
+  assert.match(page, /className={`flight-throttle-hud \$\{throttleDirection\}`}/);
+  assert.match(page, /THROTTLE COMMAND/);
+  assert.match(page, /\{flightDng02\.count\}-CELL FLIGHT DRIVE/);
+  assert.match(page, /<kbd>W \/ S<\/kbd>/);
+  assert.match(css, /\.flight-throttle-hud/);
+  assert.match(css, /\.flight-throttle-rail/);
+  assert.doesNotMatch(page, /flight-drive-readout/);
+});
+
+test("records the audited bilateral BANC MNb1 render candidates without inventing turn direction", async () => {
+  const data = JSON.parse(await readFile(new URL("../app/data/flight-mnb1.json", import.meta.url), "utf8"));
+
+  assert.equal(data.cell_type, "b1 MN (MNb1)");
+  assert.equal(data.dataset, "BANC v888");
+  assert.equal(data.count, 2);
+  assert.equal(data.status, "verified for rendering");
+  assert.deepEqual(data.cells.map((cell) => [cell.root_id, cell.anatomical_side]), [
+    ["720575941521196211", "left"],
+    ["720575941549822781", "right"],
+  ]);
+  assert.equal(data.render_request.context_cell_count_after_addition, 124);
+  assert.match(data.scientific_caveat, /Do not equate anatomical side with behavioral turn direction/);
+  assert.match(data.render_request.animation, /not recorded activity or measured conduction timing/);
 });
 
 test("gives the anatomical fly kawaii compound eyes without the red glow", async () => {
@@ -123,8 +150,10 @@ test("keeps the articulated legs delicate, compact, and free of artificial red t
   assert.match(flyModel, /toe: makeMaterial\("#d8f5e8"/);
   assert.match(flyModel, /frontToe: makeMaterial\("#ecfff6"/);
   assert.match(flyModel, /outlineScale = segment\.name\.includes\("_tarsus"\) \? 1\.24 : 1\.18/);
-  assert.match(flyModel, /object\.position\.z \+= 0\.32 \* groomingPose/);
+  assert.match(flyModel, /object\.position\.z \+= 0\.2 \* groomingPose/);
   assert.doesNotMatch(flyModel, /object\.position\.z \+= 0\.58 \* groomingPose/);
+  assert.match(flyModel, /object\.rotateY\(\(-0\.78 - sweep \* 0\.055\) \* groomingPose\)/);
+  assert.match(flyModel, /object\.rotateY\(\(1\.18 \+ sweep \* 0\.075\) \* groomingPose\)/);
   assert.match(flyModel, /object\.rotateY\(-0\.42\)/);
   assert.match(page, /SNACK_BEFORE_WARNING_MS = 4800/);
   assert.match(page, /SPIDER_WARNING_MS = 2400/);
@@ -140,9 +169,56 @@ test("uses one botanical sci-fi HUD language over the natural fly world", async 
   assert.match(css, /\.world-event:before/);
   assert.match(css, /\.world-event strong:before/);
   assert.match(css, /\.landing-flower > strong:after/);
-  assert.match(css, /\.world-label[^}]+linear-gradient\(135deg, var\(--field-glass-a\), var\(--field-glass-b\)\)/);
+  assert.match(css, /\.mobile-neuron-hud[^}]+linear-gradient\(148deg, rgba\(248,252,243,\.97\), rgba\(214,240,229,\.95\)\)/);
   assert.doesNotMatch(css, /\.world-event \{[^}]*border-radius: 12px/);
   assert.doesNotMatch(css, /\.landing-flower > strong \{[^}]*border-radius: 999px/);
+});
+
+test("gives mobile a light full-size neuron focus without freezing grooming controls", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /worldState === "dodge" \|\| worldState === "groom-head"/);
+  assert.match(page, /DODGE_STAGE_MS = 3200/);
+  assert.match(page, /cycleDuration \* 3/);
+  assert.match(page, /3 LOOPS · TAP TO CLOSE/);
+  assert.match(css, /\.mobile-neuron-hud\.expanded \{ inset: 72px 12px 82px/);
+  assert.match(css, /\.fly-hologram canvas \{ filter: brightness\(1\.12\)[^}]*contrast\(1\.42\)/);
+  assert.match(css, /\.mobile-neuron-details > strong \{ display: none; \}/);
+  assert.match(css, /\.mobile-neuron-details small \{ display: none; \}/);
+  assert.doesNotMatch(page, /FERMENTATION PATCH 01|world-label/);
+  assert.match(page, /PLAYER_CONTROL_STATES = new Set<WorldState>\(\["seeking", "eating", "heading", "groom-head"\]\)/);
+});
+
+test("records the audited four-cell BANC landing selection", async () => {
+  const data = JSON.parse(await readFile(new URL("../app/data/flight-landing-dnp07-dnp10.json", import.meta.url), "utf8"));
+
+  assert.equal(data.count, 4);
+  assert.deepEqual(data.cells.map((cell) => cell.root_id), [
+    "720575941407841071",
+    "720575941545991429",
+    "720575941440683743",
+    "720575941593683051",
+  ]);
+  assert.match(data.scientific_caveat, /not claim that they are the only landing neurons/i);
+});
+
+test("keeps executable render and project-memory handoffs", async () => {
+  const [renderGuide, groomingGuide, memory] = await Promise.all([
+    readFile(new URL("../RENDER_GUIDE_MISSING_FLIGHT_CELLS.md", import.meta.url), "utf8"),
+    readFile(new URL("../GROOMING_ANIMATION_REVISION.md", import.meta.url), "utf8"),
+    readFile(new URL("../CODEX_MEMORY.md", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(renderGuide, /720575941521196211/);
+  assert.match(renderGuide, /720575941549822781/);
+  assert.match(renderGuide, /154 unique cells/);
+  assert.match(groomingGuide, /population-level pooled distance scale/);
+  assert.match(groomingGuide, /The fly remains steerable during grooming/);
+  assert.match(memory, /DNg02 is exposed as the W\/S flight-drive throttle/);
+  assert.match(memory, /Anatomical left\/right is not automatically behavioral left\/right/);
 });
 
 test("uses the fly world as a full-viewport cockpit with neurons overlaid as a HUD", async () => {

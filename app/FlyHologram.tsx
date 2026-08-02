@@ -369,7 +369,9 @@ export function FlyHologram({
     });
     worldMaterials.push(eyeHighlightMaterial);
     const materials = {
-      body: makeMaterial("#27c9ab", 1.22, true),
+      // A deeper blue-teal body separates the tiny fly from the green moss on
+      // phone screens while keeping the soft hologram palette.
+      body: makeMaterial("#168f83", 1.34, true),
       // The articulated leg meshes are hair-thin at phone scale. A darker
       // material preserves their silhouette against the moss without turning
       // the whole animal back into a dark blob.
@@ -617,22 +619,26 @@ export function FlyHologram({
           const rub = Math.sin(sweepPhase * 2);
           if (isFrontLeg) {
             if (name.endsWith("coxa")) {
-              object.position.z += 0.32 * groomingPose;
-              object.rotateY((-0.25 - sweep * 0.03) * groomingPose);
-              object.rotateX(-side * (0.08 + sweep * 0.035) * groomingPose);
+              object.position.z += 0.2 * groomingPose;
+              object.rotateY((-0.36 - sweep * 0.04) * groomingPose);
+              object.rotateX(-side * (0.2 + sweep * 0.045) * groomingPose);
             }
             if (name.endsWith("trochanterfemur")) {
-              object.rotateY((-0.55 - sweep * 0.08) * groomingPose);
-              object.rotateX(-side * (0.16 + sweep * 0.035) * groomingPose);
-              object.rotateZ(side * rub * 0.025 * groomingPose);
+              // Fold sharply at the shoulder so each foreleg reads as a bent
+              // little arm instead of a long line crossing the whole fly.
+              object.rotateY((-0.78 - sweep * 0.055) * groomingPose);
+              object.rotateX(-side * (0.24 + sweep * 0.04) * groomingPose);
+              object.rotateZ(side * rub * 0.018 * groomingPose);
             }
             if (name.endsWith("tibia")) {
-              object.rotateY((0.85 + sweep * 0.08) * groomingPose);
-              object.rotateX(side * (0.1 + rub * 0.025) * groomingPose);
+              // A strong opposing knee bend keeps the distal leg tucked near
+              // the face while the two sides alternate their wipes.
+              object.rotateY((1.18 + sweep * 0.075) * groomingPose);
+              object.rotateX(side * (0.17 + rub * 0.022) * groomingPose);
             }
             if (name.endsWith("tarsus1")) {
-              object.rotateY((-0.22 + rub * 0.04) * groomingPose);
-              object.rotateX(side * (0.03 + sweep * 0.02) * groomingPose);
+              object.rotateY((-0.54 + rub * 0.045) * groomingPose);
+              object.rotateX(side * (0.06 + sweep * 0.018) * groomingPose);
             }
           } else {
             if (name.endsWith("coxa")) object.rotateZ(side * 0.07);

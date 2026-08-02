@@ -1,0 +1,53 @@
+{
+  "cell_type": "b1 MN (MNb1)",
+  "dataset": "BANC v888",
+  "count": 2,
+  "status": "verified for rendering",
+  "verification": "Exact tag match in BANC v888 cell_info, independently present in wing_mn_cell_type_table_v0 under classification_system b1. Both roots are current and both frozen BANC mesh URLs return HTTP 200.",
+  "cells": [
+    {
+      "root_id": "720575941521196211",
+      "anatomical_side": "left",
+      "tags": [
+        "b1 MN",
+        "b1",
+        "motor neuron",
+        "efferent neuron",
+        "innervates wing",
+        "innervates left side of body"
+      ]
+    },
+    {
+      "root_id": "720575941549822781",
+      "anatomical_side": "right",
+      "tags": [
+        "b1 MN",
+        "b1",
+        "motor neuron",
+        "efferent neuron",
+        "innervates wing",
+        "innervates right side of body",
+        "soma on right"
+      ]
+    }
+  ],
+  "app_role": "Fine wing-steering motor output during flight. Use steering-command magnitude to drive the display, with separate anatomical-side layers available for inspection.",
+  "scientific_caveat": "Do not equate anatomical side with behavioral turn direction. MNb1 is a graded wing-steering motor output; a clean unilateral cell-to-left/right-turn mapping is not established by these annotations.",
+  "render_request": {
+    "context_cell_count_after_addition": 124,
+    "static_layers": [
+      "banc-flight-steer-mnb1-all.webp",
+      "banc-flight-steer-mnb1-anatomical-left.webp",
+      "banc-flight-steer-mnb1-anatomical-right.webp"
+    ],
+    "animated_sequences": [
+      "banc-flight-steer-mnb1-anatomical-left/frame-00.webp through frame-15.webp",
+      "banc-flight-steer-mnb1-anatomical-right/frame-00.webp through frame-15.webp"
+    ],
+    "animation": "Skeleton-geodesic explanatory pulse from the synapse-weighted input-dominant arbor toward the peripheral axon exit; non-looping frames with transparent first and last frames. This is not recorded activity or measured conduction timing."
+  },
+  "sources": [
+    "https://www.nature.com/articles/s41586-024-07600-z",
+    "https://pubmed.ncbi.nlm.nih.gov/30146152/"
+  ]
+}

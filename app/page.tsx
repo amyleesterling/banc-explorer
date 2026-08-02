@@ -37,7 +37,9 @@ const DODGE_FRAME_COUNT = 12;
 const DODGE_PLAYBACK_FPS = 12;
 const SNACK_BEFORE_WARNING_MS = 4800;
 const SPIDER_WARNING_MS = 2400;
-const DODGE_STAGE_MS = 1100;
+// Hold the scripted quick-dodge beat long enough for the mobile neural focus to
+// show the 12-frame explanatory signal three times before takeoff continues.
+const DODGE_STAGE_MS = 3200;
 const TAKEOFF_STAGE_MS = 1800;
 const LANDING_STAGE_MS = 1700;
 const RELAUNCH_STAGE_MS = 1800;
@@ -199,6 +201,7 @@ export default function Home() {
   const [steps, setSteps] = useState(0);
   const [headingDegrees, setHeadingDegrees] = useState(344);
   const [flightVelocity, setFlightVelocity] = useState(0);
+  const [flightThrottle, setFlightThrottle] = useState(0);
   const [dodgeFrame, setDodgeFrame] = useState(0);
   const [groomFrame, setGroomFrame] = useState(0);
   const [groomAssetsReady, setGroomAssetsReady] = useState(false);
@@ -239,6 +242,14 @@ export default function Home() {
   const velocityDirection = flightVelocity > 0.02 ? "forward" : flightVelocity < -0.02 ? "reverse" : "idle";
   const velocityLevel = Math.min(Math.abs(flightVelocity) / MAX_FLIGHT_VELOCITY_MM_S, 1);
   const velocityDisplay = `${flightVelocity > 0 ? "+" : ""}${flightVelocity.toFixed(2)}`;
+  const throttleDirection = flightThrottle > 0.01 ? "forward" : flightThrottle < -0.01 ? "reverse" : "idle";
+  const throttleLevel = Math.min(Math.abs(flightThrottle), 1);
+  const throttlePercent = Math.round(throttleLevel * 100);
+  const throttleStatus = throttleDirection === "forward"
+    ? `THRUST ${throttlePercent}%`
+    : throttleDirection === "reverse"
+      ? `REDUCED ${throttlePercent}%`
+      : "HOVER";
   const worldCopy = worldState === "eating"
     ? spiderWarning
       ? { title: "Watch out for the spider!", detail: "Keep moving." }
@@ -454,6 +465,28 @@ export default function Home() {
   }, [groomAssetsReady, isGrooming, worldState]);
 
   useEffect(() => {
+    const shouldOpenFocus = worldState === "dodge" || worldState === "groom-head";
+    const shouldCloseFocus = worldState === "takeoff" || worldState === "relaunch";
+    if (!shouldOpenFocus && !shouldCloseFocus) return;
+    const focusTimer = window.setTimeout(
+      () => setMobileHudExpanded(shouldOpenFocus),
+      0,
+    );
+    return () => window.clearTimeout(focusTimer);
+  }, [worldState]);
+
+  useEffect(() => {
+    if (!mobileHudExpanded) return;
+    const cycleDuration = circuitMode === "groom-head"
+      ? (GROOM_FRAME_COUNT / GROOM_NEURAL_PLAYBACK_FPS) * 1000
+      : circuitMode === "dodge"
+        ? (DODGE_FRAME_COUNT / DODGE_PLAYBACK_FPS) * 1000
+        : 2400;
+    const autoCloseTimer = window.setTimeout(() => setMobileHudExpanded(false), cycleDuration * 3);
+    return () => window.clearTimeout(autoCloseTimer);
+  }, [circuitMode, mobileHudExpanded]);
+
+  useEffect(() => {
     const render = (time: number) => {
       if (time - lastRef.current < 30) {
         frameRef.current = requestAnimationFrame(render);
@@ -492,11 +525,22 @@ export default function Home() {
         lastHeadingUiRef.current = time;
       }
       const direction = Number(forward) - Number(backward);
-      if (direction !== 0) {
+      // W/S is the DNg02 flight-drive command. Reverse is deliberately a
+      // reduced/redirected-thrust state, not a claim of a dedicated backward
+      // flight cell type or an equal-magnitude reverse motor.
+      const throttleCommand = interactiveFlight
+        ? direction > 0
+          ? 1
+          : direction < 0
+            ? -0.55
+            : 0
+        : 0;
+      const movementCommand = interactiveFlight ? throttleCommand : direction;
+      if (movementCommand !== 0) {
         const flightBoost = interactiveFlight ? 1.45 : 1;
-        fly.x += Math.cos(fly.angle) * dt * 0.12 * direction * flightBoost;
-        fly.y += Math.sin(fly.angle) * dt * 0.16 * direction * flightBoost;
-        nextAction = direction < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
+        fly.x += Math.cos(fly.angle) * dt * 0.12 * movementCommand * flightBoost;
+        fly.y += Math.sin(fly.angle) * dt * 0.16 * movementCommand * flightBoost;
+        nextAction = movementCommand < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
       }
       fly.x = Math.max(0.1, Math.min(0.9, fly.x));
       fly.y = Math.max(0.16, Math.min(0.86, fly.y));
@@ -518,6 +562,7 @@ export default function Home() {
           ? 0
           : Math.round(velocityRef.current * 100) / 100;
         setFlightVelocity(roundedVelocity);
+        setFlightThrottle(throttleCommand);
         lastVelocityUiRef.current = time;
       }
       if (worldStateRef.current === "seeking" && isInsideEllipse(fly, FOOD_TARGET, FOOD_CONTACT_BOUNDARY)) {
@@ -685,7 +730,7 @@ export default function Home() {
                     <b>{velocityDisplay} mm/s</b>
                   </span>
                 )}
-                <small>{mobileHudExpanded ? "CLOSE" : "TAP TO INSPECT"}</small>
+                <small>{mobileHudExpanded ? "3 LOOPS · TAP TO CLOSE" : "TAP TO FOCUS"}</small>
               </button>
               {mobileHudExpanded && (
                 <div className="mobile-neuron-details">
@@ -708,6 +753,29 @@ export default function Home() {
                 <strong>{missionCopy.title}</strong>
                 <small>{missionCopy.detail}</small>
               </div>
+            )}
+            {worldState === "heading" && (
+              <aside
+                className={`flight-throttle-hud ${throttleDirection}`}
+                style={{ "--throttle-level": throttleLevel } as CSSProperties}
+                aria-label={`DNg02 flight throttle: ${throttleStatus.toLowerCase()}`}
+              >
+                <div
+                  className="flight-throttle-rail"
+                  role="meter"
+                  aria-label="DNg02 throttle command"
+                  aria-valuemin={-55}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(flightThrottle * 100)}
+                  aria-valuetext={throttleStatus}
+                ><i /><b /></div>
+                <div className="flight-throttle-copy">
+                  <span>THROTTLE COMMAND</span>
+                  <strong>DNg02</strong>
+                  <small>{flightDng02.count}-CELL FLIGHT DRIVE</small>
+                  <div><b>{throttleStatus}</b><kbd>W / S</kbd></div>
+                </div>
+              </aside>
             )}
             {(worldState === "takeoff" || worldState === "heading" || worldState === "landing" || worldState === "groom-head" || worldState === "relaunch") && (
               <div
@@ -736,7 +804,6 @@ export default function Home() {
                 <strong>{worldCopy.title}</strong><span>{worldCopy.detail}</span>
               </div>
             )}
-            <div className="world-label"><span>FERMENTATION PATCH 01</span></div>
           </div>
           <div className="controls">
             <div className="key-controls" aria-label="Fly movement controls">
@@ -784,12 +851,6 @@ export default function Home() {
                     </div>
                   )}
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
-                  {circuitMode !== "heading" && (
-                    <div className={`flight-drive-readout ${circuitMode}`}>
-                      <span>DNg02 · {flightDng02.count}-CELL POPULATION</span>
-                      <strong>{circuitMode === "flight-forward" ? "THRUST ↑" : "THRUST ↓"}</strong>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <>
