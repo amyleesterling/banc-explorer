@@ -22,7 +22,7 @@ test("server renders the BANC fly simulator", async () => {
   const html = await response.text();
   assert.match(html, /<title>BANC Explorer — Be the Fly<\/title>/i);
   assert.match(html, /FLY WORLD/);
-  assert.match(html, /NEURAL HUD/);
+  assert.match(html, /NEURAL INTERFACE/);
   assert.match(html, /FIND THE RIPE FRUIT/);
   assert.match(html, /banc-context-base\.webp/);
   assert.match(html, /banc-forward\.webp/);
@@ -169,7 +169,7 @@ test("uses one botanical sci-fi HUD language over the natural fly world", async 
   assert.match(css, /\.world-event:before/);
   assert.match(css, /\.world-event strong:before/);
   assert.match(css, /\.landing-flower > strong:after/);
-  assert.match(css, /\.mobile-neuron-hud[^}]+linear-gradient\(148deg, rgba\(248,252,243,\.97\), rgba\(214,240,229,\.95\)\)/);
+  assert.match(css, /\.mobile-neuron-hud[^}]+linear-gradient\(158deg, rgba\(9,26,26,\.9\), rgba\(6,18,20,\.86\)\)/);
   assert.doesNotMatch(css, /\.world-event \{[^}]*border-radius: 12px/);
   assert.doesNotMatch(css, /\.landing-flower > strong \{[^}]*border-radius: 999px/);
 });
@@ -231,7 +231,7 @@ test("uses the fly world as a full-viewport cockpit with neurons overlaid as a H
   ]);
 
   assert.match(page, /Interactive BANC fly cockpit/);
-  assert.match(page, /<p>NEURAL HUD<\/p>/);
+  assert.match(page, /<p>NEURAL INTERFACE<\/p>/);
   assert.match(css, /\.lab-shell \{[^}]*position: relative; display: block/);
   assert.match(css, /\.arena-panel \{[^}]*position: absolute;[^}]*inset: 0/);
   assert.match(css, /\.circuit-panel \{[^}]*position: absolute;[^}]*inset: 0;[^}]*background: transparent/);

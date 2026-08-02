@@ -15,10 +15,10 @@ Public-facing BANC connectome explorer: **“Drive the fly. See behavior light u
 ## Product direction
 
 - Full-viewport browser cockpit; fly world is primary, neurons are a HUD over/around it.
-- Natural moss background with a botanical sci-fi glass language inspired by Amy’s `scifi-ui`, adapted for a light natural world.
+- Natural moss background with a botanical sci-fi glass language inspired by Amy’s `scifi-ui`, adapted for a light natural world. On the mobile driving cockpit this is presented as a single dark "Neural Interface" HUD wrapped by a circuit line of light (an animated edge frame); all readouts live inside that one HUD while driving.
 - Friendly to kids, scientifically careful, little text, large readable type.
-- Mobile must be first-class: floating glass controls, tap-to-focus neuron view, no overlapping HUD cards, and sufficiently large neurons.
-- The fly should feel cute and alive: kawaii dark-purple eyes with catchlights, six real articulated legs, soft wing motion, no red toe dots or tracer lines.
+- Mobile must be first-class: floating glass controls, tap-to-focus neuron view, exactly one HUD (a dark "Neural Interface" card that holds every readout — objective, neuron label, heading/velocity, and the DNg02 throttle), no overlapping HUD cards, and sufficiently large neurons.
+- The fly should feel cute and alive: a pleasant amethyst-purple body, kawaii dark-purple eyes with catchlights, six real articulated legs, soft wing motion, no red toe dots or tracer lines.
 - EPG is an allocentric heading readout (a compass), not the direct egocentric steering command.
 - DNg02 is exposed as the W/S flight-drive throttle. Forward is full command; reverse is a reduced/redirected simulator state, not a dedicated backward-flight cell type.
 - Grooming happens after landing. The front legs clean the head; controls stay live during grooming. Neural animation loops slowly.
