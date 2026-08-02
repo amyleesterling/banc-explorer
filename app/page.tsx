@@ -675,7 +675,7 @@ export default function Home() {
       <nav className="topbar" aria-label="Primary navigation">
         <a className="brand" href="#top" aria-label="BANC Explorer home">
           <span className="brand-mark" aria-hidden="true"><img src={`${assetBase}/banc-explorer-fly-icon.svg`} alt="" /></span>
-          <span>BANC <i>/</i> BE THE FLY</span>
+          <span>BE THE FLY</span>
         </a>
         <div className="nav-links">
           <a href="#how">How it works</a>
