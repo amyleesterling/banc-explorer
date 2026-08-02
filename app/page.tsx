@@ -761,10 +761,12 @@ export default function Home() {
                 </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
-              <div className="neuron-render-label">
-                {(isFlightCockpit || isDodgePulse || isGrooming) && <span><i /> {isDodgePulse ? `DNp03 · ${flightDnp03.count}-CELL PAIR` : isGrooming ? activeNeuronLayer.populationLabel : circuitMode === "heading" ? "COMPASS COCKPIT" : "FLIGHT POWER"}</span>}
-                <strong>{activeNeuronLayer.label}</strong>
-              </div>
+              {(!isFlightCockpit || circuitMode === "heading") && (
+                <div className="neuron-render-label">
+                  {(isFlightCockpit || isDodgePulse || isGrooming) && <span><i /> {isDodgePulse ? `DNp03 · ${flightDnp03.count}-CELL PAIR` : isGrooming ? activeNeuronLayer.populationLabel : "COMPASS COCKPIT"}</span>}
+                  <strong>{activeNeuronLayer.label}</strong>
+                </div>
+              )}
             </div>
             {viewerOpen && (
               <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">

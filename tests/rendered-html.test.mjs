@@ -83,3 +83,10 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
   assert.match(page, /dng12-122/);
   assert.doesNotMatch(page, /wPN1|groom-wing/);
 });
+
+test("keeps the flight-drive readout from overlapping the cockpit title", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /!isFlightCockpit \|\| circuitMode === "heading"/);
+  assert.match(page, /className={`flight-drive-readout \$\{circuitMode\}`}/);
+});
