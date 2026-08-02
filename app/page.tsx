@@ -708,10 +708,15 @@ export default function Home() {
               action={action}
               escapeState={flySceneState}
             />
+            <div className="hud-frame" aria-hidden="true">
+              <i className="hud-frame-current" />
+              <span className="hud-frame-corner tl" /><span className="hud-frame-corner tr" />
+              <span className="hud-frame-corner bl" /><span className="hud-frame-corner br" />
+            </div>
             <aside
               className={`mobile-neuron-hud${mobileHudExpanded ? " expanded" : ""}${isFlightCockpit ? " cockpit" : ""}`}
               style={{ "--layer-accent": activeNeuronLayer.accent } as CSSProperties}
-              aria-label={`Neural HUD showing ${activeNeuronLayer.label.toLowerCase()}`}
+              aria-label={`Neural interface showing ${activeNeuronLayer.label.toLowerCase()}`}
             >
               <button
                 className="mobile-neuron-toggle"
@@ -721,7 +726,7 @@ export default function Home() {
               >
                 <span className="hud-corner top-left" aria-hidden="true" />
                 <span className="hud-corner bottom-right" aria-hidden="true" />
-                <span className="mobile-neuron-kicker"><i /> NEURAL HUD</span>
+                <span className="mobile-neuron-kicker"><i /> NEURAL INTERFACE</span>
                 <span className="mobile-neuron-preview" aria-hidden="true">{mobileNeuronLayers}</span>
                 <strong>{activeNeuronLayer.label}</strong>
                 <span className="mobile-neuron-moment">
@@ -732,6 +737,15 @@ export default function Home() {
                   <span className={`mobile-flight-telemetry ${velocityDirection}`}>
                     <b>{headingCardinal} {String(compassDegrees).padStart(3, "0")}°</b>
                     <b>{velocityDisplay} mm/s</b>
+                  </span>
+                )}
+                {worldState === "heading" && (
+                  <span
+                    className={`mobile-neuron-throttle ${throttleDirection}`}
+                    style={{ "--throttle-level": throttleLevel } as CSSProperties}
+                  >
+                    <b>DNg02 · {throttleStatus}</b>
+                    <i aria-hidden="true" />
                   </span>
                 )}
                 <small>{mobileHudExpanded ? "3 LOOPS · TAP TO CLOSE" : "TAP TO FOCUS"}</small>
@@ -821,7 +835,7 @@ export default function Home() {
 
         <div className="circuit-panel">
           <header className="panel-heading dark-heading">
-            <div><span>02</span><p>NEURAL HUD</p></div>
+            <div><span>02</span><p>NEURAL INTERFACE</p></div>
             <button className="viewer-button" type="button" onClick={() => setViewerOpen(true)}>
               EXPLORE IN 3D ↗
             </button>

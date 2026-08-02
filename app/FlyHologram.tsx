@@ -369,9 +369,10 @@ export function FlyHologram({
     });
     worldMaterials.push(eyeHighlightMaterial);
     const materials = {
-      // A deeper blue-teal body separates the tiny fly from the green moss on
-      // phone screens while keeping the soft hologram palette.
-      body: makeMaterial("#168f83", 1.34, true),
+      // A pleasant amethyst body pops as the complement to the green moss on
+      // phone screens while staying in the soft hologram palette and echoing
+      // the fly mark's purple.
+      body: makeMaterial("#9a6fd6", 1.34, true),
       // The articulated leg meshes are hair-thin at phone scale. A darker
       // material preserves their silhouette against the moss without turning
       // the whole animal back into a dark blob.
