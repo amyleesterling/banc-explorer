@@ -235,7 +235,7 @@ test("uses the fly world as a full-viewport cockpit with neurons overlaid as a H
   assert.match(css, /\.lab-shell \{[^}]*position: relative; display: block/);
   assert.match(css, /\.arena-panel \{[^}]*position: absolute;[^}]*inset: 0/);
   assert.match(css, /\.circuit-panel \{[^}]*position: absolute;[^}]*inset: 0;[^}]*background: transparent/);
-  assert.match(css, /\.circuit-canvas-wrap \{[^}]*position: absolute;[^}]*width: min\(52vw, 900px\)/);
+  assert.match(css, /\.circuit-canvas-wrap \{[^}]*position: absolute;[^}]*width: min\(46vw, 760px\)/);
   assert.match(css, /\.epg-cockpit \{[^}]*background: transparent/);
   assert.doesNotMatch(css, /grid-template-columns: minmax\(0, 1\.12fr\) minmax\(360px, \.88fr\)/);
 });

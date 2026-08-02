@@ -706,8 +706,10 @@ export function FlyHologram({
       if (motion) {
         const viewWidth = camera.userData.viewWidth as number ?? 8;
         const viewHeight = camera.userData.viewHeight as number ?? 6.8;
-        modelPivot.position.x = (motion.x - 0.5) * viewWidth * 0.76;
-        modelPivot.position.y = (0.5 - motion.y) * viewHeight * 0.72;
+        // Must match WORLD_SPREAD in page.tsx so the fly, the fruit, and the
+        // flower all share one coordinate space across the wider world.
+        modelPivot.position.x = (motion.x - 0.5) * viewWidth * 0.9;
+        modelPivot.position.y = (0.5 - motion.y) * viewHeight * 0.86;
         // Arena coordinates use a downward-positive Y axis; Three.js uses upward-positive Y.
         modelPivot.rotation.z = -motion.angle;
         modelPivot.rotation.x = 0;

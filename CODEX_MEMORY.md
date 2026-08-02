@@ -93,5 +93,9 @@ Timing is intentionally gentle. Current key constants are in `app/page.tsx`; avo
 - MNb1 is verified for rendering but not wired into the app until assets land.
 - Preserve the user-owned untracked `public/banc-walking-steering-poster.webp` unless explicitly asked to remove it.
 - Keep the top-level simulator fullscreen. Do not return to a split card below a large hero.
+- Render geometry (measured, not guessed): in the 1600x1200 neural canvas the connectome content occupies only x 0.367-0.614 and y 0.127-0.877 — a 396x900 box, aspect 0.44. A landscape aperture with `object-fit: contain` plus an upscale therefore crops the brain and the nerve cord. The mobile aperture uses `object-fit: cover` in a portrait window cut to the measured BANC silhouette (wide brain lobe, pinched neck connective at ~28-45% height, wider nerve cord, tapering tail). Re-measure before changing the aperture.
+- The EPG compass render is landscape (aspect 1.81), so the cockpit aperture keeps a plain rectangular window with `contain`.
+- The world is not a canvas game: only the fly is WebGL. Sizing lives in `WORLD_BOUNDS`/`WORLD_SPREAD` in `app/page.tsx` and must be mirrored by the matching factors in `FlyHologram.tsx`, or the fly desyncs from the fruit and flower.
+- The forward drive control is called SPEED (not thrust) in the UI; it is a forward command in its own right so a phone player can move one-thumbed.
 - There is exactly one top bar: a dark cockpit bar (`.cockpit-topbar`) carrying the fly mark and “BE THE FLY”. Do not reintroduce a separate light nav bar above it, and do not put a “FLY WORLD” label or a steps metric back in it — the steps readout lives inside the Neural Interface HUD.
 - The BANC headline must not claim that walking requires the brain and nerve cord acting together; the paper reports the brain can drive many behaviours on its own. Describe what BANC *is* (a whole-CNS map) instead.
