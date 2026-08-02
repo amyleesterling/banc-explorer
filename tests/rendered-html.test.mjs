@@ -104,6 +104,26 @@ test("gives the anatomical fly kawaii compound eyes without the red glow", async
   assert.doesNotMatch(flyModel, /eye: makeMaterial\("#ff5f79"/);
 });
 
+test("keeps the articulated legs delicate, compact, and free of artificial red toe caps", async () => {
+  const [page, flyModel] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/FlyHologram.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.doesNotMatch(flyModel, /toeBean|SphereGeometry\(0\.062/);
+  assert.match(flyModel, /toe: makeMaterial\("#d8f5e8"/);
+  assert.match(flyModel, /frontToe: makeMaterial\("#ecfff6"/);
+  assert.match(flyModel, /outlineScale = segment\.name\.includes\("_tarsus"\) \? 1\.24 : 1\.18/);
+  assert.match(flyModel, /object\.position\.z \+= 0\.32 \* groomingPose/);
+  assert.doesNotMatch(flyModel, /object\.position\.z \+= 0\.58 \* groomingPose/);
+  assert.match(flyModel, /object\.rotateY\(-0\.42\)/);
+  assert.match(page, /SNACK_BEFORE_WARNING_MS = 4800/);
+  assert.match(page, /SPIDER_WARNING_MS = 2400/);
+  assert.match(page, /DODGE_PLAYBACK_FPS = 12/);
+  assert.match(page, /TAKEOFF_STAGE_MS = 1800/);
+  assert.match(page, /LANDING_STAGE_MS = 1700/);
+});
+
 test("uses one botanical sci-fi HUD language over the natural fly world", async () => {
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 

@@ -31,6 +31,13 @@ const EPG_HEADING_ASSETS = Array.from(
 );
 const EPG_BASE_ASSET = `${assetBase}/epg/epg-base.webp`;
 const DODGE_FRAME_COUNT = 12;
+const DODGE_PLAYBACK_FPS = 12;
+const SNACK_BEFORE_WARNING_MS = 4800;
+const SPIDER_WARNING_MS = 2400;
+const DODGE_STAGE_MS = 1100;
+const TAKEOFF_STAGE_MS = 1800;
+const LANDING_STAGE_MS = 1700;
+const RELAUNCH_STAGE_MS = 1800;
 const DODGE_LEFT_ASSETS = Array.from(
   { length: DODGE_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-flight-dodge-anatomical-left/frame-${String(index).padStart(2, "0")}.webp`,
@@ -325,10 +332,10 @@ export default function Home() {
             worldStateRef.current = "heading";
             setWorldState("heading");
             setCircuitMode("heading");
-          }, 850);
-        }, 500);
-      }, 1200);
-    }, 2600);
+          }, TAKEOFF_STAGE_MS);
+        }, DODGE_STAGE_MS);
+      }, SPIDER_WARNING_MS);
+    }, SNACK_BEFORE_WARNING_MS);
   }, []);
 
   const triggerLanding = useCallback(() => {
@@ -358,9 +365,9 @@ export default function Home() {
           worldStateRef.current = "heading";
           setWorldState("heading");
           setCircuitMode("heading");
-        }, 900);
+        }, RELAUNCH_STAGE_MS);
       }, HEAD_GROOM_DURATION_MS);
-    }, 900);
+    }, LANDING_STAGE_MS);
   }, []);
 
   const updateAction = useCallback((next: Action) => {
@@ -421,8 +428,8 @@ export default function Home() {
     let animationFrame = 0;
     const advance = () => {
       const elapsed = performance.now() - startedAt;
-      setDodgeFrame(Math.min(DODGE_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / 24))));
-      if (elapsed < 500) animationFrame = requestAnimationFrame(advance);
+      setDodgeFrame(Math.min(DODGE_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / DODGE_PLAYBACK_FPS))));
+      if (elapsed < (DODGE_FRAME_COUNT / DODGE_PLAYBACK_FPS) * 1000) animationFrame = requestAnimationFrame(advance);
     };
     animationFrame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(animationFrame);

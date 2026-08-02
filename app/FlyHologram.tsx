@@ -376,20 +376,21 @@ export function FlyHologram({
       leg: makeMaterial("#07584d", 1.36, true),
       frontLeg: makeMaterial("#07584d", 1.36, true),
       // Pastel distal segments make all six feet legible without replacing the
-      // anatomical meshes. The terminal tarsus shares the rosy eye accent.
+      // anatomical meshes. Keep the terminal tarsi mint instead of adding
+      // bright caps that read as dots at the ends of the legs.
       foot: makeMaterial("#8fe7d2", 1.46, true),
       frontFoot: makeMaterial("#a8f4df", 1.5, true),
-      toe: makeMaterial("#ff91aa", 1.52, true),
-      frontToe: makeMaterial("#ffabc0", 1.56, true),
+      toe: makeMaterial("#d8f5e8", 1.42, true),
+      frontToe: makeMaterial("#ecfff6", 1.46, true),
       wing: makeMaterial("#a9d7ff", 0.52),
       eye: eyeMaterial,
     };
     const materialList = Object.values(materials);
     const makeLegOutlineMaterial = () => new THREE.MeshBasicMaterial({
-      color: 0x032f2a,
+      color: 0x0b5248,
       side: THREE.BackSide,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.68,
       depthWrite: false,
       depthTest: true,
     });
@@ -406,8 +407,6 @@ export function FlyHologram({
     const basePositions = new Map<string, THREE.Vector3>();
     const legMeshes = new Map<string, THREE.Mesh>();
     const legOutlines = new Map<string, THREE.Mesh>();
-    const toeBeanMeshes = new Map<string, THREE.Mesh>();
-    const toeBeanGeometry = new THREE.SphereGeometry(0.062, compactViewport ? 10 : 12, compactViewport ? 7 : 9);
     const eyeHighlightGeometry = new THREE.SphereGeometry(0.064, compactViewport ? 10 : 14, compactViewport ? 7 : 10);
 
     const loader = new STLLoader();
@@ -461,10 +460,10 @@ export function FlyHologram({
             // A subtle back-face shell thickens the real leg geometry by a few
             // screen pixels. It remains an anatomical mesh, not a drawn tracer.
             const outlineGeometry = geometry.clone();
-            // NeuroMechFly leg files run along local Z, so thicken X/Y without
-            // making the limbs cartoonishly longer. Tarsi get a little extra
-            // width so the tiny mint socks remain visible on a phone.
-            const outlineScale = segment.name.includes("_tarsus") ? 1.68 : 1.5;
+            // NeuroMechFly leg files run along local Z, so thicken X/Y only
+            // enough to survive phone-scale rendering. The authored legs should
+            // still read as delicate limbs, not heavy black tracers.
+            const outlineScale = segment.name.includes("_tarsus") ? 1.24 : 1.18;
             outlineGeometry.scale(outlineScale, outlineScale, 1.02);
             const outlineMaterial = /^[lr]f_/.test(segment.name)
               ? frontLegOutlineMaterial
@@ -508,24 +507,6 @@ export function FlyHologram({
               smallGlint.renderOrder = 6;
               smallGlint.frustumCulled = false;
               object.add(largeGlint, smallGlint);
-            }
-          }
-          if (/^[lr][fmh]_tarsus5$/.test(segment.name)) {
-            // The real terminal tarsus is only a few pixels wide in the dorsal
-            // view. A tiny rounded cap gives each foot a readable toe bean while
-            // remaining attached to the anatomical distal joint.
-            geometry.computeBoundingBox();
-            const box = geometry.boundingBox;
-            if (box) {
-              const center = box.getCenter(new THREE.Vector3());
-              const distalZ = Math.abs(box.min.z) > Math.abs(box.max.z) ? box.min.z : box.max.z;
-              const toeBean = new THREE.Mesh(toeBeanGeometry, materialFor(segment.name, materials));
-              toeBean.position.set(center.x, center.y, distalZ + Math.sign(distalZ || -1) * 0.012);
-              toeBean.scale.set(0.82, 0.82, 1.15);
-              toeBean.renderOrder = /^[lr]f_/.test(segment.name) ? 4.2 : 3.2;
-              toeBean.frustumCulled = false;
-              object.add(toeBean);
-              toeBeanMeshes.set(segment.name, toeBean);
             }
           }
           if (segment.parent) objects.get(segment.parent)?.add(object);
@@ -598,25 +579,23 @@ export function FlyHologram({
       // biologically correct raised leg disappear beneath the thorax.
       materials.frontLeg.depthTest = !groomingHead;
       materials.frontLeg.depthWrite = !groomingHead;
-      materials.frontLeg.uniforms.uTint.value.set(groomingHead ? "#b7ffe9" : "#07584d");
-      materials.frontLeg.uniforms.uOpacity.value = groomingHead ? 1.72 : 1.36;
+      materials.frontLeg.uniforms.uTint.value.set(groomingHead ? "#8fe7d2" : "#07584d");
+      materials.frontLeg.uniforms.uOpacity.value = groomingHead ? 1.46 : 1.36;
       materials.frontFoot.depthTest = !groomingHead;
       materials.frontFoot.depthWrite = !groomingHead;
-      materials.frontFoot.uniforms.uTint.value.set(groomingHead ? "#dcfff5" : "#a8f4df");
-      materials.frontFoot.uniforms.uOpacity.value = groomingHead ? 1.74 : 1.5;
+      materials.frontFoot.uniforms.uTint.value.set(groomingHead ? "#c9f6e7" : "#a8f4df");
+      materials.frontFoot.uniforms.uOpacity.value = groomingHead ? 1.5 : 1.5;
       materials.frontToe.depthTest = !groomingHead;
       materials.frontToe.depthWrite = !groomingHead;
-      materials.frontToe.uniforms.uTint.value.set(groomingHead ? "#ffe1e9" : "#ffabc0");
-      materials.frontToe.uniforms.uOpacity.value = groomingHead ? 1.78 : 1.56;
+      materials.frontToe.uniforms.uTint.value.set(groomingHead ? "#effcf5" : "#ecfff6");
+      materials.frontToe.uniforms.uOpacity.value = groomingHead ? 1.52 : 1.46;
       frontLegOutlineMaterial.depthTest = !groomingHead;
+      frontLegOutlineMaterial.opacity = groomingHead ? 0.34 : 0.68;
       for (const [name, mesh] of legMeshes) {
         const emphasized = groomingHead && /^[lr]f_/.test(name);
-        mesh.renderOrder = emphasized ? 6 : 3;
+        mesh.renderOrder = emphasized ? 4.5 : 3;
         const outline = legOutlines.get(name);
-        if (outline) outline.renderOrder = emphasized ? 5.8 : 2.5;
-      }
-      for (const [name, toeBean] of toeBeanMeshes) {
-        toeBean.renderOrder = groomingHead && /^[lr]f_/.test(name) ? 7 : 3.2;
+        if (outline) outline.renderOrder = emphasized ? 4.3 : 2.5;
       }
 
       for (const [name, object] of animatedSegments) {
@@ -635,27 +614,25 @@ export function FlyHologram({
           // a single stiff bilateral motion.
           const sweepPhase = groomingMotionTime * HEAD_GROOM_CYCLE_SPEED + (side > 0 ? 0 : Math.PI);
           const sweep = Math.sin(sweepPhase);
-          const reach = 0.5 - 0.5 * Math.cos(sweepPhase);
-          const rub = Math.sin(sweepPhase * 2) * (1 - reach) * 0.12;
+          const rub = Math.sin(sweepPhase * 2);
           if (isFrontLeg) {
             if (name.endsWith("coxa")) {
-              object.position.z += 0.58 * groomingPose;
-              object.rotateY((-0.4 - reach * 0.2) * groomingPose);
-              object.rotateX(-side * (0.26 + reach * 0.18 + rub) * groomingPose);
+              object.position.z += 0.32 * groomingPose;
+              object.rotateY((-0.25 - sweep * 0.03) * groomingPose);
+              object.rotateX(-side * (0.08 + sweep * 0.035) * groomingPose);
             }
             if (name.endsWith("trochanterfemur")) {
-              object.rotateY((-0.74 - reach * 0.42) * groomingPose);
-              object.rotateX(-side * (0.56 - reach * 0.18 + rub) * groomingPose);
-              object.rotateZ(side * sweep * 0.14 * groomingPose);
+              object.rotateY((-0.55 - sweep * 0.08) * groomingPose);
+              object.rotateX(-side * (0.16 + sweep * 0.035) * groomingPose);
+              object.rotateZ(side * rub * 0.025 * groomingPose);
             }
             if (name.endsWith("tibia")) {
-              object.rotateY((1.12 - reach * 0.34) * groomingPose);
-              object.rotateX(side * (0.22 + sweep * 0.1) * groomingPose);
+              object.rotateY((0.85 + sweep * 0.08) * groomingPose);
+              object.rotateX(side * (0.1 + rub * 0.025) * groomingPose);
             }
             if (name.endsWith("tarsus1")) {
-              object.rotateY((-0.58 + reach * 0.42) * groomingPose);
-              object.rotateX(side * (rub + sweep * 0.05) * groomingPose);
-              object.rotateZ(side * (0.08 + Math.abs(sweep) * 0.08) * groomingPose);
+              object.rotateY((-0.22 + rub * 0.04) * groomingPose);
+              object.rotateX(side * (0.03 + sweep * 0.02) * groomingPose);
             }
           } else {
             if (name.endsWith("coxa")) object.rotateZ(side * 0.07);
@@ -665,12 +642,14 @@ export function FlyHologram({
           continue;
         }
         if (flying) {
-          if (name.endsWith("coxa")) object.rotateZ(side * 0.18);
-          if (name.endsWith("trochanterfemur")) object.rotateY(-0.28);
-          if (name.endsWith("tibia")) object.rotateY(0.42);
+          // Fold all six legs into a compact basket beneath the body in flight.
+          // This keeps the articulated anatomy while avoiding a starfish pose.
+          if (name.endsWith("coxa")) object.rotateZ(side * 0.1);
+          if (name.endsWith("trochanterfemur")) object.rotateY(-0.42);
+          if (name.endsWith("tibia")) object.rotateY(0.68);
           if (name.endsWith("tarsus1")) {
-            object.rotateY(-0.38);
-            object.rotateX(side * 0.08);
+            object.rotateY(-0.28);
+            object.rotateX(side * 0.035);
           }
           continue;
         }
@@ -746,13 +725,13 @@ export function FlyHologram({
 
         if (groomingHead) {
           const sweep = Math.sin(groomingMotionTime * HEAD_GROOM_CYCLE_SPEED);
-          modelPivot.position.y += Math.abs(sweep) * 0.015 * groomingPose;
-          modelPivot.rotation.z += sweep * 0.014 * groomingPose;
+          modelPivot.position.y += Math.abs(sweep) * 0.008 * groomingPose;
+          modelPivot.rotation.z += sweep * 0.008 * groomingPose;
           // A small three-quarter tilt exposes the real front-leg meshes that
           // otherwise sit beneath the body in the dorsal world camera.
-          modelPivot.rotation.x = groomingPose * (0.17 + Math.abs(sweep) * 0.03);
-          modelPivot.rotation.y = sweep * 0.035 * groomingPose;
-          modelPivot.scale.setScalar(baseModelScale * (1 + groomingPose * (0.25 - Math.abs(sweep) * 0.012)));
+          modelPivot.rotation.x = groomingPose * (0.07 + Math.abs(sweep) * 0.012);
+          modelPivot.rotation.y = sweep * 0.015 * groomingPose;
+          modelPivot.scale.setScalar(baseModelScale * (1 + groomingPose * (0.1 - Math.abs(sweep) * 0.006)));
         }
 
         if (flying && phaseStartedRef.current !== null) {
