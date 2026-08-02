@@ -103,3 +103,15 @@ test("gives the anatomical fly kawaii compound eyes without the red glow", async
   assert.match(flyModel, /object\.add\(largeGlint, smallGlint\)/);
   assert.doesNotMatch(flyModel, /eye: makeMaterial\("#ff5f79"/);
 });
+
+test("uses one botanical sci-fi HUD language over the natural fly world", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(css, /--field-glass-a: rgba\(249,250,237,\.95\)/);
+  assert.match(css, /\.world-event:before/);
+  assert.match(css, /\.world-event strong:before/);
+  assert.match(css, /\.landing-flower > strong:after/);
+  assert.match(css, /\.world-label[^}]+linear-gradient\(135deg, var\(--field-glass-a\), var\(--field-glass-b\)\)/);
+  assert.doesNotMatch(css, /\.world-event \{[^}]*border-radius: 12px/);
+  assert.doesNotMatch(css, /\.landing-flower > strong \{[^}]*border-radius: 999px/);
+});
