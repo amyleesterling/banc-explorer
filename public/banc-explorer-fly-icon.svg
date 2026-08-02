@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">BANC Explorer fly icon</title>
+  <desc id="desc">Top-down fruit fly with purple eyes, neural wing branches, and a mint brain-to-nerve-cord line.</desc>
+
+  <g fill="none" stroke="#111A17" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M226 98 C214 76 196 65 176 61"/>
+    <path d="M286 98 C298 76 316 65 336 61"/>
+
+    <path d="M194 174 L154 142 L126 110"/>
+    <path d="M188 236 L138 222 L100 236"/>
+    <path d="M196 308 L150 336 L120 370"/>
+
+    <path d="M318 174 L358 142 L386 110"/>
+    <path d="M324 236 L374 222 L412 236"/>
+    <path d="M316 308 L362 336 L392 370"/>
+  </g>
+
+  <path d="M211 198
+           C167 210 132 248 122 301
+           C114 344 128 385 158 406
+           C184 424 211 412 224 384
+           C238 355 235 300 226 252
+           C222 230 217 212 211 198 Z"
+        fill="#E8F2EC" stroke="#111A17" stroke-width="12" stroke-linejoin="round"/>
+
+  <path d="M301 198
+           C345 210 380 248 390 301
+           C398 344 384 385 354 406
+           C328 424 301 412 288 384
+           C274 355 277 300 286 252
+           C290 230 295 212 301 198 Z"
+        fill="#E8F2EC" stroke="#111A17" stroke-width="12" stroke-linejoin="round"/>
+
+  <path d="M256 94
+           C218 94 191 121 192 159
+           C192 182 202 200 217 213
+           C210 239 207 273 211 308
+           C215 354 229 399 256 426
+           C283 399 297 354 301 308
+           C305 273 302 239 295 213
+           C310 200 320 182 320 159
+           C321 121 294 94 256 94 Z"
+        fill="#111A17"/>
+
+  <ellipse cx="216" cy="143" rx="29" ry="36" fill="#C7A6F3"/>
+  <ellipse cx="296" cy="143" rx="29" ry="36" fill="#C7A6F3"/>
+
+  <g fill="#68D6C4" stroke="#68D6C4" stroke-linecap="round">
+    <circle cx="256" cy="185" r="16"/>
+    <path d="M256 201 L256 354" stroke-width="12"/>
+    <circle cx="256" cy="266" r="12"/>
+    <circle cx="256" cy="318" r="12"/>
+    <circle cx="256" cy="370" r="11"/>
+  </g>
+
+  <g fill="none" stroke="#68D6C4" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M205 235 C188 257 177 286 174 321"/>
+    <path d="M181 275 L157 260"/>
+    <path d="M176 302 L148 291"/>
+    <path d="M174 327 L151 340"/>
+    <path d="M188 255 L190 232"/>
+    <path d="M183 287 L199 271"/>
+
+    <path d="M307 235 C324 257 335 286 338 321"/>
+    <path d="M331 275 L355 260"/>
+    <path d="M336 302 L364 291"/>
+    <path d="M338 327 L361 340"/>
+    <path d="M324 255 L322 232"/>
+    <path d="M329 287 L313 271"/>
+  </g>
+
+  <g fill="#68D6C4">
+    <circle cx="157" cy="260" r="6"/>
+    <circle cx="148" cy="291" r="6"/>
+    <circle cx="151" cy="340" r="6"/>
+    <circle cx="190" cy="232" r="6"/>
+    <circle cx="199" cy="271" r="6"/>
+
+    <circle cx="355" cy="260" r="6"/>
+    <circle cx="364" cy="291" r="6"/>
+    <circle cx="361" cy="340" r="6"/>
+    <circle cx="322" cy="232" r="6"/>
+    <circle cx="313" cy="271" r="6"/>
+  </g>
+</svg>

@@ -21,9 +21,9 @@ export const metadata: Metadata = {
   title: "BANC Explorer — Be the Fly",
   description: "Drive a fruit fly through walking, steering, feeding, escape, and flight while the neurons behind each behavior light up.",
   icons: {
-    icon: [{ url: `${assetBase}/banc-fly-favicon.svg`, type: "image/svg+xml" }],
-    shortcut: `${assetBase}/banc-fly-favicon.svg`,
-    apple: `${assetBase}/flywire-favicon.jpg`,
+    icon: [{ url: `${assetBase}/banc-explorer-fly-icon.svg`, type: "image/svg+xml" }],
+    shortcut: `${assetBase}/banc-explorer-fly-icon.svg`,
+    apple: `${assetBase}/banc-explorer-fly-icon.svg`,
   },
   openGraph: {
     title: "BANC Explorer — Be the Fly",

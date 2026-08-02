@@ -130,3 +130,17 @@ test("shows signed flight velocity measured from simulated displacement", async 
   assert.match(css, /\.epg-velocity-gauge/);
   assert.match(css, /\.epg-velocity-readout\.reverse/);
 });
+
+test("uses the supplied BANC fly mark for the header and browser icons", async () => {
+  const [page, layout, icon] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../public/banc-explorer-fly-icon.svg", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /banc-explorer-fly-icon\.svg/);
+  assert.equal((layout.match(/banc-explorer-fly-icon\.svg/g) ?? []).length, 3);
+  assert.match(icon, /viewBox="0 0 512 512"/);
+  assert.match(icon, /fill="#C7A6F3"/);
+  assert.match(icon, /stroke="#68D6C4"/);
+});
