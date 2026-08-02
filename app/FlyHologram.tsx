@@ -93,7 +93,7 @@ function makeMaterial(color: string, opacity = 1, depthWrite = false): HologramM
   }) as HologramMaterial;
 }
 
-function materialFor(name: string, materials: Record<string, HologramMaterial>) {
+function materialFor(name: string, materials: Record<string, THREE.Material>) {
   if (name.includes("eye")) return materials.eye;
   if (name.includes("wing") || name.includes("haltere")) return materials.wing;
   if (/^[lr]f_tarsus5$/.test(name)) return materials.frontToe;
@@ -352,6 +352,22 @@ export function FlyHologram({
       addDisc(x, y, radius, radius, 0, scentMaterial, -0.18, 14);
     });
 
+    // Keep the real compound-eye geometry, but give it a soft, opaque kawaii
+    // treatment instead of the old pulsing red hologram. Twin cream catchlights
+    // are added to each eye below so the expression survives at phone scale.
+    const eyeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x38243f,
+      depthWrite: true,
+      side: THREE.DoubleSide,
+    });
+    const eyeHighlightMaterial = new THREE.MeshBasicMaterial({
+      color: 0xfff8e7,
+      transparent: true,
+      opacity: 0.96,
+      depthTest: false,
+      depthWrite: false,
+    });
+    worldMaterials.push(eyeHighlightMaterial);
     const materials = {
       body: makeMaterial("#27c9ab", 1.22, true),
       // The articulated leg meshes are hair-thin at phone scale. A darker
@@ -366,7 +382,7 @@ export function FlyHologram({
       toe: makeMaterial("#ff91aa", 1.52, true),
       frontToe: makeMaterial("#ffabc0", 1.56, true),
       wing: makeMaterial("#a9d7ff", 0.52),
-      eye: makeMaterial("#ff5f79", 1.28, true),
+      eye: eyeMaterial,
     };
     const materialList = Object.values(materials);
     const makeLegOutlineMaterial = () => new THREE.MeshBasicMaterial({
@@ -392,6 +408,7 @@ export function FlyHologram({
     const legOutlines = new Map<string, THREE.Mesh>();
     const toeBeanMeshes = new Map<string, THREE.Mesh>();
     const toeBeanGeometry = new THREE.SphereGeometry(0.062, compactViewport ? 10 : 12, compactViewport ? 7 : 9);
+    const eyeHighlightGeometry = new THREE.SphereGeometry(0.064, compactViewport ? 10 : 14, compactViewport ? 7 : 10);
 
     const loader = new STLLoader();
 
@@ -460,6 +477,39 @@ export function FlyHologram({
             legOutlines.set(segment.name, outline);
           }
           object.add(mesh);
+          if (isEye) {
+            geometry.computeBoundingBox();
+            const box = geometry.boundingBox;
+            if (box) {
+              const center = box.getCenter(new THREE.Vector3());
+              const size = box.getSize(new THREE.Vector3());
+              const towardFaceCenter = center.y >= 0 ? -1 : 1;
+              const surfaceZ = box.max.z + 0.018;
+
+              // Two asymmetric glints make the existing compound eyes feel
+              // friendly without changing their anatomy or adding a red glow.
+              const largeGlint = new THREE.Mesh(eyeHighlightGeometry, eyeHighlightMaterial);
+              largeGlint.position.set(
+                center.x + size.x * 0.1,
+                center.y + towardFaceCenter * size.y * 0.13,
+                surfaceZ,
+              );
+              largeGlint.scale.set(1, 0.82, 0.42);
+              largeGlint.renderOrder = 6;
+              largeGlint.frustumCulled = false;
+
+              const smallGlint = new THREE.Mesh(eyeHighlightGeometry, eyeHighlightMaterial);
+              smallGlint.position.set(
+                center.x - size.x * 0.08,
+                center.y - towardFaceCenter * size.y * 0.08,
+                surfaceZ + 0.004,
+              );
+              smallGlint.scale.set(0.42, 0.36, 0.22);
+              smallGlint.renderOrder = 6;
+              smallGlint.frustumCulled = false;
+              object.add(largeGlint, smallGlint);
+            }
+          }
           if (/^[lr][fmh]_tarsus5$/.test(segment.name)) {
             // The real terminal tarsus is only a few pixels wide in the dorsal
             // view. A tiny rounded cap gives each foot a readable toe bean while
@@ -724,7 +774,11 @@ export function FlyHologram({
         }
       }
       modelPivot.position.z = Math.sin(time * 2.2) * 0.025;
-      materialList.forEach((material) => { material.uniforms.uTime.value = time; });
+      materialList.forEach((material) => {
+        if (material instanceof THREE.ShaderMaterial && material.uniforms.uTime) {
+          material.uniforms.uTime.value = time;
+        }
+      });
       targetRing.scale.setScalar(1 + Math.sin(time * 2.4) * 0.055);
       targetMaterial.opacity = 0.55 + Math.sin(time * 2.4) * 0.12;
 

@@ -93,3 +93,13 @@ test("keeps the flight-drive readout from overlapping the cockpit title", async 
   assert.match(page, /!isFlightCockpit \|\| circuitMode === "heading"/);
   assert.match(page, /className={`flight-drive-readout \$\{circuitMode\}`}/);
 });
+
+test("gives the anatomical fly kawaii compound eyes without the red glow", async () => {
+  const flyModel = await readFile(new URL("../app/FlyHologram.tsx", import.meta.url), "utf8");
+
+  assert.match(flyModel, /const eyeMaterial = new THREE\.MeshBasicMaterial/);
+  assert.match(flyModel, /color: 0x38243f/);
+  assert.match(flyModel, /const eyeHighlightGeometry = new THREE\.SphereGeometry/);
+  assert.match(flyModel, /object\.add\(largeGlint, smallGlint\)/);
+  assert.doesNotMatch(flyModel, /eye: makeMaterial\("#ff5f79"/);
+});
