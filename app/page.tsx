@@ -281,9 +281,6 @@ export default function Home() {
   const missionCopy = worldState === "heading" || worldState === "relaunch"
     ? { kicker: "FLIGHT OBJECTIVE", title: worldState === "relaunch" ? "NEW FLOWER DETECTED" : "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
     : { kicker: "FORAGING OBJECTIVE", title: "FIND THE RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
-  const controlCopy = worldState === "heading"
-    ? { title: "Flight controls", detail: "Steer with A/D. Thrust or reverse with W/S." }
-    : worldCopy;
 
   useEffect(() => {
     if (!viewerOpen) return;
@@ -739,10 +736,6 @@ export default function Home() {
             <div className="world-label"><span>FERMENTATION PATCH 01</span></div>
           </div>
           <div className="controls">
-            <div className="control-copy">
-              <strong>{controlCopy.title}</strong>
-              <span>{controlCopy.detail}</span>
-            </div>
             <div className="key-controls" aria-label="Fly movement controls">
               <button className={action === "left" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "left")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "left")} disabled={controlDisabled} aria-label="Steer left">←<kbd>A</kbd></button>
               <button className={action === "forward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "forward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "forward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>

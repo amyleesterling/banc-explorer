@@ -23,7 +23,7 @@ test("server renders the BANC fly simulator", async () => {
   assert.match(html, /<title>BANC Explorer — Be the Fly<\/title>/i);
   assert.match(html, /FLY WORLD/);
   assert.match(html, /NEURAL HUD/);
-  assert.match(html, /Find the fallen fruit/);
+  assert.match(html, /FIND THE RIPE FRUIT/);
   assert.match(html, /banc-context-base\.webp/);
   assert.match(html, /banc-forward\.webp/);
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/i);
@@ -150,6 +150,18 @@ test("uses the fly world as a full-viewport cockpit with neurons overlaid as a H
   assert.match(css, /\.circuit-canvas-wrap \{[^}]*position: absolute;[^}]*width: min\(52vw, 900px\)/);
   assert.match(css, /\.epg-cockpit \{[^}]*background: transparent/);
   assert.doesNotMatch(css, /grid-template-columns: minmax\(0, 1\.12fr\) minmax\(360px, \.88fr\)/);
+});
+
+test("keeps event copy in the HUD and uses only a floating movement dock at the bottom", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.doesNotMatch(page, /controlCopy|className="control-copy"/);
+  assert.match(css, /\.controls \{[^}]*width: auto;[^}]*background: transparent/);
+  assert.match(css, /\.key-controls \{[^}]*border-radius: 15px;[^}]*backdrop-filter: blur\(14px\)/);
+  assert.doesNotMatch(css, /\.arena-panel \{[^}]*grid-template-rows/);
 });
 
 test("shows signed flight velocity measured from simulated displacement", async () => {
