@@ -84,7 +84,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .arena-wrap:before { content: ''; position: absolute; z-index: 0; inset: -9px; background-image: inherit; background-position: center; background-repeat: no-repeat; background-size: cover; filter: blur(4.2px) saturate(.86) brightness(.97); transform: scale(1.03); }
 .arena-wrap:after { content: ''; position: absolute; z-index: 1; inset: 0; background: linear-gradient(135deg, rgba(232,248,238,.08), rgba(31,102,78,.04)); pointer-events: none; }
 .fly-hologram { position: absolute; z-index: 3; inset: 0; overflow: hidden; background: transparent; pointer-events: none; }
-.fly-hologram canvas { width: 100%; height: 100%; display: block; image-rendering: auto; filter: brightness(1.2) saturate(1.2) contrast(1.22) drop-shadow(0 0 8px rgba(191,255,239,.52)) drop-shadow(0 9px 8px rgba(21,66,50,.34)); }
+.fly-hologram canvas { width: 100%; height: 100%; display: block; image-rendering: auto; filter: brightness(1.14) saturate(1.3) contrast(1.42) drop-shadow(0 0 2px rgba(5,42,36,.9)) drop-shadow(0 0 7px rgba(198,255,243,.44)) drop-shadow(0 9px 8px rgba(21,66,50,.32)); }
 .model-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 9px; z-index: 3; color: #40584b; font-size: 12px; font-weight: 800; letter-spacing: .1em; pointer-events: none; }
 .model-status span { width: 7px; height: 7px; border-radius: 50%; background: #68d6c4; box-shadow: 0 0 11px #68d6c4; animation: model-pulse 1.1s ease-in-out infinite; }
 .model-status.error span { background: #ff7f6e; box-shadow: 0 0 11px #ff7f6e; animation: none; }
@@ -167,13 +167,17 @@ h1 em { color: var(--moss); font-weight: 400; }
 .key-controls button:hover, .key-controls button:focus-visible, .key-controls button.active { background: var(--ink); color: white; transform: translateY(-2px); }
 .key-controls button:disabled { cursor: wait; opacity: .42; transform: none; }
 .key-controls kbd { position: absolute; bottom: 4px; right: 6px; font-size: 10px; opacity: .58; }
+/* The SPEED control: a one-thumb forward drive, wider than the steering keys. */
+.key-controls .speed-key { width: auto; min-width: 86px; padding: 0 14px; font-size: 12px; font-weight: 900; letter-spacing: .13em; color: #17493f; border-color: rgba(60,150,132,.6); background: linear-gradient(160deg, rgba(150,238,222,.6), rgba(206,246,235,.5)); }
+.key-controls .speed-key kbd { right: 7px; font-size: 8px; letter-spacing: .06em; }
+.key-controls .speed-key:hover, .key-controls .speed-key:focus-visible, .key-controls .speed-key.active { color: #04241f; background: linear-gradient(160deg, #7fe6d2, #b9f4e4); box-shadow: 0 0 18px rgba(104,214,196,.62); }
 
 .mobile-neuron-hud { display: none; }
 
 /* A circuit line of light that wraps the driving cockpit so the whole play
    field reads as one framed neural interface. Enabled on the mobile cockpit;
    hidden by default so the wide desktop layout keeps its own framing. */
-.hud-frame { display: none; position: absolute; z-index: 4; top: 64px; left: 10px; right: 10px; bottom: 74px; border-radius: 13px; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(122,224,208,.24), inset 0 0 30px rgba(4,18,16,.26), 0 0 20px rgba(96,214,196,.14); }
+.hud-frame { display: block; position: absolute; z-index: 4; top: 74px; left: 14px; right: 14px; bottom: 96px; border-radius: 13px; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(122,224,208,.24), inset 0 0 30px rgba(4,18,16,.26), 0 0 20px rgba(96,214,196,.14); }
 .hud-frame:before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 2px; background: linear-gradient(115deg, rgba(122,224,208,.42) 0%, rgba(150,240,224,.95) 16%, rgba(170,190,255,.55) 36%, rgba(122,224,208,.4) 56%, rgba(210,175,248,.92) 78%, rgba(122,224,208,.42) 100%); background-size: 320% 100%; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; filter: drop-shadow(0 0 5px rgba(122,224,208,.5)); animation: hud-current 7s linear infinite; }
 .hud-frame-current { position: absolute; inset: 5px; border-radius: 9px; box-shadow: inset 0 0 22px rgba(122,224,208,.12); }
 .hud-frame-corner { position: absolute; width: 18px; height: 18px; border-color: rgba(172,246,232,.98); filter: drop-shadow(0 0 6px rgba(122,224,208,.85)); }
@@ -183,17 +187,25 @@ h1 em { color: var(--moss); font-weight: 400; }
 .hud-frame-corner.br { right: -1px; bottom: -1px; border-right: 2px solid; border-bottom: 2px solid; border-bottom-right-radius: 13px; }
 @keyframes hud-current { to { background-position: 320% 0; } }
 
-.circuit-canvas-wrap { position: absolute; z-index: 2; right: -1.5vw; top: 54px; bottom: 68px; width: min(52vw, 900px); background: transparent; isolation: isolate; pointer-events: none; }
-.neuron-render-stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 58% 52%, rgba(2,10,10,.86) 0%, rgba(4,24,21,.68) 34%, rgba(4,25,21,.3) 56%, transparent 76%); isolation: isolate; }
-.neuron-render-stage:before { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(rgba(104,214,196,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(104,214,196,.035) 1px, transparent 1px); background-size: 32px 32px; mask-image: radial-gradient(circle, #000 20%, transparent 78%); }
+.circuit-canvas-wrap { position: absolute; z-index: 2; right: 20px; top: 74px; bottom: 84px; width: min(46vw, 760px); background: transparent; isolation: isolate; pointer-events: none; }
+/* A contained hologram tank: hard edge, scanlines and glow, so the render
+   reads as an instrument panel instead of a blur floating over the moss. */
+.neuron-render-stage { position: absolute; inset: 0; overflow: hidden; isolation: isolate; border: 1px solid rgba(122,224,208,.34); border-radius: 12px; background: repeating-linear-gradient(0deg, rgba(122,224,246,.028) 0 1px, transparent 1px 3px), radial-gradient(ellipse at 50% 46%, rgba(9,32,32,.97) 0%, rgba(4,17,19,.98) 62%, rgba(2,11,13,.99) 100%); box-shadow: 0 26px 64px rgba(1,12,11,.5), inset 0 1px rgba(150,230,220,.14), 0 0 34px rgba(80,200,185,.16); }
+.neuron-render-stage:before { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(rgba(104,214,196,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(104,214,196,.035) 1px, transparent 1px); background-size: 32px 32px; mask-image: radial-gradient(circle, #000 46%, rgba(0,0,0,.35) 92%); }
 .neuron-render-stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; pointer-events: none; }
 .neuron-context-layer { z-index: 1; opacity: .5; filter: saturate(.45) brightness(.9); }
-.neuron-render-stage.heading { background: radial-gradient(ellipse at 55% 61%, rgba(6,11,12,.9) 0%, rgba(4,17,16,.68) 38%, rgba(3,20,17,.25) 59%, transparent 77%); }
+/* Direct children only: the context and action layers share one transform so
+   they stay registered. The EPG cockpit keeps its own framing. */
+.neuron-render-stage > img { transform: scale(1.15); }
+.neuron-render-stage.heading { background: repeating-linear-gradient(0deg, rgba(174,226,246,.028) 0 1px, transparent 1px 3px), radial-gradient(ellipse at 50% 55%, rgba(12,14,26,.97) 0%, rgba(5,11,18,.98) 62%, rgba(3,8,13,.99) 100%); }
 .neuron-action-layer { z-index: 2; opacity: .96; filter: saturate(1.16) drop-shadow(0 0 7px color-mix(in srgb, var(--layer-accent, #ff1493) 38%, transparent)); animation: neuron-ignite .55s ease-out both; }
 .neuron-action-layer.dodge-frame { animation: none; filter: saturate(1.12) drop-shadow(0 0 10px rgba(255,143,168,.42)); }
 .neuron-action-layer.groom-frame { animation: none; filter: saturate(1.14) brightness(1.04) drop-shadow(0 0 11px color-mix(in srgb, var(--layer-accent, #c7a6f3) 48%, transparent)); }
-.neuron-render-glow { position: absolute; z-index: 0; inset: 10% 22%; border-radius: 50%; background: rgba(47,185,168,.055); filter: blur(28px); }
-.neuron-render-label { position: absolute; z-index: 4; left: 22px; top: 21px; display: grid; gap: 7px; pointer-events: none; }
+.neuron-render-glow { position: absolute; z-index: 4; inset: 9px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(122,224,208,.12), inset 0 0 40px rgba(60,190,175,.06); pointer-events: none; }
+.neuron-render-glow:before, .neuron-render-glow:after { content: ''; position: absolute; width: 20px; height: 20px; border-color: rgba(160,240,226,.9); filter: drop-shadow(0 0 5px rgba(122,224,208,.7)); }
+.neuron-render-glow:before { left: 0; top: 0; border-left: 2px solid; border-top: 2px solid; border-top-left-radius: 8px; }
+.neuron-render-glow:after { right: 0; bottom: 0; border-right: 2px solid; border-bottom: 2px solid; border-bottom-right-radius: 8px; }
+.neuron-render-label { position: absolute; z-index: 5; left: 36px; top: 34px; display: grid; gap: 7px; pointer-events: none; }
 .neuron-render-label span { display: flex; align-items: center; gap: 8px; color: #aebeb5; font-size: 11px; font-weight: 800; letter-spacing: .11em; }
 .neuron-render-label span i { width: 6px; height: 6px; border-radius: 50%; background: var(--layer-accent, #ff1493); box-shadow: 0 0 10px var(--layer-accent, #ff1493); }
 .neuron-render-label strong { font-family: Georgia, serif; color: #f2f5ed; font-size: 30px; line-height: 1.05; font-weight: 400; letter-spacing: -.02em; }
@@ -295,11 +307,11 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   .circuit-panel { display: none; }
   .arena-wrap { position: absolute; inset: 0; min-height: 0; }
   .fly-hologram canvas { filter: brightness(1.12) saturate(1.24) contrast(1.42) drop-shadow(0 0 2px rgba(4,42,36,.88)) drop-shadow(0 0 9px rgba(218,255,247,.62)) drop-shadow(0 10px 9px rgba(13,55,45,.38)); }
-  .hud-frame { display: block; }
   .cockpit-topbar { padding-right: 22px; }
   .controls { position: absolute; z-index: 15; left: 50%; bottom: 12px; width: auto; min-width: 0; min-height: 0; transform: translateX(-50%); border: 0; background: transparent; box-shadow: none; }
   /* One HUD on mobile: fold the world narration into the neural card and hide
      the standalone objective, event, and throttle cards so nothing overlaps. */
+  .hud-frame { top: 68px; left: 10px; right: 10px; bottom: 80px; }
   .mission-hud, .world-event, .flight-throttle-hud { display: none; }
   /* The objective already lives in the one HUD; keep the flower as a pure
      in-world target marker (art + pulse ring) without a floating text tag. */
@@ -317,12 +329,18 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   .mobile-neuron-hud.expanded .mobile-neuron-toggle { min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto auto; padding: 14px 14px 10px; }
   .mobile-neuron-kicker { display: flex; align-items: center; gap: 7px; color: #86ead9; font-size: 9px; font-weight: 900; letter-spacing: .17em; }
   .mobile-neuron-kicker i { width: 5px; height: 5px; border-radius: 50%; background: var(--layer-accent, #68d6c4); box-shadow: 0 0 10px var(--layer-accent, #68d6c4); }
-  .mobile-neuron-preview { position: relative; display: block; height: 128px; margin: -2px 0 0; overflow: hidden; border: 1px solid rgba(120,214,198,.22); border-radius: 5px; background: radial-gradient(circle at 50% 48%, rgba(20,44,44,.92), rgba(4,14,15,.96) 76%); box-shadow: inset 0 0 24px rgba(1,10,10,.4); }
+  /* The BANC render is a tall narrow form (content is 396x900 in a 1600x1200
+     canvas), so the aperture is cut to that silhouette: a brain lobe, the
+     narrow neck connective, then the nerve cord. Cover + no upscale keeps the
+     whole animal inside the shape instead of cropping its head and tail. */
+  .mobile-neuron-preview { position: relative; display: block; width: 104px; height: 208px; margin: -2px auto 2px; overflow: hidden; background: radial-gradient(ellipse at 50% 44%, rgba(21,48,48,.95), rgba(3,13,15,.97) 72%); clip-path: polygon(96.2% 0.0%, 95.5% 5.6%, 93.7% 11.1%, 88.2% 16.7%, 79.1% 22.2%, 69.6% 27.8%, 63.3% 33.3%, 62.3% 38.9%, 68.3% 44.4%, 75.7% 50.0%, 83.0% 55.6%, 83.2% 61.1%, 81.7% 66.7%, 77.7% 72.2%, 75.9% 77.8%, 74.3% 83.3%, 74.0% 88.9%, 73.8% 94.4%, 65.9% 100.0%, 34.1% 100.0%, 26.2% 94.4%, 26.0% 88.9%, 25.7% 83.3%, 24.1% 77.8%, 22.3% 72.2%, 18.3% 66.7%, 16.8% 61.1%, 17.0% 55.6%, 24.3% 50.0%, 31.7% 44.4%, 37.7% 38.9%, 36.7% 33.3%, 30.4% 27.8%, 20.9% 22.2%, 11.8% 16.7%, 6.3% 11.1%, 4.5% 5.6%, 3.8% 0.0%); filter: drop-shadow(0 0 7px rgba(122,224,208,.36)); }
+  .mobile-neuron-hud.expanded .mobile-neuron-preview { width: 190px; height: auto; }
   .mobile-neuron-hud.expanded .mobile-neuron-preview { height: auto; min-height: 0; }
-  .mobile-neuron-preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; transform: scale(1.82); }
-  .mobile-neuron-hud.cockpit .mobile-neuron-preview img { transform: scale(1.08); }
-  .mobile-neuron-hud.expanded .mobile-neuron-preview img { transform: scale(1.18); animation: mobile-neuron-breathe 2.4s ease-in-out infinite; }
-  .mobile-neuron-hud.expanded.cockpit .mobile-neuron-preview img { transform: scale(1); }
+  .mobile-neuron-preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; transform: scale(1.3); }
+  /* The EPG compass is a wide landscape render, so it keeps a plain aperture. */
+  .mobile-neuron-hud.cockpit .mobile-neuron-preview { width: auto; height: 132px; clip-path: none; filter: none; border: 1px solid rgba(120,214,198,.22); border-radius: 5px; }
+  .mobile-neuron-hud.cockpit .mobile-neuron-preview img { object-fit: contain; transform: scale(1.06); }
+  .mobile-neuron-hud.expanded .mobile-neuron-preview img { transform: scale(1.04); animation: mobile-neuron-breathe 2.4s ease-in-out infinite; }
   .mobile-neuron-base { opacity: .58; filter: saturate(.38) brightness(.92) contrast(1.38); }
   .mobile-neuron-active { opacity: 1; filter: saturate(1.28) brightness(1.34) contrast(1.24) drop-shadow(0 0 9px color-mix(in srgb, var(--layer-accent, #68d6c4) 62%, transparent)); }
   .mobile-neuron-toggle strong { overflow: hidden; color: #f1f7f1; font-family: Georgia, serif; font-size: 18px; font-weight: 400; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
@@ -373,7 +391,6 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   .arena-wrap { min-height: 0; }
   .mobile-neuron-hud { left: 12px; right: auto; top: 76px; width: 184px; }
   .mobile-neuron-hud.expanded { inset: 70px 8px 76px; width: auto; }
-  .mobile-neuron-preview { height: 118px; }
   .mobile-neuron-toggle strong { font-size: 15px; }
   .mobile-neuron-hud.expanded .mobile-neuron-toggle strong { font-size: 22px; }
   .flight-throttle-hud { left: 12px; top: 300px; width: 154px; min-height: 82px; grid-template-columns: 19px minmax(0, 1fr); gap: 8px; padding: 9px 10px; }

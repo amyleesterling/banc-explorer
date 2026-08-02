@@ -73,12 +73,16 @@ const FLOWER_TARGETS = [
 ] as const;
 const FLOWER_CONTACT_RADIUS = 0.105;
 const SIM_WORLD_WIDTH_MM = 3;
-const SIM_WORLD_NAVIGABLE_SPAN = 0.8;
+// The fly roams almost the entire viewport rather than a small centre box.
+// WORLD_BOUNDS is the navigable range; WORLD_SPREAD maps it onto the screen.
+const WORLD_BOUNDS = { minX: 0.05, maxX: 0.95, minY: 0.12, maxY: 0.9 };
+const WORLD_SPREAD = { x: 90, y: 86 };
+const SIM_WORLD_NAVIGABLE_SPAN = WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX;
 const MM_PER_SIM_UNIT = SIM_WORLD_WIDTH_MM / SIM_WORLD_NAVIGABLE_SPAN;
 const MAX_FLIGHT_VELOCITY_MM_S = 1;
 const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
-  left: `${50 + (x - 0.5) * 76}%`,
-  top: `${50 + (y - 0.5) * 72}%`,
+  left: `${50 + (x - 0.5) * WORLD_SPREAD.x}%`,
+  top: `${50 + (y - 0.5) * WORLD_SPREAD.y}%`,
 });
 const FOOD_SCREEN = toScreenPosition(FOOD_TARGET);
 const isInsideEllipse = (
@@ -177,6 +181,7 @@ const LEGEND = [
 export default function Home() {
   const flyRef = useRef({ x: 0.34, y: 0.58, angle: -0.28 });
   const keysRef = useRef(new Set<string>());
+  const boostRef = useRef(false);
   const frameRef = useRef<number | null>(null);
   const lastRef = useRef(0);
   const lastHeadingUiRef = useRef(0);
@@ -196,6 +201,7 @@ export default function Home() {
   const epgPreloadedRef = useRef(false);
   const pointerControlRef = useRef<{ pointerId: number; action: Exclude<Action, "rest"> } | null>(null);
   const [action, setAction] = useState<Action>("rest");
+  const [boosting, setBoosting] = useState(false);
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [spiderWarning, setSpiderWarning] = useState(false);
   const [steps, setSteps] = useState(0);
@@ -396,6 +402,13 @@ export default function Home() {
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
+      if (key === "shift") {
+        if (!isPlayerControllableState(worldStateRef.current)) return;
+        event.preventDefault();
+        boostRef.current = true;
+        setBoosting(true);
+        return;
+      }
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "s", "a", "d"].includes(key)) {
         event.preventDefault();
         const currentState = worldStateRef.current;
@@ -403,7 +416,15 @@ export default function Home() {
         keysRef.current.add(key);
       }
     };
-    const keyUp = (event: KeyboardEvent) => keysRef.current.delete(event.key.toLowerCase());
+    const keyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (key === "shift") {
+        boostRef.current = false;
+        setBoosting(false);
+        return;
+      }
+      keysRef.current.delete(key);
+    };
     window.addEventListener("keydown", keyDown);
     window.addEventListener("keyup", keyUp);
     return () => {
@@ -496,9 +517,13 @@ export default function Home() {
       lastRef.current = time;
 
       const keys = keysRef.current;
+      const currentWorldState = worldStateRef.current;
       const fly = flyRef.current;
       const previousVelocitySample = velocitySampleRef.current;
-      const forward = keys.has("arrowup") || keys.has("w");
+      // The SPEED control is a forward drive command in its own right, so a
+      // player can move with one thumb on a phone.
+      const speedCommand = boostRef.current && isPlayerControllableState(currentWorldState);
+      const forward = keys.has("arrowup") || keys.has("w") || speedCommand;
       const backward = keys.has("arrowdown") || keys.has("s");
       const left = keys.has("arrowleft") || keys.has("a");
       const right = keys.has("arrowright") || keys.has("d");
@@ -537,13 +562,13 @@ export default function Home() {
         : 0;
       const movementCommand = interactiveFlight ? throttleCommand : direction;
       if (movementCommand !== 0) {
-        const flightBoost = interactiveFlight ? 1.45 : 1;
+        const flightBoost = (interactiveFlight ? 1.45 : 1) * (speedCommand ? 1.9 : 1);
         fly.x += Math.cos(fly.angle) * dt * 0.12 * movementCommand * flightBoost;
         fly.y += Math.sin(fly.angle) * dt * 0.16 * movementCommand * flightBoost;
         nextAction = movementCommand < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
       }
-      fly.x = Math.max(0.1, Math.min(0.9, fly.x));
-      fly.y = Math.max(0.16, Math.min(0.86, fly.y));
+      fly.x = Math.max(WORLD_BOUNDS.minX, Math.min(WORLD_BOUNDS.maxX, fly.x));
+      fly.y = Math.max(WORLD_BOUNDS.minY, Math.min(WORLD_BOUNDS.maxY, fly.y));
       const deltaX = fly.x - previousVelocitySample.x;
       const deltaY = fly.y - previousVelocitySample.y;
       velocitySampleRef.current = { x: fly.x, y: fly.y };
@@ -648,6 +673,17 @@ export default function Home() {
     keysRef.current.delete(controlKey[active.action]);
     pointerControlRef.current = null;
     updateAction("rest");
+  };
+  const beginSpeed = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (controlDisabled) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    boostRef.current = true;
+    setBoosting(true);
+  };
+  const endSpeed = () => {
+    boostRef.current = false;
+    setBoosting(false);
   };
   const handleControlClick = (event: ReactMouseEvent<HTMLButtonElement>, next: Exclude<Action, "rest">) => {
     if (event.detail === 0) nudge(next);
@@ -819,6 +855,7 @@ export default function Home() {
               <button className={action === "forward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "forward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "forward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
               <button className={action === "backward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "backward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "backward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
               <button className={action === "right" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "right")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "right")} disabled={controlDisabled} aria-label="Steer right">→<kbd>D</kbd></button>
+              <button className={`speed-key${boosting ? " active" : ""}`} onPointerDown={beginSpeed} onPointerUp={endSpeed} onPointerCancel={endSpeed} onLostPointerCapture={endSpeed} disabled={controlDisabled} aria-pressed={boosting} aria-label={worldState === "heading" ? "Hold for full DNg02 flight thrust" : "Hold to move faster"}>SPEED<kbd>SHIFT</kbd></button>
             </div>
           </div>
         </div>
