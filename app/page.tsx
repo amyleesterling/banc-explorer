@@ -60,6 +60,10 @@ const FLOWER_TARGETS = [
   { x: 0.73, y: 0.72 },
 ] as const;
 const FLOWER_CONTACT_RADIUS = 0.105;
+const SIM_WORLD_WIDTH_MM = 3;
+const SIM_WORLD_NAVIGABLE_SPAN = 0.8;
+const MM_PER_SIM_UNIT = SIM_WORLD_WIDTH_MM / SIM_WORLD_NAVIGABLE_SPAN;
+const MAX_FLIGHT_VELOCITY_MM_S = 1;
 const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
   left: `${50 + (x - 0.5) * 76}%`,
   top: `${50 + (y - 0.5) * 72}%`,
@@ -164,6 +168,9 @@ export default function Home() {
   const frameRef = useRef<number | null>(null);
   const lastRef = useRef(0);
   const lastHeadingUiRef = useRef(0);
+  const lastVelocityUiRef = useRef(0);
+  const velocityRef = useRef(0);
+  const velocitySampleRef = useRef({ x: 0.34, y: 0.58 });
   const actionRef = useRef<Action>("rest");
   const worldStateRef = useRef<WorldState>("seeking");
   const warningTimerRef = useRef<number | null>(null);
@@ -181,6 +188,7 @@ export default function Home() {
   const [spiderWarning, setSpiderWarning] = useState(false);
   const [steps, setSteps] = useState(0);
   const [headingDegrees, setHeadingDegrees] = useState(344);
+  const [flightVelocity, setFlightVelocity] = useState(0);
   const [dodgeFrame, setDodgeFrame] = useState(0);
   const [groomFrame, setGroomFrame] = useState(0);
   const [groomAssetsReady, setGroomAssetsReady] = useState(false);
@@ -218,6 +226,9 @@ export default function Home() {
   const epgHeadingIndex = Math.floor(epgCounterClockwiseDegrees / (360 / EPG_HEADING_COUNT)) % EPG_HEADING_COUNT;
   const epgHeadingAsset = EPG_HEADING_ASSETS[epgHeadingIndex];
   const headingCardinal = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(compassDegrees / 45) % 8];
+  const velocityDirection = flightVelocity > 0.02 ? "forward" : flightVelocity < -0.02 ? "reverse" : "idle";
+  const velocityLevel = Math.min(Math.abs(flightVelocity) / MAX_FLIGHT_VELOCITY_MM_S, 1);
+  const velocityDisplay = `${flightVelocity > 0 ? "+" : ""}${flightVelocity.toFixed(2)}`;
   const worldCopy = worldState === "eating"
     ? spiderWarning
       ? { title: "Watch out for the spider!", detail: "Keep moving." }
@@ -446,6 +457,7 @@ export default function Home() {
 
       const keys = keysRef.current;
       const fly = flyRef.current;
+      const previousVelocitySample = velocitySampleRef.current;
       const forward = keys.has("arrowup") || keys.has("w");
       const backward = keys.has("arrowdown") || keys.has("s");
       const left = keys.has("arrowleft") || keys.has("a");
@@ -481,6 +493,26 @@ export default function Home() {
       }
       fly.x = Math.max(0.1, Math.min(0.9, fly.x));
       fly.y = Math.max(0.16, Math.min(0.86, fly.y));
+      const deltaX = fly.x - previousVelocitySample.x;
+      const deltaY = fly.y - previousVelocitySample.y;
+      velocitySampleRef.current = { x: fly.x, y: fly.y };
+      // Signed body-axis velocity comes from actual frame-to-frame displacement,
+      // calibrated to the 3 mm world. Positive is forward; negative is reverse.
+      const longitudinalVelocity = dt > 0
+        ? ((deltaX * Math.cos(fly.angle)) + (deltaY * Math.sin(fly.angle))) / dt * MM_PER_SIM_UNIT
+        : 0;
+      const targetVelocity = interactiveFlight
+        ? Math.max(-MAX_FLIGHT_VELOCITY_MM_S, Math.min(MAX_FLIGHT_VELOCITY_MM_S, longitudinalVelocity))
+        : 0;
+      const velocitySmoothing = 1 - Math.exp(-dt * 8);
+      velocityRef.current += (targetVelocity - velocityRef.current) * velocitySmoothing;
+      if (time - lastVelocityUiRef.current > 80) {
+        const roundedVelocity = Math.abs(velocityRef.current) < 0.01
+          ? 0
+          : Math.round(velocityRef.current * 100) / 100;
+        setFlightVelocity(roundedVelocity);
+        lastVelocityUiRef.current = time;
+      }
       if (worldStateRef.current === "seeking" && isInsideEllipse(fly, FOOD_TARGET, FOOD_CONTACT_BOUNDARY)) {
         triggerEating();
       }
@@ -640,6 +672,12 @@ export default function Home() {
                 <span className="mobile-neuron-kicker"><i /> NEURAL HUD</span>
                 <span className="mobile-neuron-preview" aria-hidden="true">{mobileNeuronLayers}</span>
                 <strong>{activeNeuronLayer.label}</strong>
+                {worldState === "heading" && (
+                  <span className={`mobile-flight-telemetry ${velocityDirection}`}>
+                    <b>{headingCardinal} {String(compassDegrees).padStart(3, "0")}°</b>
+                    <b>{velocityDisplay} mm/s</b>
+                  </span>
+                )}
                 <small>{mobileHudExpanded ? "CLOSE" : "TAP TO INSPECT"}</small>
               </button>
               {mobileHudExpanded && (
@@ -718,7 +756,7 @@ export default function Home() {
             <div
               className={`neuron-render-stage${isFlightCockpit ? " heading" : ""}`}
               role="img"
-              aria-label={isFlightCockpit ? `Front-view EPG cockpit at ${compassDegrees} compass degrees with ${activeNeuronLayer.label.toLowerCase()} selected` : isDodgePulse ? `Animated bilateral DNp03 flight-saccade pulse over gray BANC context neurons` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
+              aria-label={isFlightCockpit ? `Front-view EPG cockpit at ${compassDegrees} compass degrees and ${velocityDisplay} millimeters per second with ${activeNeuronLayer.label.toLowerCase()} selected` : isDodgePulse ? `Animated bilateral DNp03 flight-saccade pulse over gray BANC context neurons` : `BANC ${activeNeuronLayer.label.toLowerCase()} neurons highlighted over gray context neurons`}
               style={{
                 "--layer-accent": activeNeuronLayer.accent,
                 "--heading-angle": `${headingDegrees + 90}deg`,
@@ -730,6 +768,18 @@ export default function Home() {
                   <img key={epgHeadingAsset} className="epg-cockpit-active" src={epgHeadingAsset} alt="" />
                   <div className="epg-cockpit-reticle"><span /></div>
                   <div className="epg-cockpit-readout"><span>FLY HEADING · EPG {String(epgHeadingIndex).padStart(2, "0")}</span><strong>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</strong></div>
+                  {worldState === "heading" && (
+                    <div
+                      className={`epg-velocity-readout ${velocityDirection}`}
+                      style={{ "--velocity-level": velocityLevel } as CSSProperties}
+                    >
+                      <span>SIM VELOCITY · BODY AXIS</span>
+                      <div className="epg-velocity-value">
+                        <strong>{velocityDisplay}</strong><small>mm/s</small><b>{velocityDirection === "idle" ? "HOVER" : velocityDirection.toUpperCase()}</b>
+                      </div>
+                      <div className="epg-velocity-gauge" aria-hidden="true"><i /></div>
+                    </div>
+                  )}
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
                   {circuitMode !== "heading" && (
                     <div className={`flight-drive-readout ${circuitMode}`}>

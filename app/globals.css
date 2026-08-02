@@ -208,6 +208,18 @@ h1 em { color: var(--moss); font-weight: 400; }
 .epg-cockpit-readout { position: absolute; z-index: 4; right: 22px; top: 22px; min-width: 112px; padding: 9px 12px; border: 1px solid rgba(244,215,232,.34); border-radius: 8px; background: rgba(33,22,39,.7); color: #f5d7e8; display: grid; gap: 2px; text-align: right; backdrop-filter: blur(8px); }
 .epg-cockpit-readout span { font-size: 9px; font-weight: 900; letter-spacing: .13em; opacity: .72; }
 .epg-cockpit-readout strong { font-family: Georgia, serif; font-size: 27px; font-weight: 400; }
+.epg-velocity-readout { --velocity-color: #70d8ce; position: absolute; z-index: 4; right: 22px; top: 104px; width: 164px; display: grid; gap: 6px; padding: 9px 11px 10px; border: 1px solid rgba(112,216,206,.34); border-radius: 5px; background: repeating-linear-gradient(0deg, rgba(174,226,246,.03) 0 1px, transparent 1px 3px), rgba(13,42,40,.78); color: #d9fffa; box-shadow: 0 0 24px rgba(112,216,206,.08); backdrop-filter: blur(8px); }
+.epg-velocity-readout > span { color: rgba(191,240,234,.72); font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+.epg-velocity-value { display: flex; align-items: baseline; gap: 5px; }
+.epg-velocity-value strong { font-family: Georgia, serif; font-size: 22px; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; }
+.epg-velocity-value small { color: rgba(206,239,234,.7); font-size: 8px; font-weight: 900; letter-spacing: .08em; }
+.epg-velocity-value b { margin-left: auto; color: var(--velocity-color); font-size: 7px; letter-spacing: .1em; }
+.epg-velocity-gauge { position: relative; height: 4px; overflow: hidden; border: 1px solid rgba(190,228,225,.2); background: rgba(1,10,9,.55); }
+.epg-velocity-gauge:after { content: ''; position: absolute; z-index: 2; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgba(239,227,237,.58); }
+.epg-velocity-gauge i { position: absolute; top: 0; bottom: 0; left: 50%; width: calc(var(--velocity-level) * 50%); background: linear-gradient(90deg, rgba(112,216,206,.32), var(--velocity-color)); box-shadow: 0 0 8px var(--velocity-color); transition: width .12s linear; }
+.epg-velocity-readout.reverse { --velocity-color: #efb7dc; border-color: rgba(239,183,220,.36); background-color: rgba(47,27,42,.8); }
+.epg-velocity-readout.reverse .epg-velocity-gauge i { right: 50%; left: auto; background: linear-gradient(270deg, rgba(239,183,220,.32), var(--velocity-color)); }
+.epg-velocity-readout.idle { --velocity-color: #b7aaaf; }
 .epg-cockpit-turn { position: absolute; z-index: 4; left: 50%; bottom: 48px; transform: translateX(-50%); width: min(300px, 58%); display: flex; align-items: center; justify-content: space-between; gap: 16px; color: rgba(240,217,233,.62); font-size: 10px; font-weight: 900; letter-spacing: .11em; }
 .epg-cockpit-turn b { color: #f2cde1; font-size: 10px; }
 .epg-cockpit.turn-left .epg-cockpit-turn span:first-child, .epg-cockpit.turn-right .epg-cockpit-turn span:last-child { color: #fff0f8; text-shadow: 0 0 12px #f3b8dc; }
@@ -295,6 +307,9 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   .mobile-neuron-base { opacity: .52; filter: saturate(.34) brightness(.78) contrast(1.32); }
   .mobile-neuron-active { opacity: 1; filter: saturate(1.28) brightness(1.34) contrast(1.24) drop-shadow(0 0 9px color-mix(in srgb, var(--layer-accent, #68d6c4) 62%, transparent)); }
   .mobile-neuron-toggle strong { overflow: hidden; color: #f2f6f4; font-family: Georgia, serif; font-size: 17px; font-weight: 400; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-flight-telemetry { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 2px; color: #a9e7df; font-size: 9px; letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+  .mobile-flight-telemetry.reverse { color: #efb7dc; }
+  .mobile-flight-telemetry b { font-weight: 900; }
   .mobile-neuron-toggle small { color: #91a9af; font-size: 8px; font-weight: 900; letter-spacing: .13em; }
   .hud-corner { position: absolute; width: 13px; height: 13px; border-color: rgba(196,228,255,.56); transition: transform .2s ease; }
   .hud-corner.top-left { left: 4px; top: 4px; border-left: 1px solid; border-top: 1px solid; }

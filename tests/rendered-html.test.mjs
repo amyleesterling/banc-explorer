@@ -115,3 +115,18 @@ test("uses one botanical sci-fi HUD language over the natural fly world", async 
   assert.doesNotMatch(css, /\.world-event \{[^}]*border-radius: 12px/);
   assert.doesNotMatch(css, /\.landing-flower > strong \{[^}]*border-radius: 999px/);
 });
+
+test("shows signed flight velocity measured from simulated displacement", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /const SIM_WORLD_WIDTH_MM = 3/);
+  assert.match(page, /const deltaX = fly\.x - previousVelocitySample\.x/);
+  assert.match(page, /const longitudinalVelocity = dt > 0/);
+  assert.match(page, /SIM VELOCITY · BODY AXIS/);
+  assert.match(page, /velocityDisplay} mm\/s/);
+  assert.match(css, /\.epg-velocity-gauge/);
+  assert.match(css, /\.epg-velocity-readout\.reverse/);
+});
