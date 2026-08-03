@@ -148,6 +148,22 @@ test("keeps the peach mounted and visible throughout the simulator loop", async 
   assert.match(css, /\.snack-fruit\.visible \{ display: block; \}/);
 });
 
+test("puts an honest cell-color key inside the neuron viewport", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /const NEURON_COLOR_KEYS/);
+  assert.match(page, /DNg100[\s\S]*descending walking drive/);
+  assert.match(page, /AN09B029_b \+ AN02A002[\s\S]*feedback \(pooled\)/);
+  assert.match(page, /DNp42 \+ DNge053 \+ DNg55[\s\S]*response \(pooled\)/);
+  assert.match(page, /aria-label="Neuron color key"/);
+  assert.match(page, /mobile-neuron-color-key/);
+  assert.match(page, /Context neurons/);
+  assert.match(css, /\.neuron-color-key/);
+});
+
 test("links to a dedicated credits page with the requested acknowledgements", async () => {
   const [home, credits] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
