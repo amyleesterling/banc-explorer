@@ -14,6 +14,19 @@ async function render() {
   );
 }
 
+
+// The app's source is now two files: page.tsx renders it, game-model.ts holds
+// the circuit table, the layer table and the sequence map that the
+// system-design hub also reads. Assertions about the app apply to both.
+async function readAppSource() {
+  const [page, model] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/game-model.ts", import.meta.url), "utf8"),
+  ]);
+  return `${page}
+${model}`;
+}
+
 test("server renders the BANC fly simulator", async () => {
   const response = await render();
   assert.equal(response.status, 200);
@@ -32,7 +45,7 @@ test("server renders the BANC fly simulator", async () => {
 test("ships the verified 12-frame DNp03 quick-dodge package", async () => {
   const [dataText, page, leftFrames, rightFrames] = await Promise.all([
     readFile(new URL("../app/data/flight-dnp03.json", import.meta.url), "utf8"),
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readdir(new URL("../public/banc-flight-dodge-anatomical-left/", import.meta.url)),
     readdir(new URL("../public/banc-flight-dodge-anatomical-right/", import.meta.url)),
   ]);
@@ -65,7 +78,7 @@ test("ships the verified 12-frame DNp03 quick-dodge package", async () => {
 
 test("ships the audited DNg12 anterior-grooming package without an unsupported wing-grooming slot", async () => {
   const [page, flyModel, frames, staticLayer, contextBase] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/FlyHologram.tsx", import.meta.url), "utf8"),
     readdir(new URL("../public/banc-groom-head-dng12/", import.meta.url)),
     stat(new URL("../public/banc-groom-head-dng12.webp", import.meta.url)),
@@ -90,7 +103,7 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
 });
 
 test("keeps movement controls live while the fly is grooming", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const page = await readAppSource();
 
   assert.match(page, /PLAYER_CONTROL_STATES = new Set<WorldState>\(\["seeking", "eating", "heading", "groom-head"\]\)/);
   assert.match(page, /const controlsLocked = !isPlayerControllableState\(worldState\)/);
@@ -100,7 +113,7 @@ test("keeps movement controls live while the fly is grooming", async () => {
 
 test("lets the player choose freeze, run, or fly when the threat arrives", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -124,7 +137,7 @@ test("lets the player choose freeze, run, or fly when the threat arrives", async
 
 test("scales the delivered DNg100 signal sequence with the unified walking pace setting", async () => {
   const [page, css, frames] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readdir(new URL("../public/banc-walk-speed-dng100/", import.meta.url)),
   ]);
@@ -142,7 +155,7 @@ test("scales the delivered DNg100 signal sequence with the unified walking pace 
 
 test("keeps the peach mounted and visible throughout the simulator loop", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -155,7 +168,7 @@ test("keeps the peach mounted and visible throughout the simulator loop", async 
 
 test("puts an honest cell-color key inside the neuron viewport", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -171,7 +184,7 @@ test("puts an honest cell-color key inside the neuron viewport", async () => {
 
 test("links to a dedicated credits page with the requested acknowledgements", async () => {
   const [home, credits] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/credits/page.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -191,7 +204,7 @@ test("links to a dedicated credits page with the requested acknowledgements", as
 
 test("distinguishes persistent drive command, flight thrust, and measured speed", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -244,7 +257,7 @@ test("gives the anatomical fly kawaii compound eyes without the red glow", async
 
 test("keeps the articulated legs delicate, compact, and free of artificial red toe caps", async () => {
   const [page, flyModel] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/FlyHologram.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -278,7 +291,7 @@ test("uses one botanical sci-fi HUD language over the natural fly world", async 
 
 test("gives mobile a light full-size neuron focus without freezing grooming controls", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -328,7 +341,7 @@ test("keeps executable render and project-memory handoffs", async () => {
 
 test("uses the fly world as a full-viewport cockpit with neurons overlaid as a HUD", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -347,7 +360,7 @@ test("uses the fly world as a full-viewport cockpit with neurons overlaid as a H
 
 test("keeps one responsive drive console available on desktop and mobile", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -363,7 +376,7 @@ test("keeps one responsive drive console available on desktop and mobile", async
 
 test("shows signed simulated speed measured from displacement on ground and in air", async () => {
   const [page, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
@@ -396,7 +409,7 @@ test("shows signed simulated speed measured from displacement on ground and in a
 
 test("uses the supplied Be the Fly v2 mark for the header and browser icons", async () => {
   const [page, layout, icon] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readAppSource(),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../public/be-the-fly-icon-v2.png", import.meta.url)),
   ]);
