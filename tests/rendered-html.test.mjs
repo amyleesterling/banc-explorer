@@ -96,6 +96,33 @@ test("keeps movement controls live while the fly is grooming", async () => {
   assert.match(page, /if \(!isPlayerControllableState\(worldStateRef\.current\) && worldStateRef\.current !== "dodge"\) nextAction = "rest";/);
 });
 
+test("uses the delivered 16-frame DNg100 sequence for the existing SPEED control", async () => {
+  const [page, css, frames] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readdir(new URL("../public/banc-walk-speed-dng100/", import.meta.url)),
+  ]);
+
+  assert.equal(frames.filter((name) => /^frame-\d{2}\.webp$/.test(name)).length, 16);
+  assert.match(page, /const WALK_SPEED_FRAME_COUNT = 16/);
+  assert.match(page, /banc-walk-speed-dng100\/frame-/);
+  assert.match(page, /isWalkSpeedPulse = worldState === "seeking" && boosting/);
+  assert.match(page, /isWalkSpeedPulse && \(/);
+  assert.match(css, /\.neuron-action-layer\.walk-speed-frame/);
+});
+
+test("keeps the peach mounted and visible throughout the simulator loop", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /className={`snack-fruit visible/);
+  assert.match(page, /fetchPriority="high"/);
+  assert.match(page, /data-world-state=\{worldState\}/);
+  assert.match(css, /\.snack-fruit\.visible \{ display: block; \}/);
+});
+
 test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG compass", async () => {
   const [page, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
