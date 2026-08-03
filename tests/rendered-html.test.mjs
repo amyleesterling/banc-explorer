@@ -240,6 +240,13 @@ test("uses the fly world as a full-viewport cockpit with neurons overlaid as a H
   assert.doesNotMatch(css, /grid-template-columns: minmax\(0, 1\.12fr\) minmax\(360px, \.88fr\)/);
 });
 
+test("keeps the flying animal out from underneath the desktop neural HUD", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /const flightMaxX = interactiveFlight && window\.innerWidth > 760 \? 0\.48 : 0\.9/);
+  assert.match(page, /Math\.min\(flightMaxX, fly\.x\)/);
+});
+
 test("keeps event copy in the HUD and uses only a floating movement dock at the bottom", async () => {
   const [page, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),

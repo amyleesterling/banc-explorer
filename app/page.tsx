@@ -542,7 +542,12 @@ export default function Home() {
         fly.y += Math.sin(fly.angle) * dt * 0.16 * movementCommand * flightBoost;
         nextAction = movementCommand < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
       }
-      fly.x = Math.max(0.1, Math.min(0.9, fly.x));
+      // The desktop neural cockpit occupies the right side of the arena. Keep
+      // the fly's centre far enough left that its full wingspan never passes
+      // underneath that HUD. On the single-column/mobile layout the compact
+      // HUD floats above the world, so the full horizontal range remains safe.
+      const flightMaxX = interactiveFlight && window.innerWidth > 760 ? 0.48 : 0.9;
+      fly.x = Math.max(0.1, Math.min(flightMaxX, fly.x));
       fly.y = Math.max(0.16, Math.min(0.86, fly.y));
       const deltaX = fly.x - previousVelocitySample.x;
       const deltaY = fly.y - previousVelocitySample.y;
