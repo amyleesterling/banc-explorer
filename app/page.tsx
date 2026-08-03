@@ -72,6 +72,12 @@ const WALK_SPEED_ASSETS = Array.from(
 // cannot be named one thing in the renders and another in the app. dodge and
 // groom-head keep their own timing below; these all share one 12fps loop.
 const LAYER_SEQUENCE_FRAMES = 16;
+// Every sequence closes on a byte-identical copy of its first frame, which is
+// how a cyclic render ends. Measured: frame 15 == frame 0 in all eight 16-frame
+// directories, and frame 11 == frame 0 in both 12-frame dodges. Playing the
+// duplicate holds that pose for two frame-times on every loop, an 83ms stutter
+// at 12fps, so the loop length is one less than the file count.
+const LAYER_SEQUENCE_LOOP = LAYER_SEQUENCE_FRAMES - 1;
 const LAYER_SEQUENCE_FPS = 12;
 const LAYER_SEQUENCES: Partial<Record<CircuitMode, string>> = {
   walk: "banc-forward",
@@ -507,6 +513,8 @@ export default function Home() {
   const driveNeuronLabel = isFlightDriveMode ? "DNg02 · WING DRIVE" : "DNg100 · WALK DRIVE";
   const speedOutputLabel = isFlightDriveMode ? "AIR SPEED" : "GROUND SPEED";
   const walkDrivePlaybackFps = 5 + effectiveDriveLevel * 11;
+  const activeSequence = LAYER_SEQUENCE_ASSETS[circuitMode];
+  const showFlightPower = isFlightCockpit && appliedDriveLevel > 0.01;
   const worldCopy = worldState === "eating"
     ? { title: "Snack found!", detail: "Feeding neurons are glowing." }
     : worldState === "threat"
@@ -818,15 +826,13 @@ export default function Home() {
 
   // One clock for every per-layer sequence and for the DNg02 flight overlay, so
   // the layers that play together stay in step instead of drifting apart.
-  const activeSequence = LAYER_SEQUENCE_ASSETS[circuitMode];
-  const showFlightPower = circuitMode === "flight-forward" || circuitMode === "flight-reverse";
   useEffect(() => {
     if (!activeSequence && !showFlightPower) return;
     const started = performance.now();
     const frameDuration = 1000 / LAYER_SEQUENCE_FPS;
     let animationFrame = 0;
     const advance = (time: number) => {
-      setSequenceFrame(Math.floor((time - started) / frameDuration) % LAYER_SEQUENCE_FRAMES);
+      setSequenceFrame(Math.floor((time - started) / frameDuration) % LAYER_SEQUENCE_LOOP);
       animationFrame = requestAnimationFrame(advance);
     };
     animationFrame = requestAnimationFrame(advance);
@@ -845,7 +851,7 @@ export default function Home() {
     let animationFrame = 0;
     const advance = () => {
       const elapsed = performance.now() - startedAt;
-      setWalkSpeedFrame(Math.floor(elapsed / frameDuration) % WALK_SPEED_FRAME_COUNT);
+      setWalkSpeedFrame(Math.floor(elapsed / frameDuration) % (WALK_SPEED_FRAME_COUNT - 1));
       animationFrame = requestAnimationFrame(advance);
     };
     animationFrame = requestAnimationFrame(advance);
@@ -858,7 +864,7 @@ export default function Home() {
     let animationFrame = 0;
     const advance = () => {
       const elapsed = performance.now() - startedAt;
-      setDodgeFrame(Math.min(DODGE_FRAME_COUNT - 1, Math.floor(elapsed / (1000 / DODGE_PLAYBACK_FPS))));
+      setDodgeFrame(Math.min(DODGE_FRAME_COUNT - 2, Math.floor(elapsed / (1000 / DODGE_PLAYBACK_FPS))));
       if (elapsed < (DODGE_FRAME_COUNT / DODGE_PLAYBACK_FPS) * 1000) animationFrame = requestAnimationFrame(advance);
     };
     animationFrame = requestAnimationFrame(advance);
@@ -875,7 +881,7 @@ export default function Home() {
       const elapsed = performance.now() - startedAt - GROOM_SIGNAL_DELAY_MS;
       const nextFrame = elapsed <= 0
         ? 0
-        : Math.floor((elapsed % cycleDuration) / frameDuration) % GROOM_FRAME_COUNT;
+        : Math.floor((elapsed % cycleDuration) / frameDuration) % (GROOM_FRAME_COUNT - 1);
       setGroomFrame(nextFrame);
       animationFrame = requestAnimationFrame(advance);
     };
@@ -1399,6 +1405,7 @@ export default function Home() {
               ) : null}
               {isFlightCockpit && showFlightPower && (
                 <img className="neuron-action-layer flight-power-frame"
+                  style={{ "--drive-level": appliedDriveLevel } as CSSProperties}
                   src={FLIGHT_POWER_ASSETS[sequenceFrame]} alt="" aria-hidden="true" />
               )}
               {isFlightCockpit && (
@@ -1431,7 +1438,9 @@ export default function Home() {
                     />
                   )}
                   {isWalkSpeedPulse && (
-                    <img className="neuron-action-layer walk-speed-frame" src={WALK_SPEED_ASSETS[walkSpeedFrame]} alt="" aria-hidden="true" />
+                    <img className="neuron-action-layer walk-speed-frame"
+                      style={{ "--drive-level": appliedDriveLevel } as CSSProperties}
+                      src={WALK_SPEED_ASSETS[walkSpeedFrame]} alt="" aria-hidden="true" />
                   )}
                 </>
               )}

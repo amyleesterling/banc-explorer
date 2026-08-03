@@ -1071,10 +1071,22 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 }
 /* an addition to the compass, not a replacement, so it sits above the EPG
    layers at a weight that still lets the ring read through it */
+/* (2) The drive layers were being lost inside the base sequence, which already
+   draws the same cells. Screen blending plus an intensity that tracks the
+   applied drive makes the answer to the slider visible: more thrust, brighter
+   drive cells. */
 .neuron-action-layer.flight-power-frame {
   position: absolute; inset: 0; z-index: 4; pointer-events: none;
-  animation: none; mix-blend-mode: screen; opacity: .92;
-  filter: drop-shadow(0 0 12px rgba(112,216,206,.5));
+  animation: none; mix-blend-mode: screen;
+  opacity: calc(.42 + var(--drive-level, 0) * .58);
+  filter: brightness(calc(1 + var(--drive-level, 0) * .55))
+    drop-shadow(0 0 calc(7px + var(--drive-level, 0) * 15px) rgba(112,216,206,.6));
+}
+.neuron-action-layer.walk-speed-frame {
+  z-index: 4; mix-blend-mode: screen;
+  opacity: calc(.42 + var(--drive-level, 0) * .58);
+  filter: brightness(calc(1 + var(--drive-level, 0) * .55))
+    drop-shadow(0 0 calc(7px + var(--drive-level, 0) * 15px) rgba(114,215,232,.62));
 }
 
 /* the spider arriving, in its own window on the card */
