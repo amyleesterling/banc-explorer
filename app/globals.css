@@ -1028,7 +1028,7 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
    animation key. */
 .hud-objective {
   position: relative;
-  padding: 12px 14px 13px 16px;
+  padding: 17px 20px 18px 22px;
   margin-bottom: 12px;
   border: 1px solid color-mix(in srgb, var(--layer-accent, #68d6c4) 26%, transparent);
   border-left: 2px solid var(--layer-accent, #68d6c4);
@@ -1044,7 +1044,7 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 }
 /* corner bracket, top right, the scifi-ui idiom used elsewhere on the page */
 .hud-objective:after {
-  content: ''; position: absolute; right: 5px; top: 5px; width: 13px; height: 13px;
+  content: ''; position: absolute; right: 8px; top: 8px; width: 13px; height: 13px;
   border-top: 1px solid var(--layer-accent, #68d6c4);
   border-right: 1px solid var(--layer-accent, #68d6c4);
   opacity: .6; pointer-events: none;
@@ -1098,3 +1098,30 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   box-shadow: 0 10px 26px rgba(12,48,39,.26), inset 0 0 0 1px rgba(255,255,245,.5);
 }
 .threat-dialog-spider-clip { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* ---- the DNg02 thrust animation, beside the velocity dial -------------------
+   It used to be drawn full-stage over the EPG ring, and the two populations
+   tangled into one unreadable image. Both are still on screen at once, which
+   was the point, but the thrust cells now have their own frame. */
+.hud-instrument-group { display: flex; align-items: flex-start; gap: 10px; }
+
+.hud-drive-inset {
+  position: relative; width: clamp(78px, 7vw, 104px); padding: 8px 10px 6px;
+  display: grid; justify-items: center; gap: 4px;
+  --gauge-accent: #70d8ce;
+}
+.hud-drive-inset > img {
+  width: 100%; aspect-ratio: 1; object-fit: contain; display: block;
+  opacity: calc(.5 + var(--drive-level, 0) * .5);
+  filter: brightness(calc(1 + var(--drive-level, 0) * .5))
+    drop-shadow(0 0 calc(6px + var(--drive-level, 0) * 13px) rgba(112,216,206,.6));
+}
+.hud-drive-inset-label {
+  display: flex; gap: 6px; align-items: baseline;
+  font: 400 9px/1 var(--font-mono, ui-monospace, monospace);
+  letter-spacing: .06em; color: #cfeee7; white-space: nowrap;
+}
+.hud-drive-inset-label em {
+  font-style: normal; font-size: 7px; letter-spacing: .24em;
+  color: rgba(145,190,185,.5);
+}

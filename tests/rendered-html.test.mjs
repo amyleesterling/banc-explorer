@@ -401,7 +401,9 @@ test("shows signed simulated speed measured from displacement on ground and in a
   // compass rather than a replacement for it.
   assert.match(page, /walk: "banc-forward"/);
   assert.match(page, /const FLIGHT_POWER_DIR = "banc-flight-power-dng02"/);
-  assert.match(page, /\{isFlightCockpit && showFlightPower && \(/);
+  assert.match(page, /\{showFlightPower && \(/);
+  assert.match(page, /hud-drive-inset/);
+  assert.doesNotMatch(page, /neuron-action-layer flight-power-frame/);
   assert.match(page, /src=\{activeSequence\[sequenceFrame\]\}/);
   // One quantity, one place: the compass replaced the duplicate heading strip.
   assert.doesNotMatch(page, /EPG READOUT/);
