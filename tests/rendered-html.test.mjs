@@ -106,7 +106,10 @@ test("lets the player choose freeze, run, or fly when the threat arrives", async
 
   assert.match(page, /type ThreatChoice = "freeze" \| "run" \| "fly"/);
   assert.match(page, /FREEZE_SURVIVAL_MS = 3000/);
-  assert.match(page, /Threat detected!/);
+  assert.match(page, /OMG a spider!/);
+  // The approach render has no alpha, so it plays in its own window rather
+  // than sitting on the card the way the cut-out still did.
+  assert.match(page, /threat-dialog-spider-clip/);
   assert.match(page, /handleThreatChoice\("freeze"\)/);
   assert.match(page, /handleThreatChoice\("run"\)/);
   assert.match(page, /handleThreatChoice\("fly"\)/);
@@ -381,6 +384,12 @@ test("shows signed simulated speed measured from displacement on ground and in a
   assert.match(page, /<VelocityDial velocity=\{simVelocity\}[^>]*display=\{velocityDisplay\}/);
   assert.match(page, /velocity \/ MAX_SIM_VELOCITY_MM_S/);
   assert.match(css, /\.hud-gauge \.gauge-pointer/);
+  // Every rendered sequence is wired, and DNg02 is an addition to the EPG
+  // compass rather than a replacement for it.
+  assert.match(page, /walk: "banc-forward"/);
+  assert.match(page, /const FLIGHT_POWER_DIR = "banc-flight-power-dng02"/);
+  assert.match(page, /\{isFlightCockpit && showFlightPower && \(/);
+  assert.match(page, /src=\{activeSequence\[sequenceFrame\]\}/);
   // One quantity, one place: the compass replaced the duplicate heading strip.
   assert.doesNotMatch(page, /EPG READOUT/);
 });

@@ -1062,3 +1062,27 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 .hud-objective > em { position: relative; color: color-mix(in srgb, var(--layer-accent, #68d6c4) 62%, #cfe4df); opacity: .95; }
 
 @media (prefers-reduced-motion: reduce) { .hud-objective:before { animation: none; opacity: 0; } }
+
+/* per-layer signal sequences, and the DNg02 flight drive over the EPG compass */
+.neuron-action-layer.sequence-frame {
+  animation: none;
+  filter: saturate(1.1) brightness(1.03)
+    drop-shadow(0 0 10px color-mix(in srgb, var(--layer-accent, #68d6c4) 42%, transparent));
+}
+/* an addition to the compass, not a replacement, so it sits above the EPG
+   layers at a weight that still lets the ring read through it */
+.neuron-action-layer.flight-power-frame {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  animation: none; mix-blend-mode: screen; opacity: .92;
+  filter: drop-shadow(0 0 12px rgba(112,216,206,.5));
+}
+
+/* the spider arriving, in its own window on the card */
+.threat-dialog-spider-stage {
+  width: min(232px, 62%); margin: 10px 0 4px;
+  aspect-ratio: 450 / 253; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--threat-accent) 40%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 10px 26px rgba(12,48,39,.26), inset 0 0 0 1px rgba(255,255,245,.5);
+}
+.threat-dialog-spider-clip { display: block; width: 100%; height: 100%; object-fit: cover; }

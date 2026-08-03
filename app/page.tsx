@@ -67,6 +67,33 @@ const WALK_SPEED_ASSETS = Array.from(
   { length: WALK_SPEED_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-walk-speed-dng100/frame-${String(index).padStart(2, "0")}.webp`,
 );
+// Every rendered signal sequence, keyed by circuit mode. The mapping is the one
+// the render side already uses (APP_LAYERS in banc_layer_stats.py), so a layer
+// cannot be named one thing in the renders and another in the app. dodge and
+// groom-head keep their own timing below; these all share one 12fps loop.
+const LAYER_SEQUENCE_FRAMES = 16;
+const LAYER_SEQUENCE_FPS = 12;
+const LAYER_SEQUENCES: Partial<Record<CircuitMode, string>> = {
+  walk: "banc-forward",
+  backward: "banc-backward",
+  left: "banc-turn-left",
+  right: "banc-turn-right",
+  eat: "banc-eat",
+  threat: "banc-threat-walk",
+  landing: "banc-landing-dnp07-dnp10",
+};
+// DNg02 is the flight drive. It is an ADDITIONAL overlay on the EPG compass,
+// never a replacement for it: the compass holds the heading while these cells
+// supply the thrust, and both populations are on screen at once.
+const FLIGHT_POWER_DIR = "banc-flight-power-dng02";
+const sequenceFrames = (dir: string) => Array.from(
+  { length: LAYER_SEQUENCE_FRAMES },
+  (_, index) => `${assetBase}/${dir}/frame-${String(index).padStart(2, "0")}.webp`,
+);
+const LAYER_SEQUENCE_ASSETS: Partial<Record<CircuitMode, string[]>> =
+  Object.fromEntries(Object.entries(LAYER_SEQUENCES).map(([mode, dir]) => [mode, sequenceFrames(dir)]));
+const FLIGHT_POWER_ASSETS = sequenceFrames(FLIGHT_POWER_DIR);
+
 const GROOM_FRAME_COUNT = 16;
 const GROOM_NEURAL_SOURCE_FPS = 24;
 // Replay the explanatory render at one tenth of its encoded rate so the
@@ -413,6 +440,7 @@ export default function Home() {
   // the arrow dock is a hint, not furniture: it pulses until first use, then recedes
   const [controlsUsed, setControlsUsed] = useState(false);
   const [walkSpeedFrame, setWalkSpeedFrame] = useState(0);
+  const [sequenceFrame, setSequenceFrame] = useState(0);
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [freezeCountdown, setFreezeCountdown] = useState(3);
   const [steps, setSteps] = useState(0);
@@ -482,7 +510,7 @@ export default function Home() {
   const worldCopy = worldState === "eating"
     ? { title: "Snack found!", detail: "Feeding neurons are glowing." }
     : worldState === "threat"
-      ? { title: "Threat detected!", detail: "Choose a survival strategy." }
+      ? { title: "OMG a spider!", detail: "Choose a survival strategy." }
     : worldState === "freeze"
       ? { title: "Hold still…", detail: `${freezeCountdown} seconds until the threat passes.` }
     : worldState === "run"
@@ -787,6 +815,28 @@ export default function Home() {
     void Promise.all(WALK_SPEED_ASSETS.map((src) => fetch(src, { cache: "force-cache" })))
       .catch(() => undefined);
   }, []);
+
+  // One clock for every per-layer sequence and for the DNg02 flight overlay, so
+  // the layers that play together stay in step instead of drifting apart.
+  const activeSequence = LAYER_SEQUENCE_ASSETS[circuitMode];
+  const showFlightPower = circuitMode === "flight-forward" || circuitMode === "flight-reverse";
+  useEffect(() => {
+    if (!activeSequence && !showFlightPower) return;
+    const started = performance.now();
+    const frameDuration = 1000 / LAYER_SEQUENCE_FPS;
+    let animationFrame = 0;
+    const advance = (time: number) => {
+      setSequenceFrame(Math.floor((time - started) / frameDuration) % LAYER_SEQUENCE_FRAMES);
+      animationFrame = requestAnimationFrame(advance);
+    };
+    animationFrame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [activeSequence, showFlightPower]);
+
+  useEffect(() => {
+    const wanted = [...(activeSequence ?? []), ...(showFlightPower ? FLIGHT_POWER_ASSETS : [])];
+    void Promise.all(wanted.map((src) => fetch(src, { cache: "force-cache" }))).catch(() => {});
+  }, [activeSequence, showFlightPower]);
 
   useEffect(() => {
     if (!isWalkSpeedPulse) return;
@@ -1242,8 +1292,12 @@ export default function Home() {
             {worldState === "threat" && (
               <section className="threat-dialog choice" role="alertdialog" aria-modal="true" aria-labelledby="threat-dialog-title">
                 <span className="threat-dialog-kicker"><i /> PREDATOR PROTOCOL</span>
-                <img className="threat-dialog-spider" src={`${assetBase}/mint-spider.webp`} alt="" aria-hidden="true" />
-                <h2 id="threat-dialog-title">Threat detected!</h2>
+                <div className="threat-dialog-spider-stage" aria-hidden="true">
+                  <video className="threat-dialog-spider-clip" src={`${assetBase}/spider-approach.mp4`}
+                    autoPlay loop muted playsInline
+                    poster={`${assetBase}/mint-spider.webp`} />
+                </div>
+                <h2 id="threat-dialog-title">OMG a spider!</h2>
                 <p>A spider is closing in. Choose your survival strategy.</p>
                 <div className="threat-choices">
                   <button type="button" onClick={() => handleThreatChoice("freeze")}><strong>Freeze</strong><small>Don’t move for 3 seconds</small></button>
@@ -1343,6 +1397,10 @@ export default function Home() {
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
                 </div>
               ) : null}
+              {isFlightCockpit && showFlightPower && (
+                <img className="neuron-action-layer flight-power-frame"
+                  src={FLIGHT_POWER_ASSETS[sequenceFrame]} alt="" aria-hidden="true" />
+              )}
               {isFlightCockpit && (
                 <div className="hud-instruments">
                   <HeadingCompass degrees={compassDegrees} cardinal={headingCardinal} epgIndex={epgHeadingIndex} />
@@ -1359,6 +1417,9 @@ export default function Home() {
                     </>
                   ) : isGroomPulse ? (
                     <img className="neuron-action-layer groom-frame" src={groomFrameAsset} alt="" aria-hidden="true" />
+                  ) : activeSequence ? (
+                    <img className="neuron-action-layer sequence-frame"
+                      src={activeSequence[sequenceFrame]} alt="" aria-hidden="true" />
                   ) : activeNeuronLayer.src && (
                     <img
                       key={activeNeuronLayer.src}
