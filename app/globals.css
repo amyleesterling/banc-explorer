@@ -911,7 +911,14 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 
 /* The objective is one line each, so a longer title cannot push the render
    stage down. The block itself is always rendered now, for the same reason. */
-.hud-objective > strong, .hud-objective > em, .hud-objective > span,
+.hud-objective > strong {
+  --hud-title-lines: 2;
+  --hud-title-leading: 1.06;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  line-height: var(--hud-title-leading);
+  min-height: calc(var(--hud-title-lines) * var(--hud-title-leading) * 1em);
+}
+.hud-objective > em, .hud-objective > span,
 .hud-neurons > strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hud-chips { min-height: 22px; }
 
