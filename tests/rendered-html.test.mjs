@@ -151,7 +151,7 @@ test("links to a dedicated credits page with the requested acknowledgements", as
     readFile(new URL("../app/credits/page.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(home, /credits`}>Credits<\/a>/);
+  assert.match(home, /credits`}>Citations & Credits<\/a>/);
   assert.match(credits, /Created by/);
   assert.match(credits, /Amy Sterling/);
   assert.match(credits, /https:\/\/x\.com\/amyneurons/);
@@ -174,13 +174,15 @@ test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG co
   assert.match(page, /const \[flightThrottle, setFlightThrottle\] = useState\(0\)/);
   assert.match(page, /const throttleCommand = interactiveFlight/);
   assert.match(page, /\? -0\.55/);
-  assert.match(page, /className={`flight-throttle-hud \$\{throttleDirection\}`}/);
-  assert.match(page, /THROTTLE COMMAND/);
+  assert.match(page, /className={`hud-row throttle \$\{throttleDirection\}`}/);
+  assert.match(page, /THROTTLE · DNg02/);
   assert.match(page, /\{flightDng02\.count\}-CELL FLIGHT DRIVE/);
   assert.match(page, /<kbd>W \/ S<\/kbd>/);
-  assert.match(css, /\.flight-throttle-hud/);
-  assert.match(css, /\.flight-throttle-rail/);
+  assert.match(css, /\.hud-row\.throttle/);
+  assert.match(css, /\.hud-throttle-rail/);
   assert.doesNotMatch(page, /flight-drive-readout/);
+  // the six scattered cards were collapsed into one HUD column; none may return
+  assert.doesNotMatch(page, /flight-throttle-hud|mission-hud|signal-story|neuron-render-label/);
 });
 
 test("records the audited bilateral BANC MNb1 render candidates without inventing turn direction", async () => {
@@ -330,10 +332,10 @@ test("shows signed flight velocity measured from simulated displacement", async 
   assert.match(page, /const SIM_WORLD_WIDTH_MM = 3/);
   assert.match(page, /const deltaX = fly\.x - previousVelocitySample\.x/);
   assert.match(page, /const longitudinalVelocity = dt > 0/);
-  assert.match(page, /SIM VELOCITY · BODY AXIS/);
-  assert.match(page, /velocityDisplay} mm\/s/);
-  assert.match(css, /\.epg-velocity-gauge/);
-  assert.match(css, /\.epg-velocity-readout\.reverse/);
+  assert.match(page, /SIM VELOCITY/);
+  assert.match(page, /\{velocityDisplay\} <u className="hud-u">mm\/s<\/u>/);
+  assert.match(css, /\.hud-row > b/);
+  assert.match(css, /\.hud-row\.throttle\.reverse/);
 });
 
 test("uses the supplied BANC fly mark for the header and browser icons", async () => {
