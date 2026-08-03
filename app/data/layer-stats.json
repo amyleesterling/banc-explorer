@@ -1,5 +1,5 @@
 {
- "_note": "Measured from BANC v888 synapses_v2. Counts are synaptic connections where a layer cell is pre- or postsynaptic.",
+ "_note": "Measured from BANC v888 synapses_v2. A count is the number of DISTINCT synapses with a cell of that layer at either end, inputs and outputs together. A synapse with both ends inside the layer is counted once, not twice: summing input rows and output rows over-counted every layer, by 177 to 2,871 synapses.",
  "materialization": 888,
  "source_table": "synapses_v2",
  "layers": {
@@ -7,7 +7,7 @@
    "cells": 6,
    "outputs": 185488,
    "inputs": 25642,
-   "synapses": 211130,
+   "synapses": 208259,
    "dataset": "BANC v888",
    "layer": "forward"
   },
@@ -15,7 +15,7 @@
    "cells": 4,
    "outputs": 31009,
    "inputs": 9682,
-   "synapses": 40691,
+   "synapses": 40170,
    "dataset": "BANC v888",
    "layer": "backward"
   },
@@ -23,7 +23,7 @@
    "cells": 2,
    "outputs": 32011,
    "inputs": 14620,
-   "synapses": 46631,
+   "synapses": 46243,
    "dataset": "BANC v888",
    "layer": "turn-left"
   },
@@ -31,7 +31,7 @@
    "cells": 2,
    "outputs": 33698,
    "inputs": 17873,
-   "synapses": 51571,
+   "synapses": 51087,
    "dataset": "BANC v888",
    "layer": "turn-right"
   },
@@ -39,7 +39,7 @@
    "cells": 6,
    "outputs": 51246,
    "inputs": 10238,
-   "synapses": 61484,
+   "synapses": 60749,
    "dataset": "BANC v888",
    "layer": "eat"
   },
@@ -47,7 +47,7 @@
    "cells": 5,
    "outputs": 76710,
    "inputs": 20577,
-   "synapses": 97287,
+   "synapses": 96257,
    "dataset": "BANC v888",
    "layer": "threat-walk"
   },
@@ -55,7 +55,7 @@
    "cells": 2,
    "outputs": 13095,
    "inputs": 8129,
-   "synapses": 21224,
+   "synapses": 21047,
    "dataset": "BANC v888",
    "layer": "flight-dodge-dnp03-all"
   },
@@ -63,7 +63,7 @@
    "cells": 28,
    "outputs": 76077,
    "inputs": 11162,
-   "synapses": 87239,
+   "synapses": 85627,
    "dataset": "BANC v888",
    "layer": "groom-head-dng12"
   },
@@ -71,7 +71,7 @@
    "cells": 2,
    "outputs": 89929,
    "inputs": 15604,
-   "synapses": 105533,
+   "synapses": 104281,
    "dataset": "BANC v888",
    "layer": "walk-speed-dng100"
   },
@@ -79,7 +79,7 @@
    "cells": 26,
    "outputs": 59754,
    "inputs": 15358,
-   "synapses": 75112,
+   "synapses": 74207,
    "dataset": "BANC v888",
    "layer": "flight-power-dng02"
   },
@@ -87,7 +87,7 @@
    "cells": 4,
    "outputs": 61369,
    "inputs": 19662,
-   "synapses": 81031,
+   "synapses": 80238,
    "dataset": "BANC v888",
    "layer": "landing-dnp07-dnp10"
   },
@@ -95,7 +95,7 @@
    "cells": 2,
    "outputs": 1731,
    "inputs": 10264,
-   "synapses": 11995,
+   "synapses": 11484,
    "dataset": "BANC v888",
    "layer": "flight-steer-mnb1-all"
   },

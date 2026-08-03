@@ -1070,7 +1070,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="lab-shell" aria-label="Interactive BANC fly cockpit">
+      <section className={`lab-shell${viewerOpen ? " viewer-open" : ""}`} aria-label="Interactive BANC fly cockpit">
         <div className="arena-panel" style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}>
           <header className="panel-heading cockpit-topbar">
             <span className="brand">

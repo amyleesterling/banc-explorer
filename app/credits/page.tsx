@@ -92,9 +92,9 @@ export default function CreditsPage() {
         </figure>
 
         <div className="credits-creator">
-          <p>Created by</p>
-          <h2>Amy Sterling</h2>
-          <p className="credits-creator-with">with Alex Bates &amp; Yijie Yin</p>
+          <h2 className="credits-creator-line">
+            <span>Created by</span> Amy Sterling <span>with</span> Alex Bates &amp; Yijie Yin
+          </h2>
           <div className="credits-socials" aria-label="Amy Sterling links">
             <a href="https://x.com/amyneurons" target="_blank" rel="noreferrer">X · @amyneurons ↗</a>
             <a href="https://orcid.org/0000-0002-4961-3954" target="_blank" rel="noreferrer">ORCID · 0000-0002-4961-3954 ↗</a>
