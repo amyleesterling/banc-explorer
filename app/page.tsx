@@ -169,17 +169,17 @@ const CIRCUITS: Record<CircuitMode, {
   },
   dodge: {
     types: `DNp03 ×${flightDnp03.count}`,
-    summary: `The verified ${flightDnp03.count}-cell BANC DNp03 pair is shown as an explanatory flight-saccade pulse. Anatomical side is not assigned to turn direction.`,
+    summary: `The verified ${flightDnp03.count}-cell DNp03 pair is shown as an explanatory flight-saccade pulse. Anatomical side is not assigned to turn direction.`,
     viewerUrl: DNP03_CODEX_URL,
   },
   heading: {
-    types: "EPG ×53 (FAFB, not BANC)",
-    summary: "EPG compass neurons tile the ellipsoid body, and a bump of activity moves around that ring as the fly turns, holding its heading. These are reconstructed from FAFB rather than BANC, because the compass sits in the brain.",
+    types: "EPG ×53",
+    summary: "EPG compass neurons tile the ellipsoid body, and a bump of activity moves around that ring as the fly turns, holding its heading.",
     viewerUrl: EPG_CODEX_URL,
   },
   "flight-forward": {
     types: `DNg02 ×${flightDng02.count}`,
-    summary: `The ${flightDng02.count}-cell BANC DNg02 population regulates wingbeat amplitude and contributes to flight thrust.`,
+    summary: `The ${flightDng02.count}-cell DNg02 population regulates wingbeat amplitude and contributes to flight thrust.`,
     viewerUrl: DNG02_CODEX_URL,
   },
   "flight-reverse": {
@@ -885,14 +885,14 @@ export default function Home() {
       </section>
 
       <section className="lab-shell" aria-label="Interactive BANC fly cockpit">
-        <div className="arena-panel">
+        <div className="arena-panel" style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}>
           <header className="panel-heading cockpit-topbar">
             <span className="brand">
               <span className="brand-mark" aria-hidden="true"><img src={`${assetBase}/be-the-fly-icon-v2.png`} alt="" /></span>
               <span>BE THE FLY</span>
             </span>
           </header>
-          <div className="arena-wrap" style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}>
+          <div className="arena-wrap">
             <FlyHologram
               motionRef={flyRef}
               action={action}
@@ -1054,6 +1054,22 @@ export default function Home() {
                 <b className="hud-types">{activeCircuit.types}</b>
                 <p>{activeCircuit.summary}</p>
                 {activeCircuit.note && <small>{activeCircuit.note}</small>}
+                {isFlightCockpit && (
+                  <div className="hud-telemetry">
+                    <div className="hud-row">
+                      <span>FLY HEADING</span>
+                      <b>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</b>
+                      <em>EPG {String(epgHeadingIndex).padStart(2, "0")}</em>
+                    </div>
+                    {worldState === "heading" && (
+                      <div className={`hud-row ${velocityDirection}`}>
+                        <span>SIM VELOCITY</span>
+                        <b>{velocityDisplay} <u className="hud-u">mm/s</u></b>
+                        <em>{velocityDirection === "idle" ? "HOVER" : velocityDirection.toUpperCase()}</em>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="hud-stats">
                   {(() => {
                     const st = (layerStats.layers as Record<string, {
@@ -1141,20 +1157,8 @@ export default function Home() {
                 </em>
                 <div className="hud-throttle-rail" aria-hidden="true"><i /><b /></div>
               </div>
-              {isFlightCockpit && (
-                <div className="hud-row">
-                  <span>FLY HEADING</span>
-                  <b>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</b>
-                  <em>EPG {String(epgHeadingIndex).padStart(2, "0")}</em>
-                </div>
-              )}
               {worldState === "heading" && (
                 <>
-                  <div className={`hud-row ${velocityDirection}`}>
-                    <span>SIM VELOCITY</span>
-                    <b>{velocityDisplay} <u className="hud-u">mm/s</u></b>
-                    <em>{velocityDirection === "idle" ? "HOVER" : velocityDirection.toUpperCase()}</em>
-                  </div>
                 </>
               )}
               <div className={`hud-dock${controlsUsed ? " used" : " hint"}`}>
