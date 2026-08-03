@@ -142,7 +142,7 @@ const CIRCUITS: Record<CircuitMode, {
 }> = {
   walk: {
     types: "DNg100 ×2 · AN09B029_b ×2 · AN02A002 ×2",
-    summary: "DNg100 is a pro-walking descending pair. AN09B029_b carries proprioceptive leg context up to the brain, and AN02A002 returns inhibitory walking feedback, so the drive is shaped by the legs it commands.",
+    summary: "Six selected cells: DNg100 sends walking drive down from the brain; AN09B029_b and AN02A002 carry information about the moving legs back toward it.",
     viewerUrl: WALKING_SCENE_URL,
   },
   backward: {
@@ -167,7 +167,7 @@ const CIRCUITS: Record<CircuitMode, {
   },
   threat: {
     types: "DNp42 ×2 · DNge053 ×2 · DNg55 ×1",
-    summary: "Escape on foot, not takeoff. DNp42 drives backward walking, DNge053 walking, and DNg55 steering. These are response neurons: they produce the escape, they do not detect the threat. Detection happens in the optic lobe.",
+    summary: "Five escape-response cells: DNp42 supports backward walking, DNge053 walking, and DNg55 steering. They help produce the escape; they do not detect the threat.",
     viewerUrl: WALKING_FIGURE_URL,
   },
   dodge: {
@@ -201,6 +201,35 @@ const CIRCUITS: Record<CircuitMode, {
     viewerUrl: DNG12_CODEX_URL,
     note: "This is the BANC-native DNg12 annotation population. It does not imply that every rendered cell was independently function-tested. Slow looping replay is derived from skeleton geometry and synapse polarity—not recorded activity or timing.",
   },
+};
+
+type NeuronColorKeyItem = {
+  label: string;
+  detail: string;
+  color: string;
+};
+
+// These keys describe the pixels in the delivered renders, not inferred cell
+// identities. Some current layers pool multiple types into one color; say so
+// plainly until type-separated replacement renders arrive.
+const NEURON_COLOR_KEYS: Partial<Record<CircuitMode, NeuronColorKeyItem[]>> = {
+  walk: [
+    { label: "DNg100", detail: "descending walking drive", color: "#ff1493" },
+    { label: "AN09B029_b + AN02A002", detail: "leg-state feedback (pooled)", color: "#089c39" },
+  ],
+  threat: [
+    { label: "DNp42 + DNge053 + DNg55", detail: "escape response (pooled)", color: "#ff6b5f" },
+  ],
+  heading: [
+    { label: "Active EPG heading", detail: "compass readout", color: "#e8afd8" },
+    { label: "Other EPG cells", detail: "compass population", color: "#706878" },
+  ],
+};
+
+const CONTEXT_COLOR_KEY: NeuronColorKeyItem = {
+  label: "Context neurons",
+  detail: "anatomical reference",
+  color: "#52675e",
 };
 
 const LEGEND = [
@@ -917,6 +946,11 @@ export default function Home() {
       {isWalkSpeedPulse && <img className="mobile-neuron-active walk-speed-frame" src={WALK_SPEED_ASSETS[walkSpeedFrame]} alt="" />}
     </>
   );
+  const neuronColorKey = NEURON_COLOR_KEYS[circuitMode] ?? [{
+    label: activeCircuit.types,
+    detail: "selected circuit",
+    color: activeNeuronLayer.accent,
+  }];
 
   return (
     <main>
@@ -982,6 +1016,21 @@ export default function Home() {
               {mobileHudExpanded && (
                 <div className="mobile-neuron-details">
                   {activeNeuronLayer.populationLabel && <strong>{activeNeuronLayer.populationLabel}</strong>}
+                  <div className="mobile-neuron-color-key" aria-label="Neuron color key">
+                    <b>COLOR KEY</b>
+                    {neuronColorKey.map((item) => (
+                      <span key={`mobile-${circuitMode}-${item.label}`}>
+                        <i style={{ "--key-color": item.color } as CSSProperties} aria-hidden="true" />
+                        {item.label}
+                      </span>
+                    ))}
+                    {!isFlightCockpit && (
+                      <span>
+                        <i style={{ "--key-color": CONTEXT_COLOR_KEY.color } as CSSProperties} aria-hidden="true" />
+                        {CONTEXT_COLOR_KEY.label}
+                      </span>
+                    )}
+                  </div>
                   <p>{activeCircuit.summary}</p>
                   {activeCircuit.note && <small>{activeCircuit.note}</small>}
                   <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT</a>
@@ -1173,6 +1222,23 @@ export default function Home() {
                 </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
+              <div className="neuron-color-key" aria-label="Neuron color key">
+                <b>COLOR KEY</b>
+                {neuronColorKey.map((item) => (
+                  <span key={`${circuitMode}-${item.label}`}>
+                    <i style={{ "--key-color": item.color } as CSSProperties} aria-hidden="true" />
+                    <em>{item.label}</em>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+                {!isFlightCockpit && (
+                  <span>
+                    <i style={{ "--key-color": CONTEXT_COLOR_KEY.color } as CSSProperties} aria-hidden="true" />
+                    <em>{CONTEXT_COLOR_KEY.label}</em>
+                    <small>{CONTEXT_COLOR_KEY.detail}</small>
+                  </span>
+                )}
+              </div>
             </div>
             {viewerOpen && (
               <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">
