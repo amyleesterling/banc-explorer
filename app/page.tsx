@@ -1284,15 +1284,23 @@ export default function Home() {
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
                 </div>
               ) : null}
-              {isFlightCockpit && showFlightPower && (
-                <img className="neuron-action-layer flight-power-frame"
-                  style={{ "--drive-level": appliedDriveLevel } as CSSProperties}
-                  src={FLIGHT_POWER_ASSETS[sequenceFrame]} alt="" aria-hidden="true" />
-              )}
               {isFlightCockpit && (
                 <div className="hud-instruments">
                   <HeadingCompass degrees={compassDegrees} cardinal={headingCardinal} epgIndex={epgHeadingIndex} />
-                  <VelocityDial velocity={simVelocity} direction={velocityDirection} display={velocityDisplay} />
+                  <div className="hud-instrument-group">
+                    {showFlightPower && (
+                      <div className="hud-drive-inset"
+                        style={{ "--drive-level": appliedDriveLevel } as CSSProperties}>
+                        <span className="gauge-bracket tl" aria-hidden="true" />
+                        <span className="gauge-bracket br" aria-hidden="true" />
+                        <img src={FLIGHT_POWER_ASSETS[sequenceFrame]} alt="" aria-hidden="true" />
+                        <span className="hud-drive-inset-label">
+                          {CIRCUITS["flight-forward"].types}<em>THRUST</em>
+                        </span>
+                      </div>
+                    )}
+                    <VelocityDial velocity={simVelocity} direction={velocityDirection} display={velocityDisplay} />
+                  </div>
                 </div>
               )}
               {!isFlightCockpit && (
