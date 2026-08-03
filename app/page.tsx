@@ -297,11 +297,13 @@ function GaugeShell({ kind, label, sub, value, unit, children }: {
       <span className="gauge-bracket tl" aria-hidden="true" />
       <span className="gauge-bracket br" aria-hidden="true" />
       <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle className="gauge-face" cx="50" cy="50" r="40" />
-        <circle className="gauge-bezel" cx="50" cy="50" r="40" />
-        <circle className="gauge-bezel inner" cx="50" cy="50" r="33.5" />
+        {/* a broken ring rather than a bezel: four arcs with gaps on the
+            diagonals, so the instrument reads as drawn light, not as a dial */}
+        {[0, 90, 180, 270].map((start) => (
+          <path key={start} className="gauge-ring" d={describeArc(50, 50, 42, start + 6, start + 84)} />
+        ))}
         {children}
-        <circle className="gauge-hub" cx="50" cy="50" r="3.6" />
+        <circle className="gauge-hub" cx="50" cy="50" r="1.4" />
       </svg>
       <b className="gauge-value">{value}{unit && <u className="hud-u">{unit}</u>}</b>
       <span className="gauge-label">{label}<em>{sub}</em></span>
@@ -309,27 +311,34 @@ function GaugeShell({ kind, label, sub, value, unit, children }: {
   );
 }
 
+// A hairline from the centre out to a lit point on the ring. This is the whole
+// needle: no blade, no hub, just the line and where it lands.
+function GaugePointer({ angle, radius = 42 }: { angle: number; radius?: number }) {
+  const rad = (angle - 90) * Math.PI / 180;
+  const x = 50 + radius * Math.cos(rad);
+  const y = 50 + radius * Math.sin(rad);
+  return (
+    <g className="gauge-pointer" style={{ "--gauge-angle": `${angle}deg` } as CSSProperties}>
+      <line x1="50" y1="50" x2={x.toFixed(2)} y2={y.toFixed(2)} />
+      <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r="2.6" />
+    </g>
+  );
+}
+
 function HeadingCompass({ degrees, cardinal, epgIndex }: {
   degrees: number; cardinal: string; epgIndex: number;
 }) {
   return (
-    <GaugeShell kind="compass" label="FLY HEADING" sub={`EPG ${String(epgIndex).padStart(2, "0")}`}
+    <GaugeShell kind="compass" label="HEADING" sub={`EPG ${String(epgIndex).padStart(2, "0")}`}
       value={`${cardinal} ${String(degrees).padStart(3, "0")}°`}>
-      {/* the swept arc from north to the current heading: the offset, drawn */}
-      <path className="gauge-arc live" d={describeArc(50, 50, 33.5, 0, degrees)} />
-      {Array.from({ length: 24 }, (_, index) => index * 15).map((tick) => (
-        <line key={tick} className={`gauge-tick${tick % 90 === 0 ? " major" : tick % 45 === 0 ? " mid" : ""}`}
-          x1="50" y1={tick % 90 === 0 ? 11 : tick % 45 === 0 ? 13 : 14.5} x2="50" y2="18"
-          transform={`rotate(${tick} 50 50)`} />
+      {/* the offset from north, drawn */}
+      <path className="gauge-arc live" d={describeArc(50, 50, 42, 0, degrees)} />
+      {[0, 90, 180, 270].map((tick) => (
+        <line key={tick} className={`gauge-tick${tick === 0 ? " major" : ""}`}
+          x1="50" y1="30" x2="50" y2="35" transform={`rotate(${tick} 50 50)`} />
       ))}
-      {[["N", 0], ["E", 90], ["S", 180], ["W", 270]].map(([letter, angle]) => (
-        <text key={letter as string} className="gauge-rose" x="50" y="29.5"
-          transform={`rotate(${angle} 50 50)`} textAnchor="middle">{letter as string}</text>
-      ))}
-      <g className="gauge-needle" transform={`rotate(${degrees} 50 50)`}>
-        <path d="M50 15 L44 52 L56 52 Z" />
-        <path className="tail" d="M50 80 L46 52 L54 52 Z" />
-      </g>
+      <text className="gauge-north" x="50" y="24" textAnchor="middle">N</text>
+      <GaugePointer angle={degrees} />
     </GaugeShell>
   );
 }
@@ -339,33 +348,28 @@ function VelocityDial({ velocity, direction, display }: {
 }) {
   // Zero at the top, reverse swinging left and forward swinging right across a
   // 240 degree arc. The scale is MAX_SIM_VELOCITY_MM_S, the clamp the simulation
-  // already applies, so the needle and the number are one quantity from one
-  // source and the needle cannot leave the dial.
+  // already applies, so the pointer and the number are one quantity from one
+  // source and the pointer cannot leave the dial.
   const fraction = Math.max(-1, Math.min(1, velocity / MAX_SIM_VELOCITY_MM_S));
   return (
-    <GaugeShell kind={`dial ${direction}`} label="SIM VELOCITY"
+    <GaugeShell kind={`dial ${direction}`} label="VELOCITY"
       sub={direction === "idle" ? "HOVER" : direction.toUpperCase()}
       value={display} unit="mm/s">
-      <path className="gauge-arc" d={describeArc(50, 50, 33.5, -120, 120)} />
+      <path className="gauge-track" d={describeArc(50, 50, 42, -120, 120)} />
       <path className="gauge-arc live"
-        d={fraction >= 0 ? describeArc(50, 50, 33.5, 0, fraction * 120)
-                         : describeArc(50, 50, 33.5, fraction * 120, 0)} />
-      {[-120, -90, -60, -30, 0, 30, 60, 90, 120].map((tick) => (
-        <line key={tick} className={`gauge-tick${tick === 0 ? " major" : tick % 60 === 0 ? " mid" : ""}`}
-          x1="50" y1={tick === 0 ? 11 : tick % 60 === 0 ? 13 : 14.5} x2="50" y2="18"
-          transform={`rotate(${tick} 50 50)`} />
+        d={fraction >= 0 ? describeArc(50, 50, 42, 0, fraction * 120)
+                         : describeArc(50, 50, 42, fraction * 120, 0)} />
+      {[-120, 0, 120].map((tick) => (
+        <line key={tick} className={`gauge-tick${tick === 0 ? " major" : ""}`}
+          x1="50" y1="30" x2="50" y2="35" transform={`rotate(${tick} 50 50)`} />
       ))}
-      <text className="gauge-scale" x="16" y="76" textAnchor="middle">REV</text>
-      <text className="gauge-scale" x="84" y="76" textAnchor="middle">FWD</text>
-      <g className="gauge-needle" transform={`rotate(${fraction * 120} 50 50)`}>
-        <path d="M50 15 L45 53 L55 53 Z" />
-      </g>
+      <GaugePointer angle={fraction * 120} />
     </GaugeShell>
   );
 }
 
 // Arc between two angles measured clockwise from twelve o'clock, which is the
-// same convention the needle rotation uses.
+// same convention the pointer rotation uses.
 function describeArc(cx: number, cy: number, r: number, from: number, to: number) {
   const point = (angle: number) => {
     const rad = (angle - 90) * Math.PI / 180;

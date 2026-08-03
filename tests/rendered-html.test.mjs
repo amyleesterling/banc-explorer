@@ -380,7 +380,7 @@ test("shows signed simulated speed measured from displacement on ground and in a
   assert.match(page, /<HeadingCompass degrees=\{compassDegrees\}/);
   assert.match(page, /<VelocityDial velocity=\{simVelocity\}[^>]*display=\{velocityDisplay\}/);
   assert.match(page, /velocity \/ MAX_SIM_VELOCITY_MM_S/);
-  assert.match(css, /\.hud-gauge \.gauge-needle/);
+  assert.match(css, /\.hud-gauge \.gauge-pointer/);
   // One quantity, one place: the compass replaced the duplicate heading strip.
   assert.doesNotMatch(page, /EPG READOUT/);
 });
