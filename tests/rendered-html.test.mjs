@@ -120,7 +120,7 @@ test("keeps the peach mounted and visible throughout the simulator loop", async 
   assert.match(page, /className={`snack-fruit visible/);
   assert.match(page, /fetchPriority="high"/);
   assert.match(page, /data-world-state=\{worldState\}/);
-  assert.match(page, /const FOOD_TARGET = \{ x: 0\.6, y: 0\.48 \}/);
+  assert.match(page, /const FOOD_TARGET = \{ x: 0\.42, y: 0\.3 \}/);
   assert.match(css, /\.snack-fruit\.visible \{ display: block; \}/);
 });
 
