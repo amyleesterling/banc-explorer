@@ -76,7 +76,9 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
   assert.ok(staticLayer.size > 100, "the DNg12 static layer should contain a rendered image");
   assert.ok(contextBase.size > 100, "the regenerated 122-cell context should contain a rendered image");
   assert.match(page, /GROOM_NEURAL_SOURCE_FPS = 24/);
-  assert.match(page, /GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS \/ 10/);
+  // 24/2 = 12 fps: one 16-frame loop in 1.33 s, matching the dodge and
+  // walk-speed loops. The old /10 ran 6.7 s per loop and read as a still image.
+  assert.match(page, /GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS \/ 2/);
   assert.match(page, /elapsed % cycleDuration/);
   assert.doesNotMatch(page, /groomPulseComplete|setGroomPulseComplete/);
   assert.match(page, /HEAD_GROOM_DURATION_MS = 22500/);
@@ -372,6 +374,15 @@ test("shows signed simulated speed measured from displacement on ground and in a
   assert.match(page, /\{velocityDisplay\}<small>mm\/s<\/small>/);
   assert.match(page, /flightMotionRef\.current \+= \(targetFlightMotion - flightMotionRef\.current\) \* flightResponse/);
   assert.match(css, /\.drive-speed-readout/);
+  // Heading and velocity are instruments over the stage. Each needle is driven
+  // by the same value its own number shows, and the dial's full scale is the
+  // clamp the simulation already applies, so the two cannot disagree.
+  assert.match(page, /<HeadingCompass degrees=\{compassDegrees\}/);
+  assert.match(page, /<VelocityDial velocity=\{simVelocity\}[^>]*display=\{velocityDisplay\}/);
+  assert.match(page, /velocity \/ MAX_SIM_VELOCITY_MM_S/);
+  assert.match(css, /\.hud-gauge \.gauge-needle/);
+  // One quantity, one place: the compass replaced the duplicate heading strip.
+  assert.doesNotMatch(page, /EPG READOUT/);
 });
 
 test("uses the supplied Be the Fly v2 mark for the header and browser icons", async () => {

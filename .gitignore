@@ -42,3 +42,5 @@ next-env.d.ts
 /work/
 /tmp/
 *.tsbuildinfo
+graveyard/
+.preview-*.log

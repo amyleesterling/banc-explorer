@@ -39,6 +39,7 @@ type HologramMaterial = THREE.ShaderMaterial & {
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 // Intentionally slow enough that a child can follow each front foot from its
 // resting pose, across the head, and back again.
+const GROOM_LEGS_ANIMATE = false;
 const HEAD_GROOM_CYCLE_SPEED = 0.32;
 const HEAD_GROOM_DURATION_SECONDS = 22.5;
 
@@ -457,7 +458,12 @@ export function FlyHologram({
           const isWing = segment.name.includes("wing") || segment.name.includes("haltere");
           const isEye = segment.name.includes("eye");
           const isLeg = /^[lr][fmh]_/.test(segment.name);
-          mesh.renderOrder = isWing ? 0 : isEye ? 4 : isLeg ? 3 : 2;
+          // The camera looks down on the fly, and the wings sit dorsal to the
+          // thorax, so they belong in front of the body rather than behind it.
+          // Every material here is transparent with depthWrite off, so paint
+          // order alone decides what covers what: wings above the body and the
+          // legs, below the eyes and their glints.
+          mesh.renderOrder = isEye ? 4 : isWing ? 3.5 : isLeg ? 3 : 2;
           mesh.frustumCulled = false;
           if (isLeg) {
             // A subtle back-face shell thickens the real leg geometry by a few
@@ -565,6 +571,11 @@ export function FlyHologram({
       const eating = sceneState === "eating";
       const groomingHead = sceneState === "groom-head";
       const grooming = groomingHead;
+      // Grooming holds a still pose for now. The articulated foreleg sweep below
+      // is kept intact but switched off at this one flag, because the next step
+      // is a head tilt rather than leg motion, and a half-animated fly reads
+      // worse than one that simply waits. Flip this back on to restore the legs.
+      const groomingLegs = groomingHead && GROOM_LEGS_ANIMATE;
       const phaseAge = phaseStartedRef.current === null ? 0 : Math.max(0, time - phaseStartedRef.current);
       const groomingPose = grooming
         ? smoothstep(0, 0.8, phaseAge) * (1 - smoothstep(HEAD_GROOM_DURATION_SECONDS - 1.05, HEAD_GROOM_DURATION_SECONDS, phaseAge))
@@ -580,22 +591,22 @@ export function FlyHologram({
       // Bring only the actively grooming legs to the foreground. The model's
       // leg axes point mostly into the dorsal camera, so depth testing made a
       // biologically correct raised leg disappear beneath the thorax.
-      materials.frontLeg.depthTest = !groomingHead;
-      materials.frontLeg.depthWrite = !groomingHead;
-      materials.frontLeg.uniforms.uTint.value.set(groomingHead ? "#8fe7d2" : "#07584d");
-      materials.frontLeg.uniforms.uOpacity.value = groomingHead ? 1.46 : 1.36;
-      materials.frontFoot.depthTest = !groomingHead;
-      materials.frontFoot.depthWrite = !groomingHead;
-      materials.frontFoot.uniforms.uTint.value.set(groomingHead ? "#c9f6e7" : "#a8f4df");
-      materials.frontFoot.uniforms.uOpacity.value = groomingHead ? 1.5 : 1.5;
-      materials.frontToe.depthTest = !groomingHead;
-      materials.frontToe.depthWrite = !groomingHead;
-      materials.frontToe.uniforms.uTint.value.set(groomingHead ? "#effcf5" : "#ecfff6");
-      materials.frontToe.uniforms.uOpacity.value = groomingHead ? 1.52 : 1.46;
-      frontLegOutlineMaterial.depthTest = !groomingHead;
-      frontLegOutlineMaterial.opacity = groomingHead ? 0.34 : 0.68;
+      materials.frontLeg.depthTest = !groomingLegs;
+      materials.frontLeg.depthWrite = !groomingLegs;
+      materials.frontLeg.uniforms.uTint.value.set(groomingLegs ? "#8fe7d2" : "#07584d");
+      materials.frontLeg.uniforms.uOpacity.value = groomingLegs ? 1.46 : 1.36;
+      materials.frontFoot.depthTest = !groomingLegs;
+      materials.frontFoot.depthWrite = !groomingLegs;
+      materials.frontFoot.uniforms.uTint.value.set(groomingLegs ? "#c9f6e7" : "#a8f4df");
+      materials.frontFoot.uniforms.uOpacity.value = groomingLegs ? 1.5 : 1.5;
+      materials.frontToe.depthTest = !groomingLegs;
+      materials.frontToe.depthWrite = !groomingLegs;
+      materials.frontToe.uniforms.uTint.value.set(groomingLegs ? "#effcf5" : "#ecfff6");
+      materials.frontToe.uniforms.uOpacity.value = groomingLegs ? 1.52 : 1.46;
+      frontLegOutlineMaterial.depthTest = !groomingLegs;
+      frontLegOutlineMaterial.opacity = groomingLegs ? 0.34 : 0.68;
       for (const [name, mesh] of legMeshes) {
-        const emphasized = groomingHead && /^[lr]f_/.test(name);
+        const emphasized = groomingLegs && /^[lr]f_/.test(name);
         mesh.renderOrder = emphasized ? 4.5 : 3;
         const outline = legOutlines.get(name);
         if (outline) outline.renderOrder = emphasized ? 4.3 : 2.5;
@@ -612,6 +623,7 @@ export function FlyHologram({
         const wave = Math.sin(time * 8.2 + phase) * gaitDirection;
         const side = prefix.startsWith("l") ? 1 : -1;
         if (groomingHead) {
+          if (!groomingLegs) continue;   // rest pose, already restored above
           const isFrontLeg = prefix.endsWith("f");
           // Alternating sides read as two tiny hands wiping the face instead of
           // a single stiff bilateral motion.
@@ -732,7 +744,7 @@ export function FlyHologram({
           modelPivot.rotation.z += Math.sin(time * 8.2) * 0.006;
         }
 
-        if (groomingHead) {
+        if (groomingLegs) {
           const sweep = Math.sin(groomingMotionTime * HEAD_GROOM_CYCLE_SPEED);
           modelPivot.position.y += Math.abs(sweep) * 0.008 * groomingPose;
           modelPivot.rotation.z += sweep * 0.008 * groomingPose;
@@ -761,7 +773,7 @@ export function FlyHologram({
           modelPivot.scale.setScalar(baseModelScale * (1 + lift * 0.13 + wingLift * 0.012));
         }
       }
-      modelPivot.position.z = Math.sin(time * 2.2) * 0.025;
+      modelPivot.position.z = grooming ? 0 : Math.sin(time * 2.2) * 0.025;
       materialList.forEach((material) => {
         if (material instanceof THREE.ShaderMaterial && material.uniforms.uTime) {
           material.uniforms.uTime.value = time;
