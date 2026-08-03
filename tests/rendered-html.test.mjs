@@ -123,6 +123,23 @@ test("keeps the peach mounted and visible throughout the simulator loop", async 
   assert.match(css, /\.snack-fruit\.visible \{ display: block; \}/);
 });
 
+test("links to a dedicated credits page with the requested acknowledgements", async () => {
+  const [home, credits] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/credits/page.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(home, /credits`}>Credits<\/a>/);
+  assert.match(credits, /Created by/);
+  assert.match(credits, /Amy Sterling/);
+  assert.match(credits, /https:\/\/x\.com\/amyneurons/);
+  assert.match(credits, /https:\/\/orcid\.org\/0000-0002-4961-3954/);
+  assert.match(credits, /Alexander Bates/);
+  assert.match(credits, /Harvard University/);
+  assert.match(credits, /Yijie Yin/);
+  assert.match(credits, /University of Cambridge/);
+});
+
 test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG compass", async () => {
   const [page, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),

@@ -1013,7 +1013,10 @@ export default function Home() {
 
       <footer>
         <span>BANC EXPLORER · PUBLIC PROTOTYPE</span>
-        <span>Built to explore, not to overclaim.</span>
+        <span className="footer-links">
+          <span>Built to explore, not to overclaim.</span>
+          <a href={`${assetBase}/credits`}>Credits</a>
+        </span>
       </footer>
 
     </main>
