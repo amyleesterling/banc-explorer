@@ -9,7 +9,8 @@ import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.js
 
 type Action = "rest" | "forward" | "backward" | "left" | "right";
 type CircuitMode = "walk" | "backward" | "left" | "right" | "eat" | "threat" | "dodge" | "heading" | "flight-forward" | "flight-reverse" | "landing" | "groom-head";
-type WorldState = "seeking" | "eating" | "threat" | "dodge" | "takeoff" | "heading" | "landing" | "groom-head" | "relaunch";
+type WorldState = "seeking" | "eating" | "threat" | "freeze" | "run" | "caught" | "scent" | "dodge" | "takeoff" | "heading" | "landing" | "groom-head" | "relaunch";
+type ThreatChoice = "freeze" | "run" | "fly";
 
 const PLAYER_CONTROL_STATES = new Set<WorldState>(["seeking", "eating", "heading", "groom-head"]);
 const isPlayerControllableState = (state: WorldState) => PLAYER_CONTROL_STATES.has(state);
@@ -36,7 +37,10 @@ const EPG_BASE_ASSET = `${assetBase}/epg/epg-base.webp`;
 const DODGE_FRAME_COUNT = 12;
 const DODGE_PLAYBACK_FPS = 12;
 const SNACK_BEFORE_WARNING_MS = 4800;
-const SPIDER_WARNING_MS = 2400;
+const FREEZE_SURVIVAL_MS = 3000;
+const RUN_CAUGHT_MS = 1500;
+const GAME_OVER_MS = 3200;
+const SCENT_REVEAL_MS = 2600;
 // Hold the scripted quick-dodge beat long enough for the mobile neural focus to
 // show the 12-frame explanatory signal three times before takeoff continues.
 const DODGE_STAGE_MS = 3200;
@@ -201,6 +205,8 @@ export default function Home() {
   const worldStateRef = useRef<WorldState>("seeking");
   const warningTimerRef = useRef<number | null>(null);
   const threatTimerRef = useRef<number | null>(null);
+  const countdownTimerRef = useRef<number | null>(null);
+  const resolutionTimerRef = useRef<number | null>(null);
   const takeoffTimerRef = useRef<number | null>(null);
   const headingTimerRef = useRef<number | null>(null);
   const landingTimerRef = useRef<number | null>(null);
@@ -213,7 +219,7 @@ export default function Home() {
   const [boosting, setBoosting] = useState(false);
   const [walkSpeedFrame, setWalkSpeedFrame] = useState(0);
   const [worldState, setWorldState] = useState<WorldState>("seeking");
-  const [spiderWarning, setSpiderWarning] = useState(false);
+  const [freezeCountdown, setFreezeCountdown] = useState(3);
   const [steps, setSteps] = useState(0);
   const [headingDegrees, setHeadingDegrees] = useState(344);
   const [flightVelocity, setFlightVelocity] = useState(0);
@@ -268,11 +274,17 @@ export default function Home() {
       ? `REDUCED ${throttlePercent}%`
       : "HOVER";
   const worldCopy = worldState === "eating"
-    ? spiderWarning
-      ? { title: "Watch out for the spider!", detail: "Keep moving." }
-      : { title: "Snack found!", detail: "Feeding neurons are glowing." }
+    ? { title: "Snack found!", detail: "Feeding neurons are glowing." }
     : worldState === "threat"
-      ? { title: "Spider!", detail: "Get airborne." }
+      ? { title: "Threat detected!", detail: "Choose a survival strategy." }
+    : worldState === "freeze"
+      ? { title: "Hold still…", detail: `${freezeCountdown} seconds until the threat passes.` }
+    : worldState === "run"
+      ? { title: "Run!", detail: "The spider is faster." }
+    : worldState === "caught"
+      ? { title: "Nature is rough", detail: "You didn’t survive this round." }
+    : worldState === "scent"
+      ? { title: "The coast is clear", detail: "A tasty scent drifts from the top of a flower." }
       : worldState === "dodge"
         ? { title: "Quick dodge!", detail: "DNp03 flight-saccade pulse." }
       : worldState === "takeoff"
@@ -295,7 +307,13 @@ export default function Home() {
   const targetCopy = worldState === "eating"
     ? { title: "SNACK FOUND", detail: "TASTING THE FRUIT" }
     : worldState === "threat"
-      ? { title: "SPIDER ALERT", detail: "MOVE AWAY FROM DANGER" }
+      ? { title: "THREAT DETECTED", detail: "FREEZE · RUN · FLY" }
+    : worldState === "freeze"
+      ? { title: "STAY STILL", detail: `${freezeCountdown} SECONDS` }
+    : worldState === "run" || worldState === "caught"
+      ? { title: "PREDATOR", detail: "TOO CLOSE" }
+    : worldState === "scent"
+      ? { title: "TASTY SCENT", detail: "FLOWER TOP DETECTED" }
     : worldState === "dodge"
       ? { title: "QUICK DODGE", detail: "FLIGHT SACCADE" }
     : worldState === "takeoff"
@@ -309,7 +327,7 @@ export default function Home() {
       : worldState === "relaunch"
         ? { title: "NEW TARGET", detail: "FLOWER DETECTED" }
         : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
-  const missionCopy = worldState === "heading" || worldState === "relaunch"
+  const missionCopy = worldState === "heading" || worldState === "relaunch" || worldState === "scent"
     ? { kicker: "FLIGHT OBJECTIVE", title: worldState === "relaunch" ? "NEW FLOWER DETECTED" : "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
     : { kicker: "FORAGING OBJECTIVE", title: "FIND THE RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
 
@@ -327,42 +345,127 @@ export default function Home() {
     };
   }, [viewerOpen]);
 
+  const resetExperience = useCallback(() => {
+    if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
+    if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
+    if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
+    if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
+    if (takeoffTimerRef.current) window.clearTimeout(takeoffTimerRef.current);
+    if (headingTimerRef.current) window.clearTimeout(headingTimerRef.current);
+    keysRef.current.clear();
+    flyRef.current.x = 0.34;
+    flyRef.current.y = 0.58;
+    flyRef.current.angle = -0.28;
+    velocitySampleRef.current = { x: 0.34, y: 0.58 };
+    velocityRef.current = 0;
+    actionRef.current = "rest";
+    worldStateRef.current = "seeking";
+    flowerIndexRef.current = 0;
+    setAction("rest");
+    setWorldState("seeking");
+    setCircuitMode("walk");
+    setFreezeCountdown(3);
+    setFlightVelocity(0);
+    setFlightThrottle(0);
+    setFlowerIndex(0);
+  }, []);
+
+  const startTakeoff = useCallback((withDodge: boolean) => {
+    keysRef.current.clear();
+    const beginTakeoff = () => {
+      worldStateRef.current = "takeoff";
+      actionRef.current = "rest";
+      setAction("rest");
+      setWorldState("takeoff");
+      setCircuitMode("flight-forward");
+      headingTimerRef.current = window.setTimeout(() => {
+        if (worldStateRef.current !== "takeoff") return;
+        worldStateRef.current = "heading";
+        setWorldState("heading");
+        setCircuitMode("heading");
+      }, TAKEOFF_STAGE_MS);
+    };
+
+    if (!withDodge) {
+      beginTakeoff();
+      return;
+    }
+
+    worldStateRef.current = "dodge";
+    actionRef.current = "right";
+    setDodgeFrame(0);
+    setAction("right");
+    setWorldState("dodge");
+    setCircuitMode("dodge");
+    takeoffTimerRef.current = window.setTimeout(() => {
+      if (worldStateRef.current !== "dodge") return;
+      beginTakeoff();
+    }, DODGE_STAGE_MS);
+  }, []);
+
+  const handleThreatChoice = useCallback((choice: ThreatChoice) => {
+    if (worldStateRef.current !== "threat") return;
+    keysRef.current.clear();
+    actionRef.current = "rest";
+    setAction("rest");
+
+    if (choice === "fly") {
+      startTakeoff(true);
+      return;
+    }
+
+    if (choice === "run") {
+      worldStateRef.current = "run";
+      actionRef.current = "forward";
+      setAction("forward");
+      setWorldState("run");
+      setCircuitMode("threat");
+      resolutionTimerRef.current = window.setTimeout(() => {
+        if (worldStateRef.current !== "run") return;
+        worldStateRef.current = "caught";
+        actionRef.current = "rest";
+        setAction("rest");
+        setWorldState("caught");
+        threatTimerRef.current = window.setTimeout(resetExperience, GAME_OVER_MS);
+      }, RUN_CAUGHT_MS);
+      return;
+    }
+
+    worldStateRef.current = "freeze";
+    setFreezeCountdown(3);
+    setWorldState("freeze");
+    setCircuitMode("threat");
+    countdownTimerRef.current = window.setInterval(() => {
+      setFreezeCountdown((value) => Math.max(1, value - 1));
+    }, 1000);
+    resolutionTimerRef.current = window.setTimeout(() => {
+      if (worldStateRef.current !== "freeze") return;
+      if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
+      worldStateRef.current = "scent";
+      setWorldState("scent");
+      setCircuitMode("eat");
+      threatTimerRef.current = window.setTimeout(() => {
+        if (worldStateRef.current !== "scent") return;
+        startTakeoff(false);
+      }, SCENT_REVEAL_MS);
+    }, FREEZE_SURVIVAL_MS);
+  }, [resetExperience, startTakeoff]);
+
   const triggerEating = useCallback(() => {
     if (worldStateRef.current !== "seeking") return;
     worldStateRef.current = "eating";
     setWorldState("eating");
     setCircuitMode("eat");
-    setSpiderWarning(false);
     if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
     if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
     warningTimerRef.current = window.setTimeout(() => {
       if (worldStateRef.current !== "eating") return;
-      setSpiderWarning(true);
-      threatTimerRef.current = window.setTimeout(() => {
-        if (worldStateRef.current !== "eating") return;
-        worldStateRef.current = "dodge";
-        keysRef.current.clear();
-        actionRef.current = "right";
-        setDodgeFrame(0);
-        setAction("right");
-        setSpiderWarning(false);
-        setWorldState("dodge");
-        setCircuitMode("dodge");
-        takeoffTimerRef.current = window.setTimeout(() => {
-          if (worldStateRef.current !== "dodge") return;
-          worldStateRef.current = "takeoff";
-          actionRef.current = "rest";
-          setAction("rest");
-          setWorldState("takeoff");
-          setCircuitMode("flight-forward");
-          headingTimerRef.current = window.setTimeout(() => {
-            if (worldStateRef.current !== "takeoff") return;
-            worldStateRef.current = "heading";
-            setWorldState("heading");
-            setCircuitMode("heading");
-          }, TAKEOFF_STAGE_MS);
-        }, DODGE_STAGE_MS);
-      }, SPIDER_WARNING_MS);
+      worldStateRef.current = "threat";
+      keysRef.current.clear();
+      actionRef.current = "rest";
+      setAction("rest");
+      setWorldState("threat");
+      setCircuitMode("threat");
     }, SNACK_BEFORE_WARNING_MS);
   }, []);
 
@@ -570,6 +673,11 @@ export default function Home() {
         nextAction = "right";
       }
       const currentState = worldStateRef.current;
+      if (currentState === "run") {
+        fly.x += Math.cos(fly.angle) * dt * 0.15;
+        fly.y += Math.sin(fly.angle) * dt * 0.2;
+        nextAction = "forward";
+      }
       if (currentState === "dodge") {
         fly.angle += dt * 2.2;
         fly.x += dt * 0.18;
@@ -631,7 +739,7 @@ export default function Home() {
       if (worldStateRef.current === "heading" && flowerDistance <= FLOWER_CONTACT_RADIUS) {
         triggerLanding();
       }
-      if (!isPlayerControllableState(worldStateRef.current) && worldStateRef.current !== "dodge") nextAction = "rest";
+      if (!isPlayerControllableState(worldStateRef.current) && worldStateRef.current !== "dodge" && worldStateRef.current !== "run") nextAction = "rest";
       if (nextAction !== actionRef.current) {
         actionRef.current = nextAction;
         setAction(nextAction);
@@ -650,6 +758,8 @@ export default function Home() {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
       if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
+      if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
+      if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
       if (takeoffTimerRef.current) window.clearTimeout(takeoffTimerRef.current);
       if (headingTimerRef.current) window.clearTimeout(headingTimerRef.current);
       if (landingTimerRef.current) window.clearTimeout(landingTimerRef.current);
@@ -858,7 +968,7 @@ export default function Home() {
                 </div>
               </aside>
             )}
-            {(worldState === "takeoff" || worldState === "heading" || worldState === "landing" || worldState === "groom-head" || worldState === "relaunch") && (
+            {(worldState === "scent" || worldState === "takeoff" || worldState === "heading" || worldState === "landing" || worldState === "groom-head" || worldState === "relaunch") && (
               <div
                 className={`landing-flower ${worldState}`}
                 style={flowerScreen}
@@ -872,18 +982,60 @@ export default function Home() {
                 <i /><i /><i />
               </div>
             )}
-            {(worldState === "threat" || worldState === "dodge" || worldState === "takeoff" || worldState === "heading") && (
+            {(worldState === "threat" || worldState === "freeze" || worldState === "run" || worldState === "caught" || worldState === "dodge" || worldState === "takeoff") && (
               <img
-                className={`spider-threat${worldState === "heading" ? " retreating" : ""}`}
+                className={`spider-threat ${worldState}${worldState === "dodge" || worldState === "takeoff" ? " retreating" : ""}`}
                 src={`${assetBase}/mint-spider.webp`}
                 alt=""
                 aria-hidden="true"
               />
             )}
-            {worldState !== "seeking" && worldState !== "heading" && (
-              <div className={`world-event ${worldState}${spiderWarning ? " warning" : ""}`} role="status" aria-live="polite">
+            {(worldState === "eating" || worldState === "dodge" || worldState === "takeoff" || worldState === "landing" || worldState === "groom-head" || worldState === "relaunch") && (
+              <div className={`world-event ${worldState}`} role="status" aria-live="polite">
                 <strong>{worldCopy.title}</strong><span>{worldCopy.detail}</span>
               </div>
+            )}
+            {worldState === "threat" && (
+              <section className="threat-dialog choice" role="alertdialog" aria-modal="true" aria-labelledby="threat-dialog-title">
+                <span className="threat-dialog-kicker"><i /> PREDATOR PROTOCOL</span>
+                <h2 id="threat-dialog-title">Threat detected!</h2>
+                <p>A spider is closing in. Choose your survival strategy.</p>
+                <div className="threat-choices">
+                  <button type="button" onClick={() => handleThreatChoice("freeze")}><strong>Freeze</strong><small>Don’t move for 3 seconds</small></button>
+                  <button type="button" onClick={() => handleThreatChoice("run")}><strong>Run</strong><small>Risk a ground escape</small></button>
+                  <button type="button" onClick={() => handleThreatChoice("fly")}><strong>Fly</strong><small>Take to the air</small></button>
+                </div>
+              </section>
+            )}
+            {worldState === "freeze" && (
+              <section className="threat-dialog countdown" role="status" aria-live="assertive">
+                <span className="threat-dialog-kicker"><i /> FREEZE RESPONSE</span>
+                <div className="freeze-countdown" aria-label={`${freezeCountdown} seconds remaining`}><strong>{freezeCountdown}</strong></div>
+                <h2>Hold perfectly still…</h2>
+                <p>The spider is watching for movement.</p>
+              </section>
+            )}
+            {worldState === "run" && (
+              <section className="threat-dialog outcome danger" role="status" aria-live="assertive">
+                <span className="threat-dialog-kicker"><i /> ESCAPE ATTEMPT</span>
+                <h2>Run!</h2>
+                <p>But the spider is faster…</p>
+              </section>
+            )}
+            {worldState === "caught" && (
+              <section className="threat-dialog outcome game-over" role="alertdialog" aria-modal="true" aria-labelledby="game-over-title">
+                <span className="threat-dialog-kicker"><i /> LIFE CYCLE ENDED</span>
+                <h2 id="game-over-title">Nature is rough.</h2>
+                <p>You didn’t survive this round.</p>
+                <button type="button" onClick={resetExperience}>Try again</button>
+              </section>
+            )}
+            {worldState === "scent" && (
+              <section className="threat-dialog outcome scent" role="status" aria-live="assertive">
+                <span className="threat-dialog-kicker"><i /> OLFACTORY SIGNAL</span>
+                <h2>Tasty scent detected!</h2>
+                <p>It’s drifting from the top of a flower. Preparing for takeoff…</p>
+              </section>
             )}
           </div>
           <div className="controls">

@@ -93,7 +93,28 @@ test("keeps movement controls live while the fly is grooming", async () => {
   assert.match(page, /PLAYER_CONTROL_STATES = new Set<WorldState>\(\["seeking", "eating", "heading", "groom-head"\]\)/);
   assert.match(page, /const controlsLocked = !isPlayerControllableState\(worldState\)/);
   assert.match(page, /if \(!isPlayerControllableState\(currentState\)\) return;/);
-  assert.match(page, /if \(!isPlayerControllableState\(worldStateRef\.current\) && worldStateRef\.current !== "dodge"\) nextAction = "rest";/);
+  assert.match(page, /worldStateRef\.current !== "dodge" && worldStateRef\.current !== "run"/);
+});
+
+test("lets the player choose freeze, run, or fly when the threat arrives", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /type ThreatChoice = "freeze" \| "run" \| "fly"/);
+  assert.match(page, /FREEZE_SURVIVAL_MS = 3000/);
+  assert.match(page, /Threat detected!/);
+  assert.match(page, /handleThreatChoice\("freeze"\)/);
+  assert.match(page, /handleThreatChoice\("run"\)/);
+  assert.match(page, /handleThreatChoice\("fly"\)/);
+  assert.match(page, /Nature is rough\./);
+  assert.match(page, /You didn’t survive this round/);
+  assert.match(page, /A tasty scent drifts from the top of a flower/);
+  assert.match(page, /window\.setTimeout\(resetExperience, GAME_OVER_MS\)/);
+  assert.match(css, /\.freeze-countdown/);
+  assert.match(css, /@keyframes freeze-ring-drain/);
+  assert.match(css, /\.spider-threat\.run/);
 });
 
 test("uses the delivered 16-frame DNg100 sequence for the existing SPEED control", async () => {
@@ -204,7 +225,7 @@ test("keeps the articulated legs delicate, compact, and free of artificial red t
   assert.match(flyModel, /object\.rotateY\(\(1\.18 \+ sweep \* 0\.075\) \* groomingPose\)/);
   assert.match(flyModel, /object\.rotateY\(-0\.42\)/);
   assert.match(page, /SNACK_BEFORE_WARNING_MS = 4800/);
-  assert.match(page, /SPIDER_WARNING_MS = 2400/);
+  assert.match(page, /FREEZE_SURVIVAL_MS = 3000/);
   assert.match(page, /DODGE_PLAYBACK_FPS = 12/);
   assert.match(page, /TAKEOFF_STAGE_MS = 1800/);
   assert.match(page, /LANDING_STAGE_MS = 1700/);
