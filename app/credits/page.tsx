@@ -161,7 +161,7 @@ export default function CreditsPage() {
               <p><i /> REFERENCE CONSOLE</p>
               <h2 id="behavior-references-title">Neurons behind the moves</h2>
             </div>
-            <span>08 BEHAVIORS · PRIMARY SOURCES</span>
+            <span>08 CIRCUIT ENTRIES · PRIMARY SOURCES</span>
           </header>
 
           <div className="credits-reference-grid">
