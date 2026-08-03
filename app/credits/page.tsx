@@ -24,6 +24,15 @@ export default function CreditsPage() {
         <p className="credits-kicker"><span /> BEHIND THE FLY</p>
         <h1>Credits</h1>
 
+        <figure className="credits-connectome-art">
+          <div className="credits-connectome-frame">
+            <img className="credits-connectome-context" src={`${assetBase}/banc-context-base.webp`} alt="" aria-hidden="true" />
+            <img className="credits-connectome-action" src={`${assetBase}/banc-forward.webp`} alt="BANC neurons associated with forward walking, highlighted across the brain and ventral nerve cord" />
+            <span className="credits-scanline" aria-hidden="true" />
+          </div>
+          <figcaption>BANC nervous system · forward-walking circuit highlighted</figcaption>
+        </figure>
+
         <div className="credits-creator">
           <p>Created by</p>
           <h2>Amy Sterling</h2>

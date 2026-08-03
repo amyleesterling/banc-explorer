@@ -138,6 +138,9 @@ test("links to a dedicated credits page with the requested acknowledgements", as
   assert.match(credits, /Harvard University/);
   assert.match(credits, /Yijie Yin/);
   assert.match(credits, /University of Cambridge/);
+  assert.match(credits, /banc-context-base\.webp/);
+  assert.match(credits, /banc-forward\.webp/);
+  assert.match(credits, /BANC neurons associated with forward walking/);
 });
 
 test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG compass", async () => {
