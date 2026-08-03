@@ -171,6 +171,14 @@ export default function CreditsPage() {
             Signal animations in this experience are explanatory, derived from
             skeleton geometry and synapse polarity, not measured conduction.
           </p>
+          <p className="credits-cells-note">
+            The 28 grooming cells are the BANC-native DNg12 annotation
+            population. That is an annotation of cell type, and it does not
+            imply that every rendered cell was independently function-tested.
+            The looping replay over those cells is explanatory in the same
+            sense: it is derived from skeleton geometry and synapse polarity,
+            not recorded action potentials or measured conduction timing.
+          </p>
         </div>
 
         <div className="credits-thanks">

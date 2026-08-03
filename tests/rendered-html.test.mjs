@@ -76,7 +76,9 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
   assert.ok(staticLayer.size > 100, "the DNg12 static layer should contain a rendered image");
   assert.ok(contextBase.size > 100, "the regenerated 122-cell context should contain a rendered image");
   assert.match(page, /GROOM_NEURAL_SOURCE_FPS = 24/);
-  assert.match(page, /GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS \/ 10/);
+  // 24/2 = 12 fps: one 16-frame loop in 1.33 s, matching the dodge and
+  // walk-speed loops. The old /10 ran 6.7 s per loop and read as a still image.
+  assert.match(page, /GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS \/ 2/);
   assert.match(page, /elapsed % cycleDuration/);
   assert.doesNotMatch(page, /groomPulseComplete|setGroomPulseComplete/);
   assert.match(page, /HEAD_GROOM_DURATION_MS = 22500/);
@@ -339,7 +341,15 @@ test("shows signed flight velocity measured from simulated displacement", async 
   assert.match(page, /const deltaX = fly\.x - previousVelocitySample\.x/);
   assert.match(page, /const longitudinalVelocity = dt > 0/);
   assert.match(page, /SIM VELOCITY/);
-  assert.match(page, /\{velocityDisplay\} <u className="hud-u">mm\/s<\/u>/);
+  // The readout now lives in the velocity dial. Same unit rule: the symbol opts
+  // out of the uppercase transform through a named class, never a bare tag.
+  assert.match(page, /\{display\} <u className="hud-u">mm\/s<\/u>/);
+  assert.match(page, /<VelocityDial velocity=\{flightVelocity\}[^>]*display=\{velocityDisplay\}/);
+  // Needle and number are one quantity from one source: the dial's full scale is
+  // the clamp the simulation already applies, so they cannot disagree.
+  assert.match(page, /velocity \/ MAX_FLIGHT_VELOCITY_MM_S/);
+  assert.match(page, /<HeadingCompass degrees=\{compassDegrees\}/);
+  assert.match(css, /\.hud-gauge \.gauge-needle/);
   assert.match(css, /\.hud-row > b/);
   assert.match(css, /\.hud-row\.drive/);
 });

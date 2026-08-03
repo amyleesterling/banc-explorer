@@ -733,3 +733,106 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 .hud-telemetry { margin-top: 10px; border-top: 1px solid rgb(var(--holo-line, 196 228 255) / .10); }
 .hud-telemetry .hud-row { padding: 6px 0 7px; }
 .hud-telemetry .hud-row:last-child { border-bottom: 0; }
+
+/* ---- the HUD is a fixed instrument, not a box that breathes ------------------
+   Measured: the head ran 260px with a short description and 399px with a long
+   one plus telemetry, so the neuron render below it moved by up to 139px
+   between layers. Reserving the text blocks by LINE COUNT rather than letting
+   them size to content makes the height deterministic at any width: three lines
+   of description and two of note are always allocated, whether or not the copy
+   fills them, so 2 lines and 3 lines occupy the same space.
+
+   Line count rather than a pixel height, because text rewraps at other widths
+   and a fixed px would clip on a narrow panel. */
+.hud-neurons > p {
+  --hud-desc-lines: 3;
+  --hud-desc-leading: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: var(--hud-desc-leading);
+  min-height: calc(var(--hud-desc-lines) * var(--hud-desc-leading) * 1em);
+}
+
+/* The objective is one line each, so a longer title cannot push the render
+   stage down. The block itself is always rendered now, for the same reason. */
+.hud-objective > strong, .hud-objective > em, .hud-objective > span,
+.hud-neurons > strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud-chips { min-height: 22px; }
+
+/* ---- flight instruments over the render stage -------------------------------
+   Heading is a compass and velocity is a dial, sitting at the top corners of
+   the EPG stage. They read the same two values the numbers underneath them
+   read, so needle and number are one quantity from one source. */
+.hud-instruments {
+  position: absolute; inset: 12px 12px auto 12px; z-index: 6;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  pointer-events: none;
+}
+
+.hud-gauge { display: grid; justify-items: center; gap: 3px; width: clamp(78px, 7.2vw, 104px); }
+.hud-gauge svg { width: 100%; aspect-ratio: 1; display: block; overflow: visible; }
+.hud-gauge b {
+  font: 600 clamp(11px, 1.06vw, 13.5px)/1 var(--font-display, inherit);
+  letter-spacing: .04em; color: #d8f4ee; text-shadow: 0 0 12px rgba(96,208,192,.5);
+  white-space: nowrap;
+}
+.hud-gauge span {
+  display: flex; gap: 5px; align-items: baseline;
+  font-size: 8px; letter-spacing: .17em; text-transform: uppercase;
+  color: rgba(160,206,200,.62); white-space: nowrap;
+}
+.hud-gauge span em { font-style: normal; color: rgba(122,224,208,.9); }
+.hud-gauge .hud-u { text-decoration: none; text-transform: none; letter-spacing: .01em; opacity: .72; }
+
+.hud-gauge .gauge-face { fill: rgba(4,15,18,.72); stroke: none; }
+.hud-gauge .gauge-ring { fill: none; stroke: rgba(122,224,208,.36); stroke-width: 1.6; }
+.hud-gauge .gauge-arc { fill: none; stroke: rgba(122,224,208,.22); stroke-width: 3.4; stroke-linecap: round; }
+.hud-gauge .gauge-arc.live { stroke: var(--gauge-accent, #7ae0d0); filter: drop-shadow(0 0 5px rgba(122,224,208,.75)); }
+.hud-gauge .gauge-tick { stroke: rgba(122,224,208,.38); stroke-width: 1.4; }
+.hud-gauge .gauge-tick.major { stroke: rgba(190,240,232,.85); stroke-width: 2.1; }
+.hud-gauge .gauge-hub { fill: #0a2024; stroke: rgba(190,240,232,.8); stroke-width: 1.6; }
+
+/* The needle is transitioned rather than snapped: heading and velocity are both
+   sampled on a throttle (70ms and 80ms), so an untweened needle visibly steps. */
+.hud-gauge .gauge-needle { transition: transform .16s linear; }
+.hud-gauge .gauge-needle path { fill: var(--gauge-accent, #7ae0d0); filter: drop-shadow(0 0 6px rgba(122,224,208,.6)); }
+.hud-gauge .gauge-needle path.tail { fill: rgba(122,224,208,.3); filter: none; }
+
+.hud-gauge.compass { --gauge-accent: #bd9bd1; }
+.hud-gauge.dial.forward { --gauge-accent: #7ae0d0; }
+.hud-gauge.dial.reverse { --gauge-accent: #ffb46b; }
+.hud-gauge.dial.idle { --gauge-accent: rgba(146,196,190,.78); }
+
+@media (prefers-reduced-motion: reduce) { .hud-gauge .gauge-needle { transition: none; } }
+@media (max-width: 900px) { .hud-instruments { inset: 8px 8px auto 8px; } .hud-gauge { width: 70px; } }
+
+/* ---- one chip per named cell type ------------------------------------------
+   The pip colour is the anatomical class, taken from the same LEGEND the colour
+   key at the foot of the page renders, so the two can never drift apart. A type
+   whose name does not identify its class gets no pip rather than a guessed one. */
+.hud-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0 9px; }
+.hud-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px 3px 6px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--chip, #7ae0d0) 34%, rgba(120,180,172,.2));
+  background: color-mix(in srgb, var(--chip, #7ae0d0) 9%, rgba(6,20,22,.72));
+  font-size: 10.5px; letter-spacing: .04em; white-space: nowrap;
+}
+.hud-chip > i {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--chip);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--chip) 76%, transparent);
+}
+.hud-chip > b { font-weight: 600; color: #dcf3ee; font-family: var(--font-mono, ui-monospace, monospace); }
+.hud-chip > em { font-style: normal; color: rgba(160,206,200,.72); }
+.hud-chip.unclassed { border-style: dashed; }
+
+.coming-soon-link {
+  display: inline-flex; justify-content: center; align-items: center;
+  margin-top: 16px; padding: 12px 26px; border-radius: 999px;
+  border: 1px solid rgba(150,222,208,.42); color: #d9f3ea; text-decoration: none;
+  font-size: 11px; font-weight: 700; letter-spacing: .14em;
+  transition: background .18s ease, border-color .18s ease;
+}
+.coming-soon-link:hover { background: rgba(122,224,208,.12); border-color: rgba(150,222,208,.8); }

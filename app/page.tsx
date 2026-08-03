@@ -14,6 +14,8 @@ type WorldState = "seeking" | "eating" | "threat" | "freeze" | "run" | "caught" 
 type ThreatChoice = "freeze" | "run" | "fly";
 
 const PLAYER_CONTROL_STATES = new Set<WorldState>(["seeking", "eating", "heading", "groom-head"]);
+// The states that put a dialog over the arena and take the controls away.
+const MODAL_WORLD_STATES = new Set<WorldState>(["threat", "freeze", "caught"]);
 const isPlayerControllableState = (state: WorldState) => PLAYER_CONTROL_STATES.has(state);
 
 const WALKING_FIGURE_URL = "https://ng.banc.community/2026a/figure-5c";
@@ -45,6 +47,10 @@ const SCENT_REVEAL_MS = 2600;
 // Hold the scripted quick-dodge beat long enough for the mobile neural focus to
 // show the 12-frame explanatory signal three times before takeoff continues.
 const DODGE_STAGE_MS = 3200;
+// One escape saccade, not a spin. The dodge used to apply a constant 2.2 rad/s
+// for the whole 3.2 s stage, which is 403 degrees: the fly corkscrewed through
+// the air. A saccade is a fast turn of bounded amplitude that then stops.
+const DODGE_SACCADE_RADIANS = 1.75;   // 100 degrees
 const TAKEOFF_STAGE_MS = 1800;
 const LANDING_STAGE_MS = 1700;
 const RELAUNCH_STAGE_MS = 1800;
@@ -66,7 +72,11 @@ const GROOM_FRAME_COUNT = 16;
 const GROOM_NEURAL_SOURCE_FPS = 24;
 // Replay the explanatory render at one tenth of its encoded rate so the
 // brain-to-T1 progression is visible, then repeat it while grooming continues.
-const GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS / 10;
+// 16 frames at the old 2.4 fps ran 6.7 s per loop, which is slower than a
+// viewer will wait: the signal crept and read as a still image. 12 fps puts one
+// loop at 1.33 s, matching the dodge and walk-speed loops, so three loops land
+// in about four seconds and the propagation is actually visible as motion.
+const GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS / 2;
 const GROOM_SIGNAL_DELAY_MS = 520;
 // One complete 10x-slowed articulated grooming cycle, including ease in/out.
 const HEAD_GROOM_DURATION_MS = 22500;
@@ -135,7 +145,6 @@ const CIRCUITS: Record<CircuitMode, {
   types: string;
   summary: string;
   viewerUrl: string;
-  note?: string;
 }> = {
   walk: {
     types: "DNg100 ×2 · AN09B029_b ×2 · AN02A002 ×2",
@@ -196,16 +205,128 @@ const CIRCUITS: Record<CircuitMode, {
     types: "DNg12 ×28",
     summary: "Anterior grooming. These 28 DNg12 cells take their inputs in the brain and put their outputs in the T1 front-leg region of the nerve cord, which is the sweep of the head and the rubbing of the front legs.",
     viewerUrl: DNG12_CODEX_URL,
-    note: "This is the BANC-native DNg12 annotation population. It does not imply that every rendered cell was independently function-tested. Slow looping replay is derived from skeleton geometry and synapse polarity—not recorded activity or timing.",
   },
 };
 
-const LEGEND = [
+const LEGEND: [string, string][] = [
   ["Sensory", "#68d6c4"],
   ["Ascending", "#8ac7ff"],
   ["Descending", "#ffc857"],
   ["VNC + motor", "#ff7f6e"],
+  ["Central brain", "#bd9bd1"],
 ];
+const CLASS_COLOR = Object.fromEntries(LEGEND) as Record<string, string>;
+
+// The class of a cell type read off its own name, which is the only claim the
+// naming convention actually supports: DN descending, AN ascending, MN motor,
+// EPG the central-complex compass population. Anything that does not match gets
+// no pip rather than a guessed one.
+function neuronClass(type: string): string | null {
+  if (/^EPG/i.test(type)) return "Central brain";
+  if (/^MN/.test(type)) return "VNC + motor";
+  if (/^AN/.test(type)) return "Ascending";
+  if (/^(DN|MDN)/.test(type)) return "Descending";
+  return null;
+}
+
+// "DNg100 ×2 · AN09B029_b ×2" and "DNa02 left · DNa01 left" both split the same
+// way: the first token is the type, the rest is its count or side.
+function NeuronChips({ types }: { types: string }) {
+  return (
+    <div className="hud-chips">
+      {types.split(" · ").map((entry) => {
+        const [name, ...rest] = entry.trim().split(" ");
+        const cls = neuronClass(name);
+        return (
+          <span key={entry} className={`hud-chip${cls ? "" : " unclassed"}`}
+            style={cls ? { "--chip": CLASS_COLOR[cls] } as CSSProperties : undefined}
+            title={cls ?? undefined}>
+            {cls && <i aria-hidden="true" />}
+            <b>{name}</b>
+            {rest.length > 0 && <em>{rest.join(" ")}</em>}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// Two flight instruments drawn over the render stage. Both take the SAME value
+// the numeric readout takes, so the needle and the number can never disagree:
+// the compass reads compassDegrees, the dial reads flightVelocity, and the dial
+// is scaled by MAX_FLIGHT_VELOCITY_MM_S, which is the clamp the simulation
+// already applies, so the needle cannot leave the arc.
+function HeadingCompass({ degrees, cardinal, epgIndex }: {
+  degrees: number; cardinal: string; epgIndex: number;
+}) {
+  return (
+    <div className="hud-gauge compass">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="gauge-face" cx="50" cy="50" r="38" />
+        <circle className="gauge-ring" cx="50" cy="50" r="38" />
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((tick) => (
+          <line
+            key={tick}
+            className={`gauge-tick${tick % 90 === 0 ? " major" : ""}`}
+            x1="50" y1={tick % 90 === 0 ? 14 : 17} x2="50" y2="22"
+            transform={`rotate(${tick} 50 50)`}
+          />
+        ))}
+        <g className="gauge-needle" transform={`rotate(${degrees} 50 50)`}>
+          <path d="M50 17 L44.5 52 L55.5 52 Z" />
+          <path className="tail" d="M50 78 L46.5 52 L53.5 52 Z" />
+        </g>
+        <circle className="gauge-hub" cx="50" cy="50" r="4.2" />
+      </svg>
+      <b>{cardinal} · {String(degrees).padStart(3, "0")}°</b>
+      <span>FLY HEADING <em>EPG {String(epgIndex).padStart(2, "0")}</em></span>
+    </div>
+  );
+}
+
+function VelocityDial({ velocity, direction, display }: {
+  velocity: number; direction: string; display: string;
+}) {
+  // Zero sits at the top, reverse swings left, forward swings right, across a
+  // 240 degree arc. Clamped defensively so a future change to the simulation
+  // cannot push the needle off the dial without the number also being wrong.
+  const fraction = Math.max(-1, Math.min(1, velocity / MAX_FLIGHT_VELOCITY_MM_S));
+  return (
+    <div className={`hud-gauge dial ${direction}`}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="gauge-face" cx="50" cy="50" r="38" />
+        <path className="gauge-arc" d="M17.1 79.4 A38 38 0 1 1 82.9 79.4" />
+        <path className="gauge-arc live"
+          d={fraction >= 0
+            ? describeArc(50, 50, 38, 0, fraction * 120)
+            : describeArc(50, 50, 38, fraction * 120, 0)}
+        />
+        {[-120, -60, 0, 60, 120].map((tick) => (
+          <line key={tick} className={`gauge-tick${tick === 0 ? " major" : ""}`}
+            x1="50" y1={tick === 0 ? 14 : 17} x2="50" y2="22"
+            transform={`rotate(${tick} 50 50)`} />
+        ))}
+        <g className="gauge-needle" transform={`rotate(${fraction * 120} 50 50)`}>
+          <path d="M50 18 L45 53 L55 53 Z" />
+        </g>
+        <circle className="gauge-hub" cx="50" cy="50" r="4.2" />
+      </svg>
+      <b>{display} <u className="hud-u">mm/s</u></b>
+      <span>SIM VELOCITY <em>{direction === "idle" ? "HOVER" : direction.toUpperCase()}</em></span>
+    </div>
+  );
+}
+
+// Arc between two angles measured clockwise from twelve o'clock, which is the
+// same convention the needle rotation uses.
+function describeArc(cx: number, cy: number, r: number, from: number, to: number) {
+  const point = (angle: number) => {
+    const rad = (angle - 90) * Math.PI / 180;
+    return `${(cx + r * Math.cos(rad)).toFixed(2)} ${(cy + r * Math.sin(rad)).toFixed(2)}`;
+  };
+  if (Math.abs(to - from) < 0.01) return "";
+  return `M${point(from)} A${r} ${r} 0 0 ${to > from ? 1 : 0} ${point(to)}`;
+}
 
 export default function Home() {
   const flyRef = useRef({ x: 0.34, y: 0.58, angle: -0.28 });
@@ -224,6 +345,7 @@ export default function Home() {
   const countdownTimerRef = useRef<number | null>(null);
   const resolutionTimerRef = useRef<number | null>(null);
   const takeoffTimerRef = useRef<number | null>(null);
+  const dodgeTurnTargetRef = useRef<number | null>(null);
   const headingTimerRef = useRef<number | null>(null);
   const landingTimerRef = useRef<number | null>(null);
   const groomTimerRef = useRef<number | null>(null);
@@ -640,6 +762,23 @@ export default function Home() {
     return () => cancelAnimationFrame(animationFrame);
   }, [groomAssetsReady, isGrooming, worldState]);
 
+  // A modal state has to happen where the player is looking. The threat dialog
+  // is drawn inside the arena, so if the page is scrolled away from the arena
+  // the spider appears offscreen and the page seems to have jumped. Bring the
+  // arena back, and drop focus from whatever button is still holding it further
+  // down the page, since a focused offscreen control is the usual way a browser
+  // pulls the viewport somewhere the player did not ask for.
+  useEffect(() => {
+    if (!MODAL_WORLD_STATES.has(worldState)) return;
+    const shell = document.querySelector(".lab-shell");
+    if (!shell) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && !shell.contains(active)) active.blur();
+    const box = shell.getBoundingClientRect();
+    const visible = Math.min(box.bottom, window.innerHeight) - Math.max(box.top, 0);
+    if (visible < box.height * 0.6) shell.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [worldState]);
+
   useEffect(() => {
     const shouldOpenFocus = worldState === "dodge" || worldState === "groom-head";
     const shouldCloseFocus = worldState === "takeoff" || worldState === "relaunch";
@@ -698,10 +837,18 @@ export default function Home() {
         nextAction = "forward";
       }
       if (currentState === "dodge") {
-        fly.angle += dt * 2.2;
+        // Latch one target heading on the first dodge frame and ease into it,
+        // so the total turn is exactly DODGE_SACCADE_RADIANS however long the
+        // stage runs. The drift continues; only the rotation is bounded.
+        if (dodgeTurnTargetRef.current === null) {
+          dodgeTurnTargetRef.current = fly.angle + DODGE_SACCADE_RADIANS;
+        }
+        fly.angle += (dodgeTurnTargetRef.current - fly.angle) * Math.min(1, dt * 5.5);
         fly.x += dt * 0.18;
         fly.y -= dt * 0.07;
         nextAction = "right";
+      } else if (dodgeTurnTargetRef.current !== null) {
+        dodgeTurnTargetRef.current = null;
       }
       const interactiveFlight = currentState === "heading";
       if (interactiveFlight && time - lastHeadingUiRef.current > 70) {
@@ -944,8 +1091,7 @@ export default function Home() {
                 <div className="mobile-neuron-details">
                   {activeNeuronLayer.populationLabel && <strong>{activeNeuronLayer.populationLabel}</strong>}
                   <p>{activeCircuit.summary}</p>
-                  {activeCircuit.note && <small>{activeCircuit.note}</small>}
-                  <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT</a>
+                    <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT</a>
                 </div>
               )}
             </aside>
@@ -1040,36 +1186,16 @@ export default function Home() {
           </header>
           <div className="circuit-canvas-wrap">
             <div className="hud-head">
-              {(worldState === "seeking" || worldState === "heading"
-                || worldState === "relaunch" || worldState === "scent") && (
-                <div className="hud-objective">
-                  <span>{missionCopy.kicker}</span>
-                  <strong>{missionCopy.title}</strong>
-                  <em>{missionCopy.detail}</em>
-                </div>
-              )}
+              <div className="hud-objective">
+                <span>{missionCopy.kicker}</span>
+                <strong>{missionCopy.title}</strong>
+                <em>{missionCopy.detail}</em>
+              </div>
               <div className="hud-neurons">
                 <span className="hud-kicker"><i aria-hidden="true" />NEURONS INVOLVED</span>
                 <strong>{activeNeuronLayer.label}</strong>
-                <b className="hud-types">{activeCircuit.types}</b>
+                <NeuronChips types={activeCircuit.types} />
                 <p>{activeCircuit.summary}</p>
-                {activeCircuit.note && <small>{activeCircuit.note}</small>}
-                {isFlightCockpit && (
-                  <div className="hud-telemetry">
-                    <div className="hud-row">
-                      <span>FLY HEADING</span>
-                      <b>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</b>
-                      <em>EPG {String(epgHeadingIndex).padStart(2, "0")}</em>
-                    </div>
-                    {worldState === "heading" && (
-                      <div className={`hud-row ${velocityDirection}`}>
-                        <span>SIM VELOCITY</span>
-                        <b>{velocityDisplay} <u className="hud-u">mm/s</u></b>
-                        <em>{velocityDirection === "idle" ? "HOVER" : velocityDirection.toUpperCase()}</em>
-                      </div>
-                    )}
-                  </div>
-                )}
                 <div className="hud-stats">
                   {(() => {
                     const st = (layerStats.layers as Record<string, {
@@ -1107,7 +1233,16 @@ export default function Home() {
                   <div className="epg-cockpit-reticle"><span /></div>
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
                 </div>
-              ) : (
+              ) : null}
+              {isFlightCockpit && (
+                <div className="hud-instruments">
+                  <HeadingCompass degrees={compassDegrees} cardinal={headingCardinal} epgIndex={epgHeadingIndex} />
+                  {worldState === "heading" && (
+                    <VelocityDial velocity={flightVelocity} direction={velocityDirection} display={velocityDisplay} />
+                  )}
+                </div>
+              )}
+              {!isFlightCockpit && (
                 <>
                   <img className="neuron-context-layer" src={BANC_CONTEXT_ASSET} alt="" aria-hidden="true" />
                   {isDodgePulse ? (
@@ -1195,10 +1330,10 @@ export default function Home() {
           </div>
         </div>
         <div className="coming-soon">
-          <span>NOW PLAYABLE</span>
-          <strong>TAKE FLIGHT</strong>
-          <p>Find the snack, escape the spider, and steer to the flower.</p>
-          <button type="button" onClick={() => document.querySelector(".lab-shell")?.scrollIntoView({ behavior: "smooth" })}>ENTER FLIGHT COURSE ↑</button>
+          <span>GO DEEPER</span>
+          <strong>What is a connectome?</strong>
+          <p>A wiring diagram of a nervous system, mapped synapse by synapse.</p>
+          <a className="coming-soon-link" href="https://connectome-atlas.amysterling.chatgpt.site/" target="_blank" rel="noreferrer">OPEN THE ATLAS ↗</a>
         </div>
       </section>
 
