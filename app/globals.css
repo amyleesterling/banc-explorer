@@ -1026,3 +1026,45 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   transition: background .18s ease, border-color .18s ease;
 }
 .coming-soon-link:hover { background: rgba(122,224,208,.12); border-color: rgba(150,222,208,.8); }
+
+/* ---- the objective reads as the instruction, not as a caption ---------------
+   It sits beside the neuron copy and was losing to it. An accent rail, a lit
+   panel and a slow sweep make it the first thing the eye lands on, and the
+   sweep restarts whenever the objective changes because the title text is the
+   animation key. */
+.hud-objective {
+  position: relative;
+  padding: 12px 14px 13px 16px;
+  margin-bottom: 12px;
+  border: 1px solid color-mix(in srgb, var(--layer-accent, #68d6c4) 26%, transparent);
+  border-left: 2px solid var(--layer-accent, #68d6c4);
+  border-bottom: 1px solid color-mix(in srgb, var(--layer-accent, #68d6c4) 26%, transparent);
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--layer-accent, #68d6c4) 5%, transparent) 0 1px, transparent 1px 4px),
+    linear-gradient(120deg, color-mix(in srgb, var(--layer-accent, #68d6c4) 13%, transparent), rgba(4,14,17,.2) 62%);
+  box-shadow:
+    inset 0 0 22px color-mix(in srgb, var(--layer-accent, #68d6c4) 9%, transparent),
+    0 0 18px color-mix(in srgb, var(--layer-accent, #68d6c4) 12%, transparent);
+  overflow: hidden;
+}
+/* corner bracket, top right, the scifi-ui idiom used elsewhere on the page */
+.hud-objective:after {
+  content: ''; position: absolute; right: 5px; top: 5px; width: 13px; height: 13px;
+  border-top: 1px solid var(--layer-accent, #68d6c4);
+  border-right: 1px solid var(--layer-accent, #68d6c4);
+  opacity: .6; pointer-events: none;
+}
+.hud-objective:before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 38%, color-mix(in srgb, var(--layer-accent, #68d6c4) 26%, transparent) 50%, transparent 62%);
+  transform: translateX(-120%);
+  animation: objective-sweep 5.2s cubic-bezier(.4,0,.2,1) infinite;
+}
+@keyframes objective-sweep { 0% { transform: translateX(-120%); } 34%, 100% { transform: translateX(120%); } }
+
+.hud-objective > span { color: var(--layer-accent, #68d6c4); text-shadow: 0 0 12px color-mix(in srgb, var(--layer-accent, #68d6c4) 55%, transparent); }
+.hud-objective > strong { position: relative; color: #f2fbf8; text-shadow: 0 0 20px color-mix(in srgb, var(--layer-accent, #68d6c4) 34%, transparent); }
+.hud-objective > em { position: relative; color: color-mix(in srgb, var(--layer-accent, #68d6c4) 62%, #cfe4df); opacity: .95; }
+
+@media (prefers-reduced-motion: reduce) { .hud-objective:before { animation: none; opacity: 0; } }
