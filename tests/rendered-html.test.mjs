@@ -344,16 +344,16 @@ test("shows signed flight velocity measured from simulated displacement", async 
   assert.match(css, /\.hud-row\.drive/);
 });
 
-test("uses the supplied BANC fly mark for the header and browser icons", async () => {
+test("uses the supplied Be the Fly v2 mark for the header and browser icons", async () => {
   const [page, layout, icon] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../public/banc-explorer-fly-icon.svg", import.meta.url), "utf8"),
+    readFile(new URL("../public/be-the-fly-icon-v2.png", import.meta.url)),
   ]);
 
-  assert.match(page, /banc-explorer-fly-icon\.svg/);
-  assert.equal((layout.match(/banc-explorer-fly-icon\.svg/g) ?? []).length, 3);
-  assert.match(icon, /viewBox="0 0 512 512"/);
-  assert.match(icon, /fill="#C7A6F3"/);
-  assert.match(icon, /stroke="#68D6C4"/);
+  assert.match(page, /be-the-fly-icon-v2\.png/);
+  assert.equal((layout.match(/be-the-fly-icon-v2\.png/g) ?? []).length, 3);
+  assert.equal(icon.subarray(1, 4).toString("ascii"), "PNG");
+  assert.equal(icon.readUInt32BE(16), 1024);
+  assert.equal(icon.readUInt32BE(20), 1024);
 });

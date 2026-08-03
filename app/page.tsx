@@ -888,7 +888,7 @@ export default function Home() {
         <div className="arena-panel">
           <header className="panel-heading cockpit-topbar">
             <span className="brand">
-              <span className="brand-mark" aria-hidden="true"><img src={`${assetBase}/banc-explorer-fly-icon.svg`} alt="" /></span>
+              <span className="brand-mark" aria-hidden="true"><img src={`${assetBase}/be-the-fly-icon-v2.png`} alt="" /></span>
               <span>BE THE FLY</span>
             </span>
           </header>
