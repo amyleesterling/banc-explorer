@@ -142,6 +142,20 @@ test("links to a dedicated credits page with the requested acknowledgements", as
   assert.match(credits, /banc-context-base\.webp/);
   assert.match(credits, /banc-forward\.webp/);
   assert.match(credits, /BANC neurons associated with forward walking/);
+  assert.match(credits, /Neurons behind the moves/);
+  assert.match(credits, /DNa01/);
+  assert.match(credits, /DNa02/);
+  assert.match(credits, /DNg100/);
+  assert.match(credits, /MDN/);
+  assert.match(credits, /DNg02/);
+  assert.match(credits, /EPG/);
+  assert.match(credits, /DNp07 \+ DNp10/);
+  assert.match(credits, /DNg12/);
+  assert.match(credits, /2020\.04\.04\.024703v4/);
+  assert.match(credits, /PMC10614758/);
+  assert.match(credits, /s41467-018-06857-z/);
+  assert.match(credits, /2024\.06\.27\.601106v1/);
+  assert.match(credits, /explanatory animations—not recordings/);
 });
 
 test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG compass", async () => {
