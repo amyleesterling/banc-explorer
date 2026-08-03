@@ -63,7 +63,6 @@ const DODGE_RIGHT_ASSETS = Array.from(
   (_, index) => `${assetBase}/banc-flight-dodge-anatomical-right/frame-${String(index).padStart(2, "0")}.webp`,
 );
 const WALK_SPEED_FRAME_COUNT = 16;
-const WALK_SPEED_PLAYBACK_FPS = 12;
 const WALK_SPEED_ASSETS = Array.from(
   { length: WALK_SPEED_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-walk-speed-dng100/frame-${String(index).padStart(2, "0")}.webp`,
@@ -103,7 +102,11 @@ const WORLD_BOUNDS = { minX: 0.05, maxX: 0.95, minY: 0.12, maxY: 0.9 };
 const WORLD_SPREAD = { x: 90, y: 86 };
 const SIM_WORLD_NAVIGABLE_SPAN = WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX;
 const MM_PER_SIM_UNIT = SIM_WORLD_WIDTH_MM / SIM_WORLD_NAVIGABLE_SPAN;
-const MAX_FLIGHT_VELOCITY_MM_S = 1;
+const MAX_SIM_VELOCITY_MM_S = 1;
+const MIN_DRIVE_LEVEL = 0.25;
+const DEFAULT_DRIVE_LEVEL = 0.55;
+const DRIVE_LEVEL_STEP = 0.1;
+const MAX_FLIGHT_SPEED_SIM_S = 0.29;
 const toScreenPosition = ({ x, y }: { x: number; y: number }) => ({
   left: `${50 + (x - 0.5) * WORLD_SPREAD.x}%`,
   top: `${50 + (y - 0.5) * WORLD_SPREAD.y}%`,
@@ -148,7 +151,7 @@ const CIRCUITS: Record<CircuitMode, {
 }> = {
   walk: {
     types: "DNg100 ×2 · AN09B029_b ×2 · AN02A002 ×2",
-    summary: "DNg100 is a pro-walking descending pair. AN09B029_b carries proprioceptive leg context up to the brain, and AN02A002 returns inhibitory walking feedback, so the drive is shaped by the legs it commands.",
+    summary: "Six selected cells: DNg100 sends walking drive down from the brain; AN09B029_b and AN02A002 carry information about the moving legs back toward it.",
     viewerUrl: WALKING_SCENE_URL,
   },
   backward: {
@@ -173,7 +176,7 @@ const CIRCUITS: Record<CircuitMode, {
   },
   threat: {
     types: "DNp42 ×2 · DNge053 ×2 · DNg55 ×1",
-    summary: "Escape on foot, not takeoff. DNp42 drives backward walking, DNge053 walking, and DNg55 steering. These are response neurons: they produce the escape, they do not detect the threat. Detection happens in the optic lobe.",
+    summary: "Five escape-response cells: DNp42 supports backward walking, DNge053 walking, and DNg55 steering. They help produce the escape; they do not detect the threat.",
     viewerUrl: WALKING_FIGURE_URL,
   },
   dodge: {
@@ -206,6 +209,35 @@ const CIRCUITS: Record<CircuitMode, {
     summary: "Anterior grooming. These 28 DNg12 cells take their inputs in the brain and put their outputs in the T1 front-leg region of the nerve cord, which is the sweep of the head and the rubbing of the front legs.",
     viewerUrl: DNG12_CODEX_URL,
   },
+};
+
+type NeuronColorKeyItem = {
+  label: string;
+  detail: string;
+  color: string;
+};
+
+// These keys describe the pixels in the delivered renders, not inferred cell
+// identities. Some current layers pool multiple types into one color; say so
+// plainly until type-separated replacement renders arrive.
+const NEURON_COLOR_KEYS: Partial<Record<CircuitMode, NeuronColorKeyItem[]>> = {
+  walk: [
+    { label: "DNg100", detail: "descending walking drive", color: "#ff1493" },
+    { label: "AN09B029_b + AN02A002", detail: "leg-state feedback (pooled)", color: "#089c39" },
+  ],
+  threat: [
+    { label: "DNp42 + DNge053 + DNg55", detail: "escape response (pooled)", color: "#ff6b5f" },
+  ],
+  heading: [
+    { label: "Active EPG heading", detail: "compass readout", color: "#e8afd8" },
+    { label: "Other EPG cells", detail: "compass population", color: "#706878" },
+  ],
+};
+
+const CONTEXT_COLOR_KEY: NeuronColorKeyItem = {
+  label: "Context neurons",
+  detail: "anatomical reference",
+  color: "#52675e",
 };
 
 const LEGEND: [string, string][] = [
@@ -254,66 +286,81 @@ function NeuronChips({ types }: { types: string }) {
 // Two flight instruments drawn over the render stage. Both take the SAME value
 // the numeric readout takes, so the needle and the number can never disagree:
 // the compass reads compassDegrees, the dial reads flightVelocity, and the dial
-// is scaled by MAX_FLIGHT_VELOCITY_MM_S, which is the clamp the simulation
+// is scaled by MAX_SIM_VELOCITY_MM_S, which is the clamp the simulation
 // already applies, so the needle cannot leave the arc.
+function GaugeShell({ kind, label, sub, value, unit, children }: {
+  kind: string; label: string; sub: string; value: string; unit?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`hud-gauge ${kind}`}>
+      <span className="gauge-bracket tl" aria-hidden="true" />
+      <span className="gauge-bracket br" aria-hidden="true" />
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="gauge-face" cx="50" cy="50" r="40" />
+        <circle className="gauge-bezel" cx="50" cy="50" r="40" />
+        <circle className="gauge-bezel inner" cx="50" cy="50" r="33.5" />
+        {children}
+        <circle className="gauge-hub" cx="50" cy="50" r="3.6" />
+      </svg>
+      <b className="gauge-value">{value}{unit && <u className="hud-u">{unit}</u>}</b>
+      <span className="gauge-label">{label}<em>{sub}</em></span>
+    </div>
+  );
+}
+
 function HeadingCompass({ degrees, cardinal, epgIndex }: {
   degrees: number; cardinal: string; epgIndex: number;
 }) {
   return (
-    <div className="hud-gauge compass">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle className="gauge-face" cx="50" cy="50" r="38" />
-        <circle className="gauge-ring" cx="50" cy="50" r="38" />
-        {[0, 45, 90, 135, 180, 225, 270, 315].map((tick) => (
-          <line
-            key={tick}
-            className={`gauge-tick${tick % 90 === 0 ? " major" : ""}`}
-            x1="50" y1={tick % 90 === 0 ? 14 : 17} x2="50" y2="22"
-            transform={`rotate(${tick} 50 50)`}
-          />
-        ))}
-        <g className="gauge-needle" transform={`rotate(${degrees} 50 50)`}>
-          <path d="M50 17 L44.5 52 L55.5 52 Z" />
-          <path className="tail" d="M50 78 L46.5 52 L53.5 52 Z" />
-        </g>
-        <circle className="gauge-hub" cx="50" cy="50" r="4.2" />
-      </svg>
-      <b>{cardinal} · {String(degrees).padStart(3, "0")}°</b>
-      <span>FLY HEADING <em>EPG {String(epgIndex).padStart(2, "0")}</em></span>
-    </div>
+    <GaugeShell kind="compass" label="FLY HEADING" sub={`EPG ${String(epgIndex).padStart(2, "0")}`}
+      value={`${cardinal} ${String(degrees).padStart(3, "0")}°`}>
+      {/* the swept arc from north to the current heading: the offset, drawn */}
+      <path className="gauge-arc live" d={describeArc(50, 50, 33.5, 0, degrees)} />
+      {Array.from({ length: 24 }, (_, index) => index * 15).map((tick) => (
+        <line key={tick} className={`gauge-tick${tick % 90 === 0 ? " major" : tick % 45 === 0 ? " mid" : ""}`}
+          x1="50" y1={tick % 90 === 0 ? 11 : tick % 45 === 0 ? 13 : 14.5} x2="50" y2="18"
+          transform={`rotate(${tick} 50 50)`} />
+      ))}
+      {[["N", 0], ["E", 90], ["S", 180], ["W", 270]].map(([letter, angle]) => (
+        <text key={letter as string} className="gauge-rose" x="50" y="29.5"
+          transform={`rotate(${angle} 50 50)`} textAnchor="middle">{letter as string}</text>
+      ))}
+      <g className="gauge-needle" transform={`rotate(${degrees} 50 50)`}>
+        <path d="M50 15 L44 52 L56 52 Z" />
+        <path className="tail" d="M50 80 L46 52 L54 52 Z" />
+      </g>
+    </GaugeShell>
   );
 }
 
 function VelocityDial({ velocity, direction, display }: {
   velocity: number; direction: string; display: string;
 }) {
-  // Zero sits at the top, reverse swings left, forward swings right, across a
-  // 240 degree arc. Clamped defensively so a future change to the simulation
-  // cannot push the needle off the dial without the number also being wrong.
-  const fraction = Math.max(-1, Math.min(1, velocity / MAX_FLIGHT_VELOCITY_MM_S));
+  // Zero at the top, reverse swinging left and forward swinging right across a
+  // 240 degree arc. The scale is MAX_SIM_VELOCITY_MM_S, the clamp the simulation
+  // already applies, so the needle and the number are one quantity from one
+  // source and the needle cannot leave the dial.
+  const fraction = Math.max(-1, Math.min(1, velocity / MAX_SIM_VELOCITY_MM_S));
   return (
-    <div className={`hud-gauge dial ${direction}`}>
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle className="gauge-face" cx="50" cy="50" r="38" />
-        <path className="gauge-arc" d="M17.1 79.4 A38 38 0 1 1 82.9 79.4" />
-        <path className="gauge-arc live"
-          d={fraction >= 0
-            ? describeArc(50, 50, 38, 0, fraction * 120)
-            : describeArc(50, 50, 38, fraction * 120, 0)}
-        />
-        {[-120, -60, 0, 60, 120].map((tick) => (
-          <line key={tick} className={`gauge-tick${tick === 0 ? " major" : ""}`}
-            x1="50" y1={tick === 0 ? 14 : 17} x2="50" y2="22"
-            transform={`rotate(${tick} 50 50)`} />
-        ))}
-        <g className="gauge-needle" transform={`rotate(${fraction * 120} 50 50)`}>
-          <path d="M50 18 L45 53 L55 53 Z" />
-        </g>
-        <circle className="gauge-hub" cx="50" cy="50" r="4.2" />
-      </svg>
-      <b>{display} <u className="hud-u">mm/s</u></b>
-      <span>SIM VELOCITY <em>{direction === "idle" ? "HOVER" : direction.toUpperCase()}</em></span>
-    </div>
+    <GaugeShell kind={`dial ${direction}`} label="SIM VELOCITY"
+      sub={direction === "idle" ? "HOVER" : direction.toUpperCase()}
+      value={display} unit="mm/s">
+      <path className="gauge-arc" d={describeArc(50, 50, 33.5, -120, 120)} />
+      <path className="gauge-arc live"
+        d={fraction >= 0 ? describeArc(50, 50, 33.5, 0, fraction * 120)
+                         : describeArc(50, 50, 33.5, fraction * 120, 0)} />
+      {[-120, -90, -60, -30, 0, 30, 60, 90, 120].map((tick) => (
+        <line key={tick} className={`gauge-tick${tick === 0 ? " major" : tick % 60 === 0 ? " mid" : ""}`}
+          x1="50" y1={tick === 0 ? 11 : tick % 60 === 0 ? 13 : 14.5} x2="50" y2="18"
+          transform={`rotate(${tick} 50 50)`} />
+      ))}
+      <text className="gauge-scale" x="16" y="76" textAnchor="middle">REV</text>
+      <text className="gauge-scale" x="84" y="76" textAnchor="middle">FWD</text>
+      <g className="gauge-needle" transform={`rotate(${fraction * 120} 50 50)`}>
+        <path d="M50 15 L45 53 L55 53 Z" />
+      </g>
+    </GaugeShell>
   );
 }
 
@@ -325,13 +372,16 @@ function describeArc(cx: number, cy: number, r: number, from: number, to: number
     return `${(cx + r * Math.cos(rad)).toFixed(2)} ${(cy + r * Math.sin(rad)).toFixed(2)}`;
   };
   if (Math.abs(to - from) < 0.01) return "";
-  return `M${point(from)} A${r} ${r} 0 0 ${to > from ? 1 : 0} ${point(to)}`;
+  const large = Math.abs(to - from) > 180 ? 1 : 0;
+  return `M${point(from)} A${r} ${r} 0 ${large} ${to > from ? 1 : 0} ${point(to)}`;
 }
 
 export default function Home() {
   const flyRef = useRef({ x: 0.34, y: 0.58, angle: -0.28 });
   const keysRef = useRef(new Set<string>());
   const boostRef = useRef(false);
+  const driveLevelRef = useRef(DEFAULT_DRIVE_LEVEL);
+  const flightMotionRef = useRef(0);
   const frameRef = useRef<number | null>(null);
   const lastRef = useRef(0);
   const lastHeadingUiRef = useRef(0);
@@ -355,6 +405,7 @@ export default function Home() {
   const pointerControlRef = useRef<{ pointerId: number; action: Exclude<Action, "rest"> } | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [boosting, setBoosting] = useState(false);
+  const [driveLevel, setDriveLevel] = useState(DEFAULT_DRIVE_LEVEL);
   // the arrow dock is a hint, not furniture: it pulses until first use, then recedes
   const [controlsUsed, setControlsUsed] = useState(false);
   const [walkSpeedFrame, setWalkSpeedFrame] = useState(0);
@@ -362,7 +413,7 @@ export default function Home() {
   const [freezeCountdown, setFreezeCountdown] = useState(3);
   const [steps, setSteps] = useState(0);
   const [headingDegrees, setHeadingDegrees] = useState(344);
-  const [flightVelocity, setFlightVelocity] = useState(0);
+  const [simVelocity, setSimVelocity] = useState(0);
   const [flightThrottle, setFlightThrottle] = useState(0);
   const [dodgeFrame, setDodgeFrame] = useState(0);
   const [groomFrame, setGroomFrame] = useState(0);
@@ -378,7 +429,10 @@ export default function Home() {
   const isFlightCockpit = circuitMode === "heading" || circuitMode === "flight-forward" || circuitMode === "flight-reverse";
   const isDodgePulse = circuitMode === "dodge";
   const isGrooming = worldState === "groom-head";
-  const isWalkSpeedPulse = worldState === "seeking" && boosting && (action === "forward" || action === "left" || action === "right");
+  const effectiveDriveLevel = boosting ? 1 : driveLevel;
+  const isWalkSpeedPulse = worldState === "seeking"
+    && effectiveDriveLevel > MIN_DRIVE_LEVEL
+    && (action === "forward" || action === "left" || action === "right");
   const isGroomPulse = isGrooming && groomAssetsReady;
   const groomFrameAsset = HEAD_GROOM_ASSETS[groomFrame];
   const controlsLocked = !isPlayerControllableState(worldState);
@@ -402,17 +456,25 @@ export default function Home() {
   const epgHeadingIndex = Math.floor(epgCounterClockwiseDegrees / (360 / EPG_HEADING_COUNT)) % EPG_HEADING_COUNT;
   const epgHeadingAsset = EPG_HEADING_ASSETS[epgHeadingIndex];
   const headingCardinal = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(compassDegrees / 45) % 8];
-  const velocityDirection = flightVelocity > 0.02 ? "forward" : flightVelocity < -0.02 ? "reverse" : "idle";
-  const velocityLevel = Math.min(Math.abs(flightVelocity) / MAX_FLIGHT_VELOCITY_MM_S, 1);
-  const velocityDisplay = `${flightVelocity > 0 ? "+" : ""}${flightVelocity.toFixed(2)}`;
-  const throttleDirection = flightThrottle > 0.01 ? "forward" : flightThrottle < -0.01 ? "reverse" : "idle";
+  const isFlightDriveMode = worldState === "dodge"
+    || worldState === "takeoff"
+    || worldState === "heading"
+    || worldState === "landing"
+    || worldState === "relaunch";
+  const velocityDirection = simVelocity > 0.02 ? "forward" : simVelocity < -0.02 ? "reverse" : "idle";
+  const velocityDisplay = `${simVelocity > 0 ? "+" : ""}${simVelocity.toFixed(2)}`;
   const throttleLevel = Math.min(Math.abs(flightThrottle), 1);
-  const throttlePercent = Math.round(throttleLevel * 100);
-  const throttleStatus = throttleDirection === "forward"
-    ? `THRUST ${throttlePercent}%`
-    : throttleDirection === "reverse"
-      ? `REDUCED ${throttlePercent}%`
-      : "HOVER";
+  const driveSettingPercent = Math.round(driveLevel * 100);
+  const drivePercent = Math.round(effectiveDriveLevel * 100);
+  const appliedDriveLevel = isFlightDriveMode
+    ? throttleLevel
+    : action !== "rest" && isPlayerControllableState(worldState)
+      ? effectiveDriveLevel
+      : 0;
+  const driveCommandLabel = isFlightDriveMode ? "THRUST SETTING" : "PACE SETTING";
+  const driveNeuronLabel = isFlightDriveMode ? "DNg02 · WING DRIVE" : "DNg100 · WALK DRIVE";
+  const speedOutputLabel = isFlightDriveMode ? "AIR SPEED" : "GROUND SPEED";
+  const walkDrivePlaybackFps = 5 + effectiveDriveLevel * 11;
   const worldCopy = worldState === "eating"
     ? { title: "Snack found!", detail: "Feeding neurons are glowing." }
     : worldState === "threat"
@@ -498,6 +560,9 @@ export default function Home() {
     flyRef.current.angle = -0.28;
     velocitySampleRef.current = { x: 0.34, y: 0.58 };
     velocityRef.current = 0;
+    flightMotionRef.current = 0;
+    driveLevelRef.current = DEFAULT_DRIVE_LEVEL;
+    boostRef.current = false;
     actionRef.current = "rest";
     worldStateRef.current = "seeking";
     flowerIndexRef.current = 0;
@@ -505,8 +570,10 @@ export default function Home() {
     setWorldState("seeking");
     setCircuitMode("walk");
     setFreezeCountdown(3);
-    setFlightVelocity(0);
+    setSimVelocity(0);
     setFlightThrottle(0);
+    setDriveLevel(DEFAULT_DRIVE_LEVEL);
+    setBoosting(false);
     setFlowerIndex(0);
   }, []);
 
@@ -649,7 +716,9 @@ export default function Home() {
     if (next !== "rest" && currentState === "seeking") {
       setCircuitMode(next === "forward" ? "walk" : next);
     } else if (currentState === "heading") {
-      setCircuitMode(next === "forward" ? "flight-forward" : next === "backward" ? "flight-reverse" : "heading");
+      // EPG remains a compass readout while DNg02 supplies the mode-specific
+      // drive command below. Do not relabel the EPG render as a DNg02 render.
+      setCircuitMode("heading");
     }
   }, []);
 
@@ -661,6 +730,7 @@ export default function Home() {
         event.preventDefault();
         boostRef.current = true;
         setBoosting(true);
+        setControlsUsed(true);
         return;
       }
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "s", "a", "d"].includes(key)) {
@@ -715,12 +785,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!isWalkSpeedPulse) {
-      setWalkSpeedFrame(0);
-      return;
-    }
+    if (!isWalkSpeedPulse) return;
     const startedAt = performance.now();
-    const frameDuration = 1000 / WALK_SPEED_PLAYBACK_FPS;
+    const frameDuration = 1000 / walkDrivePlaybackFps;
     let animationFrame = 0;
     const advance = () => {
       const elapsed = performance.now() - startedAt;
@@ -729,7 +796,7 @@ export default function Home() {
     };
     animationFrame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(animationFrame);
-  }, [isWalkSpeedPulse]);
+  }, [isWalkSpeedPulse, walkDrivePlaybackFps]);
 
   useEffect(() => {
     if (worldState !== "dodge") return;
@@ -814,10 +881,12 @@ export default function Home() {
       const currentWorldState = worldStateRef.current;
       const fly = flyRef.current;
       const previousVelocitySample = velocitySampleRef.current;
-      // The SPEED control is a forward drive command in its own right, so a
-      // player can move with one thumb on a phone.
-      const speedCommand = boostRef.current && isPlayerControllableState(currentWorldState);
-      const forward = keys.has("arrowup") || keys.has("w") || speedCommand;
+      // Direction and drive magnitude are independent. W/S says where to go;
+      // the persistent drive setting says how strongly to go there. Holding
+      // Shift temporarily raises that same setting to maximum in either mode.
+      const maxDriveHeld = boostRef.current && isPlayerControllableState(currentWorldState);
+      const activeDriveLevel = maxDriveHeld ? 1 : driveLevelRef.current;
+      const forward = keys.has("arrowup") || keys.has("w");
       const backward = keys.has("arrowdown") || keys.has("s");
       const left = keys.has("arrowleft") || keys.has("a");
       const right = keys.has("arrowright") || keys.has("d");
@@ -862,17 +931,30 @@ export default function Home() {
       // flight cell type or an equal-magnitude reverse motor.
       const throttleCommand = interactiveFlight
         ? direction > 0
-          ? 1
+          ? activeDriveLevel
           : direction < 0
-            ? -0.55
+            ? -activeDriveLevel * 0.55
             : 0
         : 0;
-      const movementCommand = interactiveFlight ? throttleCommand : direction;
-      if (movementCommand !== 0) {
-        const flightBoost = (interactiveFlight ? 1.45 : 1) * (speedCommand ? 1.9 : 1);
-        fly.x += Math.cos(fly.angle) * dt * 0.12 * movementCommand * flightBoost;
-        fly.y += Math.sin(fly.angle) * dt * 0.16 * movementCommand * flightBoost;
-        nextAction = movementCommand < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
+      if (interactiveFlight) {
+        // Thrust changes velocity rather than teleporting directly into speed.
+        // The lag makes the command/output distinction visible in the HUD.
+        const targetFlightMotion = throttleCommand * MAX_FLIGHT_SPEED_SIM_S;
+        const flightResponse = 1 - Math.exp(-dt * (throttleCommand === 0 ? 2.1 : 4.2));
+        flightMotionRef.current += (targetFlightMotion - flightMotionRef.current) * flightResponse;
+        if (Math.abs(flightMotionRef.current) < 0.0005) flightMotionRef.current = 0;
+        fly.x += Math.cos(fly.angle) * dt * flightMotionRef.current;
+        fly.y += Math.sin(fly.angle) * dt * flightMotionRef.current;
+        if (direction !== 0) nextAction = direction < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
+      } else {
+        flightMotionRef.current = 0;
+        if (direction !== 0) {
+          const walkPace = 0.55 + activeDriveLevel * 1.45;
+          const reverseScale = direction < 0 ? 0.72 : 1;
+          fly.x += Math.cos(fly.angle) * dt * 0.12 * direction * walkPace * reverseScale;
+          fly.y += Math.sin(fly.angle) * dt * 0.16 * direction * walkPace * reverseScale;
+          nextAction = direction < 0 ? "backward" : left ? "left" : right ? "right" : "forward";
+        }
       }
       fly.x = Math.max(WORLD_BOUNDS.minX, Math.min(WORLD_BOUNDS.maxX, fly.x));
       fly.y = Math.max(WORLD_BOUNDS.minY, Math.min(WORLD_BOUNDS.maxY, fly.y));
@@ -884,8 +966,8 @@ export default function Home() {
       const longitudinalVelocity = dt > 0
         ? ((deltaX * Math.cos(fly.angle)) + (deltaY * Math.sin(fly.angle))) / dt * MM_PER_SIM_UNIT
         : 0;
-      const targetVelocity = interactiveFlight
-        ? Math.max(-MAX_FLIGHT_VELOCITY_MM_S, Math.min(MAX_FLIGHT_VELOCITY_MM_S, longitudinalVelocity))
+      const targetVelocity = isPlayerControllableState(currentWorldState)
+        ? Math.max(-MAX_SIM_VELOCITY_MM_S, Math.min(MAX_SIM_VELOCITY_MM_S, longitudinalVelocity))
         : 0;
       const velocitySmoothing = 1 - Math.exp(-dt * 8);
       velocityRef.current += (targetVelocity - velocityRef.current) * velocitySmoothing;
@@ -893,7 +975,7 @@ export default function Home() {
         const roundedVelocity = Math.abs(velocityRef.current) < 0.01
           ? 0
           : Math.round(velocityRef.current * 100) / 100;
-        setFlightVelocity(roundedVelocity);
+        setSimVelocity(roundedVelocity);
         setFlightThrottle(throttleCommand);
         lastVelocityUiRef.current = time;
       }
@@ -913,7 +995,7 @@ export default function Home() {
           setCircuitMode(nextAction === "forward" ? "walk" : nextAction);
           setSteps((value) => value + 1);
         } else if (worldStateRef.current === "heading") {
-          setCircuitMode(nextAction === "forward" ? "flight-forward" : nextAction === "backward" ? "flight-reverse" : "heading");
+          setCircuitMode("heading");
         }
       }
 
@@ -934,19 +1016,29 @@ export default function Home() {
     };
   }, [triggerEating, triggerLanding]);
 
+  const setDriveCommand = (nextLevel: number) => {
+    const clamped = Math.max(MIN_DRIVE_LEVEL, Math.min(1, nextLevel));
+    const rounded = Math.round(clamped * 20) / 20;
+    driveLevelRef.current = rounded;
+    setDriveLevel(rounded);
+    setControlsUsed(true);
+  };
+
   const nudge = (next: Action) => {
     updateAction(next);
     const fly = flyRef.current;
+    const activeDriveLevel = boostRef.current ? 1 : driveLevelRef.current;
+    const nudgeScale = 0.55 + activeDriveLevel * 1.15;
     if (next === "left") fly.angle -= 0.24;
     if (next === "right") fly.angle += 0.24;
     if (next === "forward") {
-      fly.x += Math.cos(fly.angle) * 0.035;
-      fly.y += Math.sin(fly.angle) * 0.045;
+      fly.x += Math.cos(fly.angle) * 0.025 * nudgeScale;
+      fly.y += Math.sin(fly.angle) * 0.032 * nudgeScale;
       setSteps((value) => value + 1);
     }
     if (next === "backward") {
-      fly.x -= Math.cos(fly.angle) * 0.035;
-      fly.y -= Math.sin(fly.angle) * 0.045;
+      fly.x -= Math.cos(fly.angle) * 0.018 * nudgeScale;
+      fly.y -= Math.sin(fly.angle) * 0.023 * nudgeScale;
       setSteps((value) => value + 1);
     }
     window.setTimeout(() => updateAction("rest"), 380);
@@ -984,14 +1076,15 @@ export default function Home() {
     pointerControlRef.current = null;
     updateAction("rest");
   };
-  const beginSpeed = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const beginMaxDrive = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (controlDisabled) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     boostRef.current = true;
     setBoosting(true);
+    setControlsUsed(true);
   };
-  const endSpeed = () => {
+  const endMaxDrive = () => {
     boostRef.current = false;
     setBoosting(false);
   };
@@ -1016,6 +1109,11 @@ export default function Home() {
       {isWalkSpeedPulse && <img className="mobile-neuron-active walk-speed-frame" src={WALK_SPEED_ASSETS[walkSpeedFrame]} alt="" />}
     </>
   );
+  const neuronColorKey = NEURON_COLOR_KEYS[circuitMode] ?? [{
+    label: activeCircuit.types,
+    detail: "selected circuit",
+    color: activeNeuronLayer.accent,
+  }];
 
   return (
     <main>
@@ -1052,7 +1150,7 @@ export default function Home() {
             </div>
             <aside
               className={`mobile-neuron-hud${mobileHudExpanded ? " expanded" : ""}${isFlightCockpit ? " cockpit" : ""}`}
-              style={{ "--layer-accent": activeNeuronLayer.accent } as CSSProperties}
+              style={{ "--layer-accent": activeNeuronLayer.accent, "--drive-level": effectiveDriveLevel } as CSSProperties}
               aria-label={`Neural interface showing ${activeNeuronLayer.label.toLowerCase()}`}
             >
               <button
@@ -1070,19 +1168,10 @@ export default function Home() {
                   <b>{worldCopy.title}</b>
                   <i>{worldCopy.detail}</i>
                 </span>
-                {worldState === "heading" && (
-                  <span className={`mobile-flight-telemetry ${velocityDirection}`}>
+                {isFlightCockpit && (
+                  <span className="mobile-flight-telemetry">
+                    <b>EPG HEADING</b>
                     <b>{headingCardinal} {String(compassDegrees).padStart(3, "0")}°</b>
-                    <b>{velocityDisplay} mm/s</b>
-                  </span>
-                )}
-                {worldState === "heading" && (
-                  <span
-                    className={`mobile-neuron-throttle ${throttleDirection}`}
-                    style={{ "--throttle-level": throttleLevel } as CSSProperties}
-                  >
-                    <b>DNg02 · {throttleStatus}</b>
-                    <i aria-hidden="true" />
                   </span>
                 )}
                 <small>{mobileHudExpanded ? "3 LOOPS · TAP TO CLOSE" : "TAP TO FOCUS"}<em>{String(steps).padStart(3, "0")} STEPS</em></small>
@@ -1090,6 +1179,21 @@ export default function Home() {
               {mobileHudExpanded && (
                 <div className="mobile-neuron-details">
                   {activeNeuronLayer.populationLabel && <strong>{activeNeuronLayer.populationLabel}</strong>}
+                  <div className="mobile-neuron-color-key" aria-label="Neuron color key">
+                    <b>COLOR KEY</b>
+                    {neuronColorKey.map((item) => (
+                      <span key={`mobile-${circuitMode}-${item.label}`}>
+                        <i style={{ "--key-color": item.color } as CSSProperties} aria-hidden="true" />
+                        {item.label}
+                      </span>
+                    ))}
+                    {!isFlightCockpit && (
+                      <span>
+                        <i style={{ "--key-color": CONTEXT_COLOR_KEY.color } as CSSProperties} aria-hidden="true" />
+                        {CONTEXT_COLOR_KEY.label}
+                      </span>
+                    )}
+                  </div>
                   <p>{activeCircuit.summary}</p>
                     <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT</a>
                 </div>
@@ -1224,6 +1328,7 @@ export default function Home() {
               style={{
                 "--layer-accent": activeNeuronLayer.accent,
                 "--heading-angle": `${headingDegrees + 90}deg`,
+                "--drive-level": effectiveDriveLevel,
               } as CSSProperties}
             >
               {isFlightCockpit ? (
@@ -1237,9 +1342,7 @@ export default function Home() {
               {isFlightCockpit && (
                 <div className="hud-instruments">
                   <HeadingCompass degrees={compassDegrees} cardinal={headingCardinal} epgIndex={epgHeadingIndex} />
-                  {worldState === "heading" && (
-                    <VelocityDial velocity={flightVelocity} direction={velocityDirection} display={velocityDisplay} />
-                  )}
+                  <VelocityDial velocity={simVelocity} direction={velocityDirection} display={velocityDisplay} />
                 </div>
               )}
               {!isFlightCockpit && (
@@ -1268,6 +1371,23 @@ export default function Home() {
                 </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
+              <div className="neuron-color-key" aria-label="Neuron color key">
+                <b>COLOR KEY</b>
+                {neuronColorKey.map((item) => (
+                  <span key={`${circuitMode}-${item.label}`}>
+                    <i style={{ "--key-color": item.color } as CSSProperties} aria-hidden="true" />
+                    <em>{item.label}</em>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+                {!isFlightCockpit && (
+                  <span>
+                    <i style={{ "--key-color": CONTEXT_COLOR_KEY.color } as CSSProperties} aria-hidden="true" />
+                    <em>{CONTEXT_COLOR_KEY.label}</em>
+                    <small>{CONTEXT_COLOR_KEY.detail}</small>
+                  </span>
+                )}
+              </div>
             </div>
             {viewerOpen && (
               <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">
@@ -1280,35 +1400,57 @@ export default function Home() {
               </div>
             )}
             <div className="hud-status" aria-live="polite">
-              {/* one slot, same place, whichever mode the fly is in */}
-              <div className={`hud-row drive ${worldState === "heading" ? throttleDirection : boosting ? "boost" : "idle"}`}
-                style={{ "--throttle-level": worldState === "heading" ? throttleLevel : boosting ? 1 : 0 } as CSSProperties}>
-                <span>{worldState === "heading" ? "THROTTLE · DNg02" : "DRIVE · DNg100"}</span>
-                <b>{worldState === "heading" ? throttleStatus : boosting ? "SPEED BOOST" : "WALKING"}</b>
-                <em>
-                  {worldState === "heading"
-                    ? `${flightDng02.count}-CELL FLIGHT DRIVE`
-                    : "HOLD TO GO FASTER"} <kbd>{worldState === "heading" ? "W / S" : "SHIFT"}</kbd>
-                </em>
-                <div className="hud-throttle-rail" aria-hidden="true"><i /><b /></div>
-              </div>
-              {worldState === "heading" && (
-                <>
-                </>
-              )}
-              <div className={`hud-dock${controlsUsed ? " used" : " hint"}`}>
-                <div className="key-controls" aria-label="Fly movement controls">
-                  <button className={action === "left" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "left")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "left")} disabled={controlDisabled} aria-label="Steer left">←<kbd>A</kbd></button>
-                  <button className={action === "forward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "forward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "forward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
-                  <button className={action === "backward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "backward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "backward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
-                  <button className={action === "right" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "right")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "right")} disabled={controlDisabled} aria-label="Steer right">→<kbd>D</kbd></button>
-                  <button className={`speed-key${boosting ? " active" : ""}`} onPointerDown={beginSpeed} onPointerUp={endSpeed} onPointerCancel={endSpeed} onLostPointerCapture={endSpeed} disabled={controlDisabled} aria-pressed={boosting} aria-label={worldState === "heading" ? "Hold for full DNg02 flight thrust" : "Hold to move faster"}>SPEED<kbd>SHIFT</kbd></button>
-                </div>
-              </div>
               <a className="hud-link" href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT ↗</a>
             </div>
           </div>
         </div>
+
+        <section
+          className={`drive-console ${isFlightDriveMode ? "flight" : "walk"} ${velocityDirection}${boosting ? " maxed" : ""}${controlDisabled ? " locked" : ""}${controlsUsed ? " used" : " hint"}`}
+          style={{ "--drive-level": effectiveDriveLevel, "--applied-drive": appliedDriveLevel } as CSSProperties}
+          aria-label={`Unified ${isFlightDriveMode ? "flight thrust" : "walking pace"} controls`}
+        >
+          <div className="drive-console-summary" aria-live="polite">
+            <span className="drive-mode"><i aria-hidden="true" />{isFlightDriveMode ? "FLIGHT MODE" : "WALK MODE"}</span>
+            <div className="drive-command-readout">
+              <span>{driveCommandLabel}</span>
+              <strong>{drivePercent}%</strong>
+              <small>{driveNeuronLabel}</small>
+            </div>
+            <span className="drive-causality" aria-hidden="true">→</span>
+            <div className="drive-speed-readout">
+              <span>{speedOutputLabel}</span>
+              <strong>{velocityDisplay}<small>mm/s</small></strong>
+              <em>{velocityDirection === "idle" ? (isFlightDriveMode ? "HOVER" : "STILL") : velocityDirection.toUpperCase()}</em>
+            </div>
+          </div>
+
+          <div className="drive-console-controls">
+            <div className="drive-level-control">
+              <button type="button" onClick={() => setDriveCommand(driveLevel - DRIVE_LEVEL_STEP)} disabled={controlDisabled || driveLevel <= MIN_DRIVE_LEVEL} aria-label={`Decrease ${isFlightDriveMode ? "thrust" : "walking pace"}`}>−</button>
+              <input
+                type="range"
+                min={MIN_DRIVE_LEVEL * 100}
+                max="100"
+                step="5"
+                value={driveSettingPercent}
+                onChange={(event) => setDriveCommand(Number(event.currentTarget.value) / 100)}
+                disabled={controlDisabled}
+                aria-label={isFlightDriveMode ? "Flight thrust setting" : "Walking pace setting"}
+                aria-valuetext={`${driveSettingPercent} percent${boosting ? ", temporarily overridden to 100 percent" : ""}`}
+              />
+              <button type="button" onClick={() => setDriveCommand(driveLevel + DRIVE_LEVEL_STEP)} disabled={controlDisabled || driveLevel >= 1} aria-label={`Increase ${isFlightDriveMode ? "thrust" : "walking pace"}`}>+</button>
+              <button className={`drive-max${boosting ? " active" : ""}`} type="button" onPointerDown={beginMaxDrive} onPointerUp={endMaxDrive} onPointerCancel={endMaxDrive} onLostPointerCapture={endMaxDrive} disabled={controlDisabled} aria-pressed={boosting} aria-label={`Hold for maximum ${isFlightDriveMode ? "flight thrust" : "walking pace"}`}>MAX<kbd>SHIFT</kbd></button>
+            </div>
+
+            <div className="direction-controls" aria-label="Fly direction controls">
+              <button className={action === "left" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "left")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "left")} disabled={controlDisabled} aria-label="Steer left">←<kbd>A</kbd></button>
+              <button className={action === "forward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "forward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "forward")} disabled={controlDisabled} aria-label={isFlightDriveMode ? "Apply forward thrust" : "Walk forward"}>↑<kbd>W</kbd></button>
+              <button className={action === "backward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "backward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "backward")} disabled={controlDisabled} aria-label={isFlightDriveMode ? "Apply reduced reverse thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
+              <button className={action === "right" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "right")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "right")} disabled={controlDisabled} aria-label="Steer right">→<kbd>D</kbd></button>
+            </div>
+          </div>
+        </section>
       </section>
 
       <section className="legend-band">

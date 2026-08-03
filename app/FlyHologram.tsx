@@ -458,7 +458,12 @@ export function FlyHologram({
           const isWing = segment.name.includes("wing") || segment.name.includes("haltere");
           const isEye = segment.name.includes("eye");
           const isLeg = /^[lr][fmh]_/.test(segment.name);
-          mesh.renderOrder = isWing ? 0 : isEye ? 4 : isLeg ? 3 : 2;
+          // The camera looks down on the fly, and the wings sit dorsal to the
+          // thorax, so they belong in front of the body rather than behind it.
+          // Every material here is transparent with depthWrite off, so paint
+          // order alone decides what covers what: wings above the body and the
+          // legs, below the eyes and their glints.
+          mesh.renderOrder = isEye ? 4 : isWing ? 3.5 : isLeg ? 3 : 2;
           mesh.frustumCulled = false;
           if (isLeg) {
             // A subtle back-face shell thickens the real leg geometry by a few
