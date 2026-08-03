@@ -136,7 +136,9 @@ h1 em { color: var(--moss); font-weight: 400; }
 .threat-dialog-kicker { display: flex; align-items: center; gap: 8px; color: color-mix(in srgb, var(--threat-accent) 78%, #245c50); font-size: 9px; font-weight: 900; letter-spacing: .18em; }
 .threat-dialog-kicker i { width: 7px; height: 7px; border-radius: 50%; background: var(--threat-accent); box-shadow: 0 0 12px color-mix(in srgb, var(--threat-accent) 72%, transparent); }
 .threat-dialog h2 { margin: 11px 0 6px; font-family: Georgia, serif; font-size: clamp(31px, 4vw, 45px); font-weight: 400; line-height: 1; letter-spacing: -.025em; }
-.threat-dialog > p { margin: 0; color: #587168; font-size: 14px; line-height: 1.5; }
+.threat-dialog p { margin: 0; color: #587168; font-size: 14px; line-height: 1.5; }
+.threat-dialog-intro { display: grid; grid-template-columns: minmax(0, 1fr) 154px; align-items: center; gap: 20px; }
+.threat-dialog-spider { display: block; width: 100%; aspect-ratio: 1.18; padding: 7px; object-fit: contain; border: 1px solid rgba(58,133,116,.24); border-radius: 10px; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.9), rgba(215,241,227,.7)); filter: drop-shadow(0 10px 10px rgba(34,82,69,.14)); }
 .threat-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 24px; }
 .threat-choices button { min-height: 78px; display: grid; align-content: center; gap: 5px; padding: 12px; border: 1px solid rgba(49,107,92,.28); border-radius: 8px; background: rgba(255,255,255,.5); color: #153d34; text-align: left; cursor: pointer; box-shadow: inset 0 1px rgba(255,255,255,.72); transition: transform .16s ease, border-color .16s ease, background .16s ease; }
 .threat-choices button:hover, .threat-choices button:focus-visible { transform: translateY(-2px); border-color: var(--threat-accent); background: color-mix(in srgb, var(--threat-accent) 10%, white); outline: none; }
@@ -455,6 +457,8 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 @media (max-width: 560px) {
   .threat-dialog { top: 50%; width: calc(100% - 20px); padding: 22px 18px; }
   .threat-dialog h2 { font-size: 34px; }
+  .threat-dialog-intro { grid-template-columns: minmax(0, 1fr) 104px; gap: 12px; }
+  .threat-dialog-spider { padding: 4px; border-radius: 8px; }
   .threat-choices { grid-template-columns: 1fr; gap: 7px; margin-top: 18px; }
   .threat-choices button { min-height: 58px; grid-template-columns: 92px minmax(0, 1fr); align-items: center; text-align: left; }
   .threat-choices strong { font-size: 19px; }

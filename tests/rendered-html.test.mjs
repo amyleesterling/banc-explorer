@@ -105,6 +105,9 @@ test("lets the player choose freeze, run, or fly when the threat arrives", async
   assert.match(page, /type ThreatChoice = "freeze" \| "run" \| "fly"/);
   assert.match(page, /FREEZE_SURVIVAL_MS = 3000/);
   assert.match(page, /Threat detected!/);
+  assert.match(page, /className="threat-dialog-spider"/);
+  assert.match(page, /alt="A fluffy mint-green jumping spider"/);
+  assert.match(page, /mint-spider\.webp/);
   assert.match(page, /handleThreatChoice\("freeze"\)/);
   assert.match(page, /handleThreatChoice\("run"\)/);
   assert.match(page, /handleThreatChoice\("fly"\)/);
@@ -115,6 +118,8 @@ test("lets the player choose freeze, run, or fly when the threat arrives", async
   assert.match(css, /\.freeze-countdown/);
   assert.match(css, /@keyframes freeze-ring-drain/);
   assert.match(css, /\.spider-threat\.run/);
+  assert.match(css, /\.threat-dialog-intro/);
+  assert.match(css, /\.threat-dialog-spider/);
 });
 
 test("uses the delivered 16-frame DNg100 sequence for the existing SPEED control", async () => {

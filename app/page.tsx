@@ -997,9 +997,18 @@ export default function Home() {
             )}
             {worldState === "threat" && (
               <section className="threat-dialog choice" role="alertdialog" aria-modal="true" aria-labelledby="threat-dialog-title">
-                <span className="threat-dialog-kicker"><i /> PREDATOR PROTOCOL</span>
-                <h2 id="threat-dialog-title">Threat detected!</h2>
-                <p>A spider is closing in. Choose your survival strategy.</p>
+                <div className="threat-dialog-intro">
+                  <div>
+                    <span className="threat-dialog-kicker"><i /> PREDATOR PROTOCOL</span>
+                    <h2 id="threat-dialog-title">Threat detected!</h2>
+                    <p>A spider is closing in. Choose your survival strategy.</p>
+                  </div>
+                  <img
+                    className="threat-dialog-spider"
+                    src={`${assetBase}/mint-spider.webp`}
+                    alt="A fluffy mint-green jumping spider"
+                  />
+                </div>
                 <div className="threat-choices">
                   <button type="button" onClick={() => handleThreatChoice("freeze")}><strong>Freeze</strong><small>Don’t move for 3 seconds</small></button>
                   <button type="button" onClick={() => handleThreatChoice("run")}><strong>Run</strong><small>Risk a ground escape</small></button>
