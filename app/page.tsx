@@ -69,7 +69,10 @@ const HEAD_GROOM_ASSETS = Array.from(
   { length: GROOM_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-groom-head-dng12/frame-${String(index).padStart(2, "0")}.webp`,
 );
-const FOOD_TARGET = { x: 0.84, y: 0.3 };
+// Keep the food target inside the unobscured fly world. The neural HUD occupies
+// the right third on desktop and the upper-right corner on mobile, so placing
+// the target farther right makes the peach technically mounted but invisible.
+const FOOD_TARGET = { x: 0.6, y: 0.48 };
 const FOOD_CONTACT_BOUNDARY = { halfWidth: 0.15, halfHeight: 0.11 };
 const FLOWER_TARGETS = [
   { x: 0.2, y: 0.72 },
