@@ -117,7 +117,7 @@ test("lets the player choose freeze, run, or fly when the threat arrives", async
   assert.match(css, /\.spider-threat\.run/);
 });
 
-test("uses the delivered 16-frame DNg100 sequence for the existing SPEED control", async () => {
+test("scales the delivered DNg100 signal sequence with the unified walking pace setting", async () => {
   const [page, css, frames] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -127,9 +127,12 @@ test("uses the delivered 16-frame DNg100 sequence for the existing SPEED control
   assert.equal(frames.filter((name) => /^frame-\d{2}\.webp$/.test(name)).length, 16);
   assert.match(page, /const WALK_SPEED_FRAME_COUNT = 16/);
   assert.match(page, /banc-walk-speed-dng100\/frame-/);
-  assert.match(page, /isWalkSpeedPulse = worldState === "seeking" && boosting/);
+  assert.match(page, /const \[driveLevel, setDriveLevel\] = useState\(DEFAULT_DRIVE_LEVEL\)/);
+  assert.match(page, /isWalkSpeedPulse = worldState === "seeking"[\s\S]*effectiveDriveLevel > MIN_DRIVE_LEVEL/);
+  assert.match(page, /const walkDrivePlaybackFps = 5 \+ effectiveDriveLevel \* 11/);
   assert.match(page, /isWalkSpeedPulse && \(/);
   assert.match(css, /\.neuron-action-layer\.walk-speed-frame/);
+  assert.match(css, /--drive-level/);
 });
 
 test("keeps the peach mounted and visible throughout the simulator loop", async () => {
@@ -165,7 +168,7 @@ test("links to a dedicated credits page with the requested acknowledgements", as
   assert.match(credits, /BANC neurons associated with forward walking/);
 });
 
-test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG compass", async () => {
+test("distinguishes persistent drive command, flight thrust, and measured speed", async () => {
   const [page, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -173,16 +176,20 @@ test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG co
 
   assert.match(page, /const \[flightThrottle, setFlightThrottle\] = useState\(0\)/);
   assert.match(page, /const throttleCommand = interactiveFlight/);
-  assert.match(page, /\? -0\.55/);
-  // one drive slot serves walking and flight; it must carry the throttle state
-  assert.match(page, /hud-row drive/);
-  assert.match(page, /throttleDirection : boosting/);
-  assert.match(page, /THROTTLE · DNg02/);
-  assert.match(page, /\{flightDng02\.count\}-CELL FLIGHT DRIVE/);
-  // the W/S hint is now conditional: W/S while flying, SHIFT while walking
-  assert.match(page, /"W \/ S" : "SHIFT"/);
-  assert.match(css, /\.hud-row\.drive/);
-  assert.match(css, /\.hud-throttle-rail/);
+  assert.match(page, /\? -activeDriveLevel \* 0\.55/);
+  assert.match(page, /const driveLevelRef = useRef\(DEFAULT_DRIVE_LEVEL\)/);
+  assert.match(page, /const flightMotionRef = useRef\(0\)/);
+  assert.match(page, /const targetFlightMotion = throttleCommand \* MAX_FLIGHT_SPEED_SIM_S/);
+  assert.match(page, /PACE SETTING/);
+  assert.match(page, /THRUST SETTING/);
+  assert.match(page, /DNg100 · WALK DRIVE/);
+  assert.match(page, /DNg02 · WING DRIVE/);
+  assert.match(page, /className={`drive-console/);
+  assert.match(page, /type="range"/);
+  assert.match(page, /else if \(currentState === "heading"\)[\s\S]*setCircuitMode\("heading"\)/);
+  assert.match(css, /\.drive-console/);
+  assert.match(css, /\.drive-level-control/);
+  assert.match(css, /\.drive-command-readout::after/);
   assert.doesNotMatch(page, /flight-drive-readout/);
   // the six scattered cards were collapsed into one HUD column; none may return
   assert.doesNotMatch(page, /flight-throttle-hud|mission-hud|signal-story|neuron-render-label/);
@@ -317,19 +324,23 @@ test("uses the fly world as a full-viewport cockpit with neurons overlaid as a H
   assert.doesNotMatch(css, /grid-template-columns: minmax\(0, 1\.12fr\) minmax\(360px, \.88fr\)/);
 });
 
-test("keeps event copy in the HUD and uses only a floating movement dock at the bottom", async () => {
+test("keeps one responsive drive console available on desktop and mobile", async () => {
   const [page, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
   assert.doesNotMatch(page, /controlCopy|className="control-copy"/);
-  assert.match(css, /\.controls \{[^}]*width: auto;[^}]*background: transparent/);
-  assert.match(css, /\.key-controls \{[^}]*border-radius: 15px;[^}]*backdrop-filter: blur\(14px\)/);
+  assert.match(page, /className={`drive-console/);
+  assert.match(page, /className="drive-level-control"/);
+  assert.match(page, /className="direction-controls"/);
+  assert.match(page, /type="range"/);
+  assert.match(css, /\.drive-console \{/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.drive-console \{ left: 10px; right: 10px; bottom: 10px/);
   assert.doesNotMatch(css, /\.arena-panel \{[^}]*grid-template-rows/);
 });
 
-test("shows signed flight velocity measured from simulated displacement", async () => {
+test("shows signed simulated speed measured from displacement on ground and in air", async () => {
   const [page, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -338,10 +349,13 @@ test("shows signed flight velocity measured from simulated displacement", async 
   assert.match(page, /const SIM_WORLD_WIDTH_MM = 3/);
   assert.match(page, /const deltaX = fly\.x - previousVelocitySample\.x/);
   assert.match(page, /const longitudinalVelocity = dt > 0/);
-  assert.match(page, /SIM VELOCITY/);
-  assert.match(page, /\{velocityDisplay\} <u className="hud-u">mm\/s<\/u>/);
-  assert.match(css, /\.hud-row > b/);
-  assert.match(css, /\.hud-row\.drive/);
+  assert.match(page, /const targetVelocity = isPlayerControllableState\(currentWorldState\)/);
+  assert.match(page, /setSimVelocity\(roundedVelocity\)/);
+  assert.match(page, /GROUND SPEED/);
+  assert.match(page, /AIR SPEED/);
+  assert.match(page, /\{velocityDisplay\}<small>mm\/s<\/small>/);
+  assert.match(page, /flightMotionRef\.current \+= \(targetFlightMotion - flightMotionRef\.current\) \* flightResponse/);
+  assert.match(css, /\.drive-speed-readout/);
 });
 
 test("uses the supplied Be the Fly v2 mark for the header and browser icons", async () => {
