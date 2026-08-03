@@ -94,9 +94,12 @@ test("ships the audited DNg12 anterior-grooming package without an unsupported w
   assert.match(page, /GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS \/ 2/);
   assert.match(page, /elapsed % cycleDuration/);
   assert.doesNotMatch(page, /groomPulseComplete|setGroomPulseComplete/);
-  assert.match(page, /HEAD_GROOM_DURATION_MS = 22500/);
+  // The grooming pose is still now, so a 22.5 second hold was dead time. Six
+  // seconds is about five loops of the DNg12 signal, which is what there is to
+  // see. The two files must agree or the fly and its render fall out of step.
+  assert.match(page, /HEAD_GROOM_DURATION_MS = 6000/);
   assert.match(flyModel, /HEAD_GROOM_CYCLE_SPEED = 0\.32/);
-  assert.match(flyModel, /HEAD_GROOM_DURATION_SECONDS = 22\.5/);
+  assert.match(flyModel, /HEAD_GROOM_DURATION_SECONDS = 6/);
   assert.match(page, /BANC DNg12-annotated population — anterior grooming/);
   assert.match(page, /dng12-122/);
   assert.doesNotMatch(page, /wPN1|groom-wing/);
@@ -273,7 +276,9 @@ test("keeps the articulated legs delicate, compact, and free of artificial red t
   assert.match(page, /SNACK_BEFORE_WARNING_MS = 4800/);
   assert.match(page, /FREEZE_SURVIVAL_MS = 3000/);
   assert.match(page, /DODGE_PLAYBACK_FPS = 12/);
-  assert.match(page, /TAKEOFF_STAGE_MS = 1800/);
+  // The dodge hands the controls over quickly now: one second of evasion, a
+  // short launch beat, then flight control.
+  assert.match(page, /TAKEOFF_STAGE_MS = 700/);
   assert.match(page, /LANDING_STAGE_MS = 1700/);
 });
 
@@ -296,7 +301,9 @@ test("gives mobile a light full-size neuron focus without freezing grooming cont
   ]);
 
   assert.match(page, /worldState === "dodge" \|\| worldState === "groom-head"/);
-  assert.match(page, /DODGE_STAGE_MS = 3200/);
+  // One second of dodge, covering about a third of the arena.
+  assert.match(page, /DODGE_STAGE_MS = 1000/);
+  assert.match(page, /fly\.x \+= dt \* 0\.30/);
   assert.match(page, /cycleDuration \* 3/);
   assert.match(page, /3 LOOPS · TAP TO CLOSE/);
   assert.match(css, /\.mobile-neuron-hud\.expanded \{ inset: 72px 12px 82px/);
@@ -403,6 +410,10 @@ test("shows signed simulated speed measured from displacement on ground and in a
   assert.match(page, /const FLIGHT_POWER_DIR = "banc-flight-power-dng02"/);
   assert.match(page, /\{showFlightPower && \(/);
   assert.match(page, /hud-drive-inset/);
+  // .neuron-render-stage img absolutely positions every image in the stage;
+  // the thrust panel has to opt out or its frame is stretched over the whole
+  // stage and never seen.
+  assert.match(css, /\.hud-drive-inset > img \{[^}]*position: static/);
   assert.doesNotMatch(page, /neuron-action-layer flight-power-frame/);
   assert.match(page, /src=\{activeSequence\[sequenceFrame\]\}/);
   // One quantity, one place: the compass replaced the duplicate heading strip.
