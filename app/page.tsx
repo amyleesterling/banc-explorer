@@ -43,12 +43,12 @@ const GAME_OVER_MS = 3200;
 const SCENT_REVEAL_MS = 2600;
 // Hold the scripted quick-dodge beat long enough for the mobile neural focus to
 // show the 12-frame explanatory signal three times before takeoff continues.
-const DODGE_STAGE_MS = 3200;
+const DODGE_STAGE_MS = 1000;
 // One escape saccade, not a spin. The dodge used to apply a constant 2.2 rad/s
 // for the whole 3.2 s stage, which is 403 degrees: the fly corkscrewed through
 // the air. A saccade is a fast turn of bounded amplitude that then stops.
 const DODGE_SACCADE_RADIANS = 1.75;   // 100 degrees
-const TAKEOFF_STAGE_MS = 1800;
+const TAKEOFF_STAGE_MS = 700;
 const LANDING_STAGE_MS = 1700;
 const RELAUNCH_STAGE_MS = 1800;
 const DODGE_LEFT_ASSETS = Array.from(
@@ -79,7 +79,7 @@ const GROOM_NEURAL_SOURCE_FPS = 24;
 const GROOM_NEURAL_PLAYBACK_FPS = GROOM_NEURAL_SOURCE_FPS / 2;
 const GROOM_SIGNAL_DELAY_MS = 520;
 // One complete 10x-slowed articulated grooming cycle, including ease in/out.
-const HEAD_GROOM_DURATION_MS = 22500;
+const HEAD_GROOM_DURATION_MS = 6000;
 const HEAD_GROOM_ASSETS = Array.from(
   { length: GROOM_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-groom-head-dng12/frame-${String(index).padStart(2, "0")}.webp`,
@@ -854,8 +854,8 @@ export default function Home() {
           dodgeTurnTargetRef.current = fly.angle + DODGE_SACCADE_RADIANS;
         }
         fly.angle += (dodgeTurnTargetRef.current - fly.angle) * Math.min(1, dt * 5.5);
-        fly.x += dt * 0.18;
-        fly.y -= dt * 0.07;
+        fly.x += dt * 0.30;
+        fly.y -= dt * 0.12;
         nextAction = "right";
       } else if (dodgeTurnTargetRef.current !== null) {
         dodgeTurnTargetRef.current = null;
@@ -1070,7 +1070,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="lab-shell" aria-label="Interactive BANC fly cockpit">
+      <section className={`lab-shell${viewerOpen ? " viewer-open" : ""}`} aria-label="Interactive BANC fly cockpit">
         <div className="arena-panel" style={{ backgroundImage: `url("${assetBase}/moss-garden.webp")` }}>
           <header className="panel-heading cockpit-topbar">
             <span className="brand">

@@ -44,7 +44,7 @@ const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const WING_FLIGHT_CLEARANCE = 0.34;
 const GROOM_LEGS_ANIMATE = false;
 const HEAD_GROOM_CYCLE_SPEED = 0.32;
-const HEAD_GROOM_DURATION_SECONDS = 22.5;
+const HEAD_GROOM_DURATION_SECONDS = 6;
 
 function smoothstep(edge0: number, edge1: number, value: number) {
   const amount = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);

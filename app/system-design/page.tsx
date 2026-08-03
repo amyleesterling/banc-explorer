@@ -142,7 +142,7 @@ export default function SystemDesignPage() {
                 <th>Behavior</th>
                 <th>Cell types</th>
                 <th>Cells</th>
-                <th>Synapses</th>
+                <th>Synapses (in + out)</th>
                 <th>Dataset</th>
                 <th>What renders</th>
                 <th>What it means</th>
@@ -184,7 +184,13 @@ export default function SystemDesignPage() {
         <p className={styles.guardrail}>
           <strong>Evidence guardrail:</strong> BANC is a wiring diagram, not a
           recording. Cell counts and synapse counts are measured from the
-          materialized dataset named in each row. The animated sequences are
+          materialized dataset named in each row. A synapse count is the number
+          of distinct predicted synapses with one of that layer&apos;s cells at
+          either end, inputs and outputs together, counted once even when both
+          ends fall inside the layer. Some of these cells are very large: a
+          single DNg100, also called BDN2, carries about 44,000 output synapses
+          onto roughly 30,000 partners, which three independent synapse tables
+          agree on. The animated sequences are
           explanatory, derived from skeleton geometry and synapse polarity, and
           are not recorded action potentials or measured conduction timing.
         </p>
