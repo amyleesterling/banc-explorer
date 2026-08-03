@@ -828,36 +828,6 @@ export default function Home() {
                 fetchPriority="high"
                 data-world-state={worldState}
               />
-            {(worldState === "seeking" || worldState === "heading" || worldState === "relaunch") && (
-              <div className={`mission-hud ${worldState}`} role="status" aria-live="polite">
-                <span>{missionCopy.kicker}</span>
-                <strong>{missionCopy.title}</strong>
-                <small>{missionCopy.detail}</small>
-              </div>
-            )}
-            {worldState === "heading" && (
-              <aside
-                className={`flight-throttle-hud ${throttleDirection}`}
-                style={{ "--throttle-level": throttleLevel } as CSSProperties}
-                aria-label={`DNg02 flight throttle: ${throttleStatus.toLowerCase()}`}
-              >
-                <div
-                  className="flight-throttle-rail"
-                  role="meter"
-                  aria-label="DNg02 throttle command"
-                  aria-valuemin={-55}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(flightThrottle * 100)}
-                  aria-valuetext={throttleStatus}
-                ><i /><b /></div>
-                <div className="flight-throttle-copy">
-                  <span>THROTTLE COMMAND</span>
-                  <strong>DNg02</strong>
-                  <small>{flightDng02.count}-CELL FLIGHT DRIVE</small>
-                  <div><b>{throttleStatus}</b><kbd>W / S</kbd></div>
-                </div>
-              </aside>
-            )}
             {(worldState === "takeoff" || worldState === "heading" || worldState === "landing" || worldState === "groom-head" || worldState === "relaunch") && (
               <div
                 className={`landing-flower ${worldState}`}
@@ -905,6 +875,19 @@ export default function Home() {
             </button>
           </header>
           <div className="circuit-canvas-wrap">
+            <div className="hud-head">
+              <span className="hud-kicker">
+                <i aria-hidden="true" />
+                {isDodgePulse
+                  ? `DNp03 · ${flightDnp03.count}-CELL PAIR`
+                  : isFlightCockpit
+                    ? `COMPASS COCKPIT · EPG ${String(epgHeadingIndex).padStart(2, "0")}`
+                    : activeNeuronLayer.populationLabel ?? "ACTION"}
+              </span>
+              <strong>{activeNeuronLayer.label}</strong>
+              <p>{activeCircuit.summary}</p>
+              {activeCircuit.note && <small>{activeCircuit.note}</small>}
+            </div>
             <div
               className={`neuron-render-stage${isFlightCockpit ? " heading" : ""}`}
               role="img"
@@ -919,19 +902,6 @@ export default function Home() {
                   <img className="epg-cockpit-base" src={EPG_BASE_ASSET} alt="" />
                   <img key={epgHeadingAsset} className="epg-cockpit-active" src={epgHeadingAsset} alt="" />
                   <div className="epg-cockpit-reticle"><span /></div>
-                  <div className="epg-cockpit-readout"><span>FLY HEADING · EPG {String(epgHeadingIndex).padStart(2, "0")}</span><strong>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</strong></div>
-                  {worldState === "heading" && (
-                    <div
-                      className={`epg-velocity-readout ${velocityDirection}`}
-                      style={{ "--velocity-level": velocityLevel } as CSSProperties}
-                    >
-                      <span>SIM VELOCITY · BODY AXIS</span>
-                      <div className="epg-velocity-value">
-                        <strong>{velocityDisplay}</strong><small>mm/s</small><b>{velocityDirection === "idle" ? "HOVER" : velocityDirection.toUpperCase()}</b>
-                      </div>
-                      <div className="epg-velocity-gauge" aria-hidden="true"><i /></div>
-                    </div>
-                  )}
                   <div className="epg-cockpit-turn"><span>← A</span><b>EPG COMPASS</b><span>D →</span></div>
                 </div>
               ) : (
@@ -960,12 +930,6 @@ export default function Home() {
                 </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
-              {(!isFlightCockpit || circuitMode === "heading") && (
-                <div className="neuron-render-label">
-                  {(isFlightCockpit || isDodgePulse || isGrooming) && <span><i /> {isDodgePulse ? `DNp03 · ${flightDnp03.count}-CELL PAIR` : isGrooming ? activeNeuronLayer.populationLabel : "COMPASS COCKPIT"}</span>}
-                  <strong>{activeNeuronLayer.label}</strong>
-                </div>
-              )}
             </div>
             {viewerOpen && (
               <div className="inline-neuroglancer expanded" role="dialog" aria-modal="true" aria-label="Interactive BANC walking and steering neurons">
@@ -977,13 +941,49 @@ export default function Home() {
                 <div className="neuroglancer-inline-footer"><span><i /> LIVE BANC MORPHOLOGY · DRAG TO ROTATE</span><span>LOADED ON REQUEST</span></div>
               </div>
             )}
-          </div>
-          <div className={`signal-story mode-${circuitMode}`} aria-live="polite">
-            <div className="signal-topline"><span>ACTION</span></div>
-            <h2>{activeNeuronLayer.label}</h2>
-            <p>{activeCircuit.summary}</p>
-            {activeCircuit.note && <small className="signal-note">{activeCircuit.note}</small>}
-            <a href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT ↗</a>
+            <div className="hud-status" aria-live="polite">
+              {(worldState === "seeking" || worldState === "heading" || worldState === "relaunch") && (
+                <div className="hud-row">
+                  <span>{missionCopy.kicker}</span>
+                  <b>{missionCopy.title}</b>
+                  <em>{missionCopy.detail}</em>
+                </div>
+              )}
+              {isFlightCockpit && (
+                <div className="hud-row">
+                  <span>FLY HEADING</span>
+                  <b>{headingCardinal} · {String(compassDegrees).padStart(3, "0")}°</b>
+                  <em>EPG {String(epgHeadingIndex).padStart(2, "0")}</em>
+                </div>
+              )}
+              {worldState === "heading" && (
+                <>
+                  <div className={`hud-row ${velocityDirection}`}>
+                    <span>SIM VELOCITY</span>
+                    <b>{velocityDisplay} <u className="hud-u">mm/s</u></b>
+                    <em>{velocityDirection === "idle" ? "HOVER" : velocityDirection.toUpperCase()}</em>
+                  </div>
+                  <div
+                    className={`hud-row throttle ${throttleDirection}`}
+                    style={{ "--throttle-level": throttleLevel } as CSSProperties}
+                  >
+                    <span>THROTTLE · DNg02</span>
+                    <b>{throttleStatus}</b>
+                    <em>{flightDng02.count}-CELL FLIGHT DRIVE <kbd>W / S</kbd></em>
+                    <div
+                      className="hud-throttle-rail"
+                      role="meter"
+                      aria-label="DNg02 throttle command"
+                      aria-valuemin={-55}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(flightThrottle * 100)}
+                      aria-valuetext={throttleStatus}
+                    ><i /><b /></div>
+                  </div>
+                </>
+              )}
+              <a className="hud-link" href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT ↗</a>
+            </div>
           </div>
         </div>
       </section>
@@ -1018,7 +1018,7 @@ export default function Home() {
         <span>BANC EXPLORER · PUBLIC PROTOTYPE</span>
         <span className="footer-links">
           <span>Built to explore, not to overclaim.</span>
-          <a href={`${assetBase}/credits`}>Credits</a>
+          <a href={`${assetBase}/credits`}>Citations & Credits</a>
         </span>
       </footer>
 
