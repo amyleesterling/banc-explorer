@@ -39,6 +39,9 @@ type HologramMaterial = THREE.ShaderMaterial & {
 const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 // Intentionally slow enough that a child can follow each front foot from its
 // resting pose, across the head, and back again.
+// How far the wings sit above the thorax while beating, in model units. Enough
+// that the elevation stroke clears the body from the dorsal camera.
+const WING_FLIGHT_CLEARANCE = 0.34;
 const GROOM_LEGS_ANIMATE = false;
 const HEAD_GROOM_CYCLE_SPEED = 0.32;
 const HEAD_GROOM_DURATION_SECONDS = 22.5;
@@ -704,9 +707,17 @@ export function FlyHologram({
           // Flight is primarily a fast elevation stroke. Keeping fore-aft
           // sweep small prevents the dorsal view from reading as a wing
           // repeatedly folding backward through the body.
+          //
+          // The stroke used to swing 0.72 rad about X, which carries the blade
+          // straight through the thorax. That was hidden while the wings
+          // painted behind the body; now that they paint in front, the wing
+          // visibly cuts across it. Two changes keep the beat and lose the
+          // clipping: a smaller elevation arc, and the whole wing lifted clear
+          // of the body for the duration of the stroke.
           const beat = Math.sin(time * 58 + phase);
+          object.position.z += WING_FLIGHT_CLEARANCE;
           object.rotateZ(side * (0.34 + beat * 0.055));
-          object.rotateX(beat * 0.72);
+          object.rotateX(beat * 0.34);
         } else {
           const flick = wingEnvelope * flutter;
           object.rotateZ(side * flick);
