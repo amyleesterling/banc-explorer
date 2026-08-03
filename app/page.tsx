@@ -4,6 +4,7 @@ import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as Reac
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlyHologram } from "./FlyHologram";
 import flightDng02 from "./data/flight-dng02.json";
+import layerStats from "./data/layer-stats.json";
 import flightDnp03 from "./data/flight-dnp03.json";
 import walkingSteeringNeuroglancer from "./data/walking-steering-neuroglancer.json";
 
@@ -129,56 +130,71 @@ const STATIC_NEURON_LAYERS: Record<CircuitMode, { src?: string; label: string; a
 };
 
 const CIRCUITS: Record<CircuitMode, {
+  // `types` names the actual cell types on screen. Never describe a layer as
+  // "five neurons": the type is the science, and a count without it says nothing.
+  types: string;
   summary: string;
   viewerUrl: string;
   note?: string;
 }> = {
   walk: {
-    summary: "DNg100 walking drive is coordinated with ascending feedback and local leg circuits.",
+    types: "DNg100 ×2 · AN09B029_b ×2 · AN02A002 ×2",
+    summary: "DNg100 is a pro-walking descending pair. AN09B029_b carries proprioceptive leg context up to the brain, and AN02A002 returns inhibitory walking feedback, so the drive is shaped by the legs it commands.",
     viewerUrl: WALKING_SCENE_URL,
   },
   backward: {
-    summary: "Four Moonwalker Descending Neurons are highlighted during backward walking.",
+    types: "MDN ×4",
+    summary: "The Moonwalker Descending Neurons (MDN). Activating them switches the fly from forward to backward walking, one of the clearest command signals in the connectome.",
     viewerUrl: MDN_CODEX_URL,
   },
   left: {
-    summary: "Left DNa01 and DNa02 are highlighted for steering.",
+    types: "DNa02 left · DNa01 left",
+    summary: "Two ipsilateral steering descending neurons of the left hemisphere. DNa02 is the high-gain channel and DNa01 the low-gain one, and the fly compares the two sides rather than reading either alone.",
     viewerUrl: STEERING_CODEX_URL,
   },
   right: {
-    summary: "Right DNa01 and DNa02 are highlighted for steering.",
+    types: "DNa02 right · DNa01 right",
+    summary: "Two ipsilateral steering descending neurons of the right hemisphere. DNa02 is the high-gain channel and DNa01 the low-gain one, and the fly compares the two sides rather than reading either alone.",
     viewerUrl: STEERING_CODEX_URL,
   },
   eat: {
-    summary: "Six cells from the official BANC feeding scene are highlighted.",
+    types: "DNg70 ×2 · DNp44 ×2 · DNp62 ×2",
+    summary: "Three descending pairs associated with feeding: DNg70, feeding-associated DNp44, and hunger-associated DNp62. They descend from the brain toward the circuits that drive the proboscis and mouthparts.",
     viewerUrl: FEEDING_SCENE_URL,
   },
   threat: {
-    summary: "Five response neurons are highlighted as the fly escapes.",
+    types: "DNp42 ×2 · DNge053 ×2 · DNg55 ×1",
+    summary: "Escape on foot, not takeoff. DNp42 drives backward walking, DNge053 walking, and DNg55 steering. These are response neurons: they produce the escape, they do not detect the threat. Detection happens in the optic lobe.",
     viewerUrl: WALKING_FIGURE_URL,
   },
   dodge: {
+    types: `DNp03 ×${flightDnp03.count}`,
     summary: `The verified ${flightDnp03.count}-cell BANC DNp03 pair is shown as an explanatory flight-saccade pulse. Anatomical side is not assigned to turn direction.`,
     viewerUrl: DNP03_CODEX_URL,
   },
   heading: {
-    summary: "EPG neurons maintain the fly's heading as it turns.",
+    types: "EPG ×53 (FAFB, not BANC)",
+    summary: "EPG compass neurons tile the ellipsoid body, and a bump of activity moves around that ring as the fly turns, holding its heading. These are reconstructed from FAFB rather than BANC, because the compass sits in the brain.",
     viewerUrl: EPG_CODEX_URL,
   },
   "flight-forward": {
+    types: `DNg02 ×${flightDng02.count}`,
     summary: `The ${flightDng02.count}-cell BANC DNg02 population regulates wingbeat amplitude and contributes to flight thrust.`,
     viewerUrl: DNG02_CODEX_URL,
   },
   "flight-reverse": {
+    types: `DNg02 ×${flightDng02.count}`,
     summary: "Reverse is simulated by reducing and redirecting DNg02-powered thrust; no dedicated backward-flight cell type is claimed.",
     viewerUrl: DNG02_CODEX_URL,
   },
   landing: {
-    summary: "DNp07 and DNp10 landing-pathway neurons are selected as the fly touches down.",
+    types: "DNp07 ×2 · DNp10 ×2",
+    summary: "Two descending pairs that contribute to visually evoked landing and to the landing-like extension of all six legs. They are not the only landing neurons.",
     viewerUrl: LANDING_CODEX_URL,
   },
   "groom-head": {
-    summary: "These 28 DNg12 neurons descend from brain inputs to outputs in the T1 front-leg region of the VNC.",
+    types: "DNg12 ×28",
+    summary: "Anterior grooming. These 28 DNg12 cells take their inputs in the brain and put their outputs in the T1 front-leg region of the nerve cord, which is the sweep of the head and the rubbing of the front legs.",
     viewerUrl: DNG12_CODEX_URL,
     note: "This is the BANC-native DNg12 annotation population. It does not imply that every rendered cell was independently function-tested. Slow looping replay is derived from skeleton geometry and synapse polarity—not recorded activity or timing.",
   },
@@ -217,6 +233,8 @@ export default function Home() {
   const pointerControlRef = useRef<{ pointerId: number; action: Exclude<Action, "rest"> } | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [boosting, setBoosting] = useState(false);
+  // the arrow dock is a hint, not furniture: it pulses until first use, then recedes
+  const [controlsUsed, setControlsUsed] = useState(false);
   const [walkSpeedFrame, setWalkSpeedFrame] = useState(0);
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [freezeCountdown, setFreezeCountdown] = useState(3);
@@ -528,6 +546,7 @@ export default function Home() {
         const currentState = worldStateRef.current;
         if (!isPlayerControllableState(currentState)) return;
         keysRef.current.add(key);
+        setControlsUsed(true);
       }
     };
     const keyUp = (event: KeyboardEvent) => {
@@ -802,6 +821,7 @@ export default function Home() {
     // this first nudge preserves continuous movement for a press-and-hold.
     nudge(next);
     keysRef.current.add(controlKey[next]);
+    setControlsUsed(true);
   };
   const endPointerControl = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const active = pointerControlRef.current;
@@ -1008,15 +1028,6 @@ export default function Home() {
               </section>
             )}
           </div>
-          <div className="controls">
-            <div className="key-controls" aria-label="Fly movement controls">
-              <button className={action === "left" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "left")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "left")} disabled={controlDisabled} aria-label="Steer left">←<kbd>A</kbd></button>
-              <button className={action === "forward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "forward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "forward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
-              <button className={action === "backward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "backward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "backward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
-              <button className={action === "right" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "right")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "right")} disabled={controlDisabled} aria-label="Steer right">→<kbd>D</kbd></button>
-              <button className={`speed-key${boosting ? " active" : ""}`} onPointerDown={beginSpeed} onPointerUp={endSpeed} onPointerCancel={endSpeed} onLostPointerCapture={endSpeed} disabled={controlDisabled} aria-pressed={boosting} aria-label={worldState === "heading" ? "Hold for full DNg02 flight thrust" : "Hold to move faster"}>SPEED<kbd>SHIFT</kbd></button>
-            </div>
-          </div>
         </div>
 
         <div className="circuit-panel">
@@ -1028,17 +1039,40 @@ export default function Home() {
           </header>
           <div className="circuit-canvas-wrap">
             <div className="hud-head">
-              <span className="hud-kicker">
-                <i aria-hidden="true" />
-                {isDodgePulse
-                  ? `DNp03 · ${flightDnp03.count}-CELL PAIR`
-                  : isFlightCockpit
-                    ? `COMPASS COCKPIT · EPG ${String(epgHeadingIndex).padStart(2, "0")}`
-                    : activeNeuronLayer.populationLabel ?? "ACTION"}
-              </span>
-              <strong>{activeNeuronLayer.label}</strong>
-              <p>{activeCircuit.summary}</p>
-              {activeCircuit.note && <small>{activeCircuit.note}</small>}
+              {(worldState === "seeking" || worldState === "heading"
+                || worldState === "relaunch" || worldState === "scent") && (
+                <div className="hud-objective">
+                  <span>{missionCopy.kicker}</span>
+                  <strong>{missionCopy.title}</strong>
+                  <em>{missionCopy.detail}</em>
+                </div>
+              )}
+              <div className="hud-neurons">
+                <span className="hud-kicker"><i aria-hidden="true" />NEURONS INVOLVED</span>
+                <strong>{activeNeuronLayer.label}</strong>
+                <b className="hud-types">{activeCircuit.types}</b>
+                <p>{activeCircuit.summary}</p>
+                {activeCircuit.note && <small>{activeCircuit.note}</small>}
+                <div className="hud-stats">
+                  {(() => {
+                    const st = (layerStats.layers as Record<string, {
+                      cells: number; synapses: number | null; dataset: string;
+                    }>)[circuitMode];
+                    if (!st) return null;
+                    return (
+                      <>
+                        <span className="hud-stat"><b>{st.cells}</b> cells</span>
+                        {st.synapses !== null && (
+                          <span className="hud-stat"><b>{st.synapses.toLocaleString()}</b> synapses</span>
+                        )}
+                        <span className={`hud-pip${st.dataset.startsWith("BANC") ? "" : " alt"}`}>
+                          <i aria-hidden="true" />{st.dataset}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
             <div
               className={`neuron-render-stage${isFlightCockpit ? " heading" : ""}`}
@@ -1094,16 +1128,18 @@ export default function Home() {
               </div>
             )}
             <div className="hud-status" aria-live="polite">
-              {/* missionCopy covers scent as well, so the objective stays on
-                  screen through the threat-choice flow rather than blanking */}
-              {(worldState === "seeking" || worldState === "heading"
-                || worldState === "relaunch" || worldState === "scent") && (
-                <div className="hud-row">
-                  <span>{missionCopy.kicker}</span>
-                  <b>{missionCopy.title}</b>
-                  <em>{missionCopy.detail}</em>
-                </div>
-              )}
+              {/* one slot, same place, whichever mode the fly is in */}
+              <div className={`hud-row drive ${worldState === "heading" ? throttleDirection : boosting ? "boost" : "idle"}`}
+                style={{ "--throttle-level": worldState === "heading" ? throttleLevel : boosting ? 1 : 0 } as CSSProperties}>
+                <span>{worldState === "heading" ? "THROTTLE · DNg02" : "DRIVE · DNg100"}</span>
+                <b>{worldState === "heading" ? throttleStatus : boosting ? "SPEED BOOST" : "WALKING"}</b>
+                <em>
+                  {worldState === "heading"
+                    ? `${flightDng02.count}-CELL FLIGHT DRIVE`
+                    : "HOLD TO GO FASTER"} <kbd>{worldState === "heading" ? "W / S" : "SHIFT"}</kbd>
+                </em>
+                <div className="hud-throttle-rail" aria-hidden="true"><i /><b /></div>
+              </div>
               {isFlightCockpit && (
                 <div className="hud-row">
                   <span>FLY HEADING</span>
@@ -1118,25 +1154,17 @@ export default function Home() {
                     <b>{velocityDisplay} <u className="hud-u">mm/s</u></b>
                     <em>{velocityDirection === "idle" ? "HOVER" : velocityDirection.toUpperCase()}</em>
                   </div>
-                  <div
-                    className={`hud-row throttle ${throttleDirection}`}
-                    style={{ "--throttle-level": throttleLevel } as CSSProperties}
-                  >
-                    <span>THROTTLE · DNg02</span>
-                    <b>{throttleStatus}</b>
-                    <em>{flightDng02.count}-CELL FLIGHT DRIVE <kbd>W / S</kbd></em>
-                    <div
-                      className="hud-throttle-rail"
-                      role="meter"
-                      aria-label="DNg02 throttle command"
-                      aria-valuemin={-55}
-                      aria-valuemax={100}
-                      aria-valuenow={Math.round(flightThrottle * 100)}
-                      aria-valuetext={throttleStatus}
-                    ><i /><b /></div>
-                  </div>
                 </>
               )}
+              <div className={`hud-dock${controlsUsed ? " used" : " hint"}`}>
+                <div className="key-controls" aria-label="Fly movement controls">
+                  <button className={action === "left" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "left")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "left")} disabled={controlDisabled} aria-label="Steer left">←<kbd>A</kbd></button>
+                  <button className={action === "forward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "forward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "forward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Fly forward" : "Walk forward"}>↑<kbd>W</kbd></button>
+                  <button className={action === "backward" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "backward")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "backward")} disabled={controlDisabled} aria-label={worldState === "heading" ? "Reverse flight with reduced thrust" : "Walk backward with Moonwalker Descending Neurons"}>↓<kbd>S</kbd></button>
+                  <button className={action === "right" ? "active" : ""} onPointerDown={(event) => beginPointerControl(event, "right")} onPointerUp={endPointerControl} onPointerCancel={cancelPointerControl} onLostPointerCapture={cancelPointerControl} onClick={(event) => handleControlClick(event, "right")} disabled={controlDisabled} aria-label="Steer right">→<kbd>D</kbd></button>
+                  <button className={`speed-key${boosting ? " active" : ""}`} onPointerDown={beginSpeed} onPointerUp={endSpeed} onPointerCancel={endSpeed} onLostPointerCapture={endSpeed} disabled={controlDisabled} aria-pressed={boosting} aria-label={worldState === "heading" ? "Hold for full DNg02 flight thrust" : "Hold to move faster"}>SPEED<kbd>SHIFT</kbd></button>
+                </div>
+              </div>
               <a className="hud-link" href={activeCircuit.viewerUrl} target="_blank" rel="noreferrer">EXPLORE THE CIRCUIT ↗</a>
             </div>
           </div>
