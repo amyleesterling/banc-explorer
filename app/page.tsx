@@ -51,6 +51,12 @@ const DODGE_RIGHT_ASSETS = Array.from(
   { length: DODGE_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-flight-dodge-anatomical-right/frame-${String(index).padStart(2, "0")}.webp`,
 );
+const WALK_SPEED_FRAME_COUNT = 16;
+const WALK_SPEED_PLAYBACK_FPS = 12;
+const WALK_SPEED_ASSETS = Array.from(
+  { length: WALK_SPEED_FRAME_COUNT },
+  (_, index) => `${assetBase}/banc-walk-speed-dng100/frame-${String(index).padStart(2, "0")}.webp`,
+);
 const GROOM_FRAME_COUNT = 16;
 const GROOM_NEURAL_SOURCE_FPS = 24;
 // Replay the explanatory render at one tenth of its encoded rate so the
@@ -63,7 +69,10 @@ const HEAD_GROOM_ASSETS = Array.from(
   { length: GROOM_FRAME_COUNT },
   (_, index) => `${assetBase}/banc-groom-head-dng12/frame-${String(index).padStart(2, "0")}.webp`,
 );
-const FOOD_TARGET = { x: 0.84, y: 0.3 };
+// Keep the food target inside the unobscured fly world. The desktop neural HUD
+// occupies as much as 46vw, so the peach must stay in the left half rather than
+// merely being mounted beneath that opaque panel.
+const FOOD_TARGET = { x: 0.42, y: 0.3 };
 const FOOD_CONTACT_BOUNDARY = { halfWidth: 0.15, halfHeight: 0.11 };
 const FLOWER_TARGETS = [
   { x: 0.2, y: 0.72 },
@@ -202,6 +211,7 @@ export default function Home() {
   const pointerControlRef = useRef<{ pointerId: number; action: Exclude<Action, "rest"> } | null>(null);
   const [action, setAction] = useState<Action>("rest");
   const [boosting, setBoosting] = useState(false);
+  const [walkSpeedFrame, setWalkSpeedFrame] = useState(0);
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [spiderWarning, setSpiderWarning] = useState(false);
   const [steps, setSteps] = useState(0);
@@ -222,6 +232,7 @@ export default function Home() {
   const isFlightCockpit = circuitMode === "heading" || circuitMode === "flight-forward" || circuitMode === "flight-reverse";
   const isDodgePulse = circuitMode === "dodge";
   const isGrooming = worldState === "groom-head";
+  const isWalkSpeedPulse = worldState === "seeking" && boosting && (action === "forward" || action === "left" || action === "right");
   const isGroomPulse = isGrooming && groomAssetsReady;
   const groomFrameAsset = HEAD_GROOM_ASSETS[groomFrame];
   const controlsLocked = !isPlayerControllableState(worldState);
@@ -453,6 +464,28 @@ export default function Home() {
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    void Promise.all(WALK_SPEED_ASSETS.map((src) => fetch(src, { cache: "force-cache" })))
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!isWalkSpeedPulse) {
+      setWalkSpeedFrame(0);
+      return;
+    }
+    const startedAt = performance.now();
+    const frameDuration = 1000 / WALK_SPEED_PLAYBACK_FPS;
+    let animationFrame = 0;
+    const advance = () => {
+      const elapsed = performance.now() - startedAt;
+      setWalkSpeedFrame(Math.floor(elapsed / frameDuration) % WALK_SPEED_FRAME_COUNT);
+      animationFrame = requestAnimationFrame(advance);
+    };
+    animationFrame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isWalkSpeedPulse]);
 
   useEffect(() => {
     if (worldState !== "dodge") return;
@@ -703,6 +736,7 @@ export default function Home() {
           <img className="mobile-neuron-active" src={DODGE_RIGHT_ASSETS[dodgeFrame]} alt="" />
         </>
       ) : activeNeuronLayer.src ? <img key={activeNeuronLayer.src} className="mobile-neuron-active" src={activeNeuronLayer.src} alt="" /> : null}
+      {isWalkSpeedPulse && <img className="mobile-neuron-active walk-speed-frame" src={WALK_SPEED_ASSETS[walkSpeedFrame]} alt="" />}
     </>
   );
 
@@ -785,12 +819,15 @@ export default function Home() {
                 </div>
               )}
             </aside>
-            <img
-              className={`snack-fruit${worldState === "eating" ? " found" : ""}`}
-              style={FOOD_SCREEN}
-              src={`${assetBase}/droso-peach.webp`}
-              alt="Glowing slice of peach"
-            />
+              <img
+                className={`snack-fruit visible${worldState === "eating" ? " found" : ""}`}
+                style={FOOD_SCREEN}
+                src={`${assetBase}/droso-peach.webp`}
+                alt="Glowing slice of peach"
+                draggable={false}
+                fetchPriority="high"
+                data-world-state={worldState}
+              />
             {(worldState === "seeking" || worldState === "heading" || worldState === "relaunch") && (
               <div className={`mission-hud ${worldState}`} role="status" aria-live="polite">
                 <span>{missionCopy.kicker}</span>
@@ -917,6 +954,9 @@ export default function Home() {
                       onError={(event) => { event.currentTarget.style.display = "none"; }}
                     />
                   )}
+                  {isWalkSpeedPulse && (
+                    <img className="neuron-action-layer walk-speed-frame" src={WALK_SPEED_ASSETS[walkSpeedFrame]} alt="" aria-hidden="true" />
+                  )}
                 </>
               )}
               <div className="neuron-render-glow" aria-hidden="true" />
@@ -976,7 +1016,10 @@ export default function Home() {
 
       <footer>
         <span>BANC EXPLORER · PUBLIC PROTOTYPE</span>
-        <span>Built to explore, not to overclaim.</span>
+        <span className="footer-links">
+          <span>Built to explore, not to overclaim.</span>
+          <a href={`${assetBase}/credits`}>Credits</a>
+        </span>
       </footer>
 
     </main>

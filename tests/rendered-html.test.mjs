@@ -96,6 +96,54 @@ test("keeps movement controls live while the fly is grooming", async () => {
   assert.match(page, /if \(!isPlayerControllableState\(worldStateRef\.current\) && worldStateRef\.current !== "dodge"\) nextAction = "rest";/);
 });
 
+test("uses the delivered 16-frame DNg100 sequence for the existing SPEED control", async () => {
+  const [page, css, frames] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readdir(new URL("../public/banc-walk-speed-dng100/", import.meta.url)),
+  ]);
+
+  assert.equal(frames.filter((name) => /^frame-\d{2}\.webp$/.test(name)).length, 16);
+  assert.match(page, /const WALK_SPEED_FRAME_COUNT = 16/);
+  assert.match(page, /banc-walk-speed-dng100\/frame-/);
+  assert.match(page, /isWalkSpeedPulse = worldState === "seeking" && boosting/);
+  assert.match(page, /isWalkSpeedPulse && \(/);
+  assert.match(css, /\.neuron-action-layer\.walk-speed-frame/);
+});
+
+test("keeps the peach mounted and visible throughout the simulator loop", async () => {
+  const [page, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /className={`snack-fruit visible/);
+  assert.match(page, /fetchPriority="high"/);
+  assert.match(page, /data-world-state=\{worldState\}/);
+  assert.match(page, /const FOOD_TARGET = \{ x: 0\.42, y: 0\.3 \}/);
+  assert.match(css, /\.snack-fruit\.visible \{ display: block; \}/);
+});
+
+test("links to a dedicated credits page with the requested acknowledgements", async () => {
+  const [home, credits] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/credits/page.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(home, /credits`}>Credits<\/a>/);
+  assert.match(credits, /Created by/);
+  assert.match(credits, /Amy Sterling/);
+  assert.match(credits, /https:\/\/x\.com\/amyneurons/);
+  assert.match(credits, /https:\/\/orcid\.org\/0000-0002-4961-3954/);
+  assert.match(credits, /Alexander Bates/);
+  assert.match(credits, /Harvard University/);
+  assert.match(credits, /Yijie Yin/);
+  assert.match(credits, /University of Cambridge/);
+  assert.match(credits, /banc-context-base\.webp/);
+  assert.match(credits, /banc-forward\.webp/);
+  assert.match(credits, /BANC neurons associated with forward walking/);
+});
+
 test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG compass", async () => {
   const [page, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
