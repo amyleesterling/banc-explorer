@@ -174,11 +174,14 @@ test("exposes DNg02 as a persistent W/S flight throttle separate from the EPG co
   assert.match(page, /const \[flightThrottle, setFlightThrottle\] = useState\(0\)/);
   assert.match(page, /const throttleCommand = interactiveFlight/);
   assert.match(page, /\? -0\.55/);
-  assert.match(page, /className={`hud-row throttle \$\{throttleDirection\}`}/);
+  // one drive slot serves walking and flight; it must carry the throttle state
+  assert.match(page, /hud-row drive/);
+  assert.match(page, /throttleDirection : boosting/);
   assert.match(page, /THROTTLE · DNg02/);
   assert.match(page, /\{flightDng02\.count\}-CELL FLIGHT DRIVE/);
-  assert.match(page, /<kbd>W \/ S<\/kbd>/);
-  assert.match(css, /\.hud-row\.throttle/);
+  // the W/S hint is now conditional: W/S while flying, SHIFT while walking
+  assert.match(page, /"W \/ S" : "SHIFT"/);
+  assert.match(css, /\.hud-row\.drive/);
   assert.match(css, /\.hud-throttle-rail/);
   assert.doesNotMatch(page, /flight-drive-readout/);
   // the six scattered cards were collapsed into one HUD column; none may return
@@ -306,7 +309,10 @@ test("uses the fly world as a full-viewport cockpit with neurons overlaid as a H
   assert.match(css, /\.lab-shell \{[^}]*position: relative; display: block/);
   assert.match(css, /\.arena-panel \{[^}]*position: absolute;[^}]*inset: 0/);
   assert.match(css, /\.circuit-panel \{[^}]*position: absolute;[^}]*inset: 0;[^}]*background: transparent/);
-  assert.match(css, /\.circuit-canvas-wrap \{[^}]*position: absolute;[^}]*width: min\(46vw, 760px\)/);
+  // the HUD width is now a variable so the movement dock can centre on the
+  // strip of world left beside it; same geometry, one source of truth
+  assert.match(css, /\.circuit-canvas-wrap \{[^}]*--hud-w: min\(46vw, 760px\)/);
+  assert.match(css, /\.circuit-canvas-wrap \{[^}]*position: absolute/);
   assert.match(css, /\.epg-cockpit \{[^}]*background: transparent/);
   assert.doesNotMatch(css, /grid-template-columns: minmax\(0, 1\.12fr\) minmax\(360px, \.88fr\)/);
 });
@@ -335,7 +341,7 @@ test("shows signed flight velocity measured from simulated displacement", async 
   assert.match(page, /SIM VELOCITY/);
   assert.match(page, /\{velocityDisplay\} <u className="hud-u">mm\/s<\/u>/);
   assert.match(css, /\.hud-row > b/);
-  assert.match(css, /\.hud-row\.throttle\.reverse/);
+  assert.match(css, /\.hud-row\.drive/);
 });
 
 test("uses the supplied BANC fly mark for the header and browser icons", async () => {

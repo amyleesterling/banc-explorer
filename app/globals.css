@@ -194,7 +194,7 @@ h1 em { color: var(--moss); font-weight: 400; }
 .hud-frame-corner.br { right: -1px; bottom: -1px; border-right: 2px solid; border-bottom: 2px solid; border-bottom-right-radius: 13px; }
 @keyframes hud-current { to { background-position: 320% 0; } }
 
-.circuit-canvas-wrap { position: absolute; z-index: 2; right: 20px; top: 74px; bottom: 84px; width: min(46vw, 760px); background: transparent; isolation: isolate; pointer-events: none; }
+.circuit-canvas-wrap { --hud-w: min(46vw, 760px); position: absolute; z-index: 2; right: 20px; top: 74px; bottom: 84px; width: var(--hud-w); background: transparent; isolation: isolate; pointer-events: none; }
 /* A contained hologram tank: hard edge, scanlines and glow, so the render
    reads as an instrument panel instead of a blur floating over the moss. */
 .neuron-render-stage { position: absolute; inset: 0; overflow: hidden; isolation: isolate; border: 1px solid rgba(122,224,208,.34); border-radius: 12px; background: repeating-linear-gradient(0deg, rgba(122,224,246,.028) 0 1px, transparent 1px 3px), radial-gradient(ellipse at 50% 46%, rgba(9,32,32,.97) 0%, rgba(4,17,19,.98) 62%, rgba(2,11,13,.99) 100%); box-shadow: 0 26px 64px rgba(1,12,11,.5), inset 0 1px rgba(150,230,220,.14), 0 0 34px rgba(80,200,185,.16); }
@@ -583,3 +583,94 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   border: 1px solid rgb(var(--holo-beam, 178 216 248) / .32); border-radius: 3px;
   font: inherit; font-size: 8.5px; color: rgb(var(--holo-beam, 178 216 248) / .9);
 }
+
+/* objective leads the panel; the cell identity follows it */
+.hud-objective { display: grid; gap: 2px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid rgb(var(--holo-line, 196 228 255) / .10); }
+.hud-objective > span { font-size: 9px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--layer-accent, #68d6c4); }
+.hud-objective > strong { font-family: Georgia, serif; font-size: clamp(19px, 1.8vw, 25px); font-weight: 400; line-height: 1.05; color: rgb(var(--holo-ink, 239 244 251)); }
+.hud-objective > em { font-style: normal; font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: rgb(var(--holo-ink, 239 244 251) / .55); }
+.hud-neurons { display: grid; gap: 5px; }
+.hud-types { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 500; letter-spacing: .04em; color: var(--layer-accent, #68d6c4); }
+
+/* measured stats, and a pip naming the dataset they came from */
+.hud-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 9px; }
+.hud-stat { padding: 4px 9px; border: 1px solid rgb(var(--holo-line, 196 228 255) / .16); border-radius: 3px; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: rgb(var(--holo-ink, 239 244 251) / .55); font-variant-numeric: tabular-nums; }
+.hud-stat b { margin-right: 5px; font-family: Georgia, serif; font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; color: rgb(var(--holo-ink, 239 244 251)); }
+.hud-pip { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 4px 10px; border: 1px solid rgb(var(--holo-beam, 178 216 248) / .3); border-radius: 999px; font-size: 8.5px; font-weight: 800; letter-spacing: .14em; color: rgb(var(--holo-beam, 178 216 248) / .9); }
+.hud-pip i { width: 5px; height: 5px; border-radius: 50%; background: rgb(var(--holo-beam, 178 216 248)); box-shadow: 0 0 8px rgb(var(--holo-beam, 178 216 248) / .8); }
+/* a different dataset must not borrow BANC's badge */
+.hud-pip.alt { border-color: rgb(232 169 58 / .45); color: rgb(232 169 58 / .95); }
+.hud-pip.alt i { background: rgb(232 169 58); box-shadow: 0 0 8px rgb(232 169 58 / .8); }
+
+.hud-row.drive { padding-bottom: 15px; }
+.hud-row.drive.boost > b, .hud-row.drive.forward > b { color: var(--layer-accent, #68d6c4); }
+
+
+/* ---- the movement dock, inside the HUD -------------------------------------
+   It is a hint rather than furniture. A light bar sweeps across it until the
+   player first drives, then it recedes to a quiet resting state. Per scifi-ui,
+   only the ambient hint loops; once used, nothing animates.
+
+   It recedes rather than disappears: on a touch screen these buttons are the
+   only way to steer, so removing them would remove the controls. */
+.hud-dock {
+  position: relative;
+  margin-top: 12px;
+  padding: 9px 10px;
+  overflow: hidden;
+  border: 1px solid rgb(var(--holo-glow, 74 150 224) / .26);
+  border-radius: 10px;
+  background: linear-gradient(158deg, rgb(var(--holo-panel, 15 18 24) / .8), rgb(6 10 18 / .9));
+  pointer-events: auto;
+  transition: opacity .5s ease, border-color .5s ease;
+}
+.hud-dock .key-controls {
+  display: flex; justify-content: center; gap: 7px;
+  padding: 0; border: 0; background: none; box-shadow: none;
+}
+.hud-dock .key-controls button {
+  width: 46px; height: 42px;
+  border: 1px solid rgb(var(--holo-beam, 178 216 248) / .26);
+  border-radius: 8px;
+  background: rgb(var(--holo-ink, 239 244 251) / .05);
+  color: rgb(var(--holo-ink, 239 244 251) / .85);
+  font-size: 16px;
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+.hud-dock .key-controls button:hover,
+.hud-dock .key-controls button:focus-visible,
+.hud-dock .key-controls button.active {
+  transform: none;
+  color: rgb(4 10 16);
+  border-color: rgb(var(--holo-beam, 178 216 248) / .9);
+  background: rgb(var(--holo-beam, 178 216 248) / .92);
+}
+.hud-dock .key-controls kbd { color: rgb(var(--holo-ink, 239 244 251) / .5); }
+.hud-dock .key-controls .speed-key {
+  min-width: 78px; font-size: 10px; letter-spacing: .12em;
+  color: var(--layer-accent, #68d6c4);
+  border-color: rgb(var(--holo-beam, 178 216 248) / .3);
+  background: rgb(var(--holo-ink, 239 244 251) / .05);
+}
+.hud-dock .key-controls .speed-key.active,
+.hud-dock .key-controls .speed-key:hover {
+  color: rgb(4 10 16); background: var(--layer-accent, #68d6c4);
+}
+
+/* the light bar: ambient, and only while the hint stands */
+.hud-dock.hint::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%,
+    rgb(var(--holo-beam, 178 216 248) / .16) 50%, transparent 62%);
+  animation: hud-dock-sweep 2.6s ease-in-out infinite;
+}
+.hud-dock.hint { border-color: rgb(var(--holo-beam, 178 216 248) / .5); }
+@keyframes hud-dock-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* used: quiet, still reachable, and it comes back on hover or focus */
+.hud-dock.used { opacity: .34; }
+.hud-dock.used:hover, .hud-dock.used:focus-within { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) { .hud-dock.hint::after { animation: none; } }

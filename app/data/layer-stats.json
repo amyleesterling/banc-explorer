@@ -1,0 +1,112 @@
+{
+ "_note": "Measured from BANC v888 synapses_v2. Counts are synaptic connections where a layer cell is pre- or postsynaptic.",
+ "materialization": 888,
+ "source_table": "synapses_v2",
+ "layers": {
+  "walk": {
+   "cells": 6,
+   "outputs": 185488,
+   "inputs": 25642,
+   "synapses": 211130,
+   "dataset": "BANC v888",
+   "layer": "forward"
+  },
+  "backward": {
+   "cells": 4,
+   "outputs": 31009,
+   "inputs": 9682,
+   "synapses": 40691,
+   "dataset": "BANC v888",
+   "layer": "backward"
+  },
+  "left": {
+   "cells": 2,
+   "outputs": 32011,
+   "inputs": 14620,
+   "synapses": 46631,
+   "dataset": "BANC v888",
+   "layer": "turn-left"
+  },
+  "right": {
+   "cells": 2,
+   "outputs": 33698,
+   "inputs": 17873,
+   "synapses": 51571,
+   "dataset": "BANC v888",
+   "layer": "turn-right"
+  },
+  "eat": {
+   "cells": 6,
+   "outputs": 51246,
+   "inputs": 10238,
+   "synapses": 61484,
+   "dataset": "BANC v888",
+   "layer": "eat"
+  },
+  "threat": {
+   "cells": 5,
+   "outputs": 76710,
+   "inputs": 20577,
+   "synapses": 97287,
+   "dataset": "BANC v888",
+   "layer": "threat-walk"
+  },
+  "dodge": {
+   "cells": 2,
+   "outputs": 13095,
+   "inputs": 8129,
+   "synapses": 21224,
+   "dataset": "BANC v888",
+   "layer": "flight-dodge-dnp03-all"
+  },
+  "groom-head": {
+   "cells": 28,
+   "outputs": 76077,
+   "inputs": 11162,
+   "synapses": 87239,
+   "dataset": "BANC v888",
+   "layer": "groom-head-dng12"
+  },
+  "walk-speed": {
+   "cells": 2,
+   "outputs": 89929,
+   "inputs": 15604,
+   "synapses": 105533,
+   "dataset": "BANC v888",
+   "layer": "walk-speed-dng100"
+  },
+  "flight-forward": {
+   "cells": 26,
+   "outputs": 59754,
+   "inputs": 15358,
+   "synapses": 75112,
+   "dataset": "BANC v888",
+   "layer": "flight-power-dng02"
+  },
+  "landing": {
+   "cells": 4,
+   "outputs": 61369,
+   "inputs": 19662,
+   "synapses": 81031,
+   "dataset": "BANC v888",
+   "layer": "landing-dnp07-dnp10"
+  },
+  "flight-steer": {
+   "cells": 2,
+   "outputs": 1731,
+   "inputs": 10264,
+   "synapses": 11995,
+   "dataset": "BANC v888",
+   "layer": "flight-steer-mnb1-all"
+  },
+  "heading": {
+   "cells": 53,
+   "outputs": null,
+   "inputs": null,
+   "synapses": null,
+   "dataset": "FAFB / FlyWire",
+   "layer": "epg",
+   "note": "EPG compass cells are FAFB, not BANC"
+  }
+ }
+}
