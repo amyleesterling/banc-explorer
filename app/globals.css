@@ -674,3 +674,25 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 .hud-dock.used:hover, .hud-dock.used:focus-within { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) { .hud-dock.hint::after { animation: none; } }
+
+/* ---- threat dialog: keep it in the world it belongs to ----------------------
+   The arena spans the full width with the HUD laid over its right side, so a
+   dialog centred at left:50% lands under the panel and its last option is
+   unreachable. Centre it on the strip of world that is actually visible, the
+   same correction the movement dock needed. */
+.threat-dialog {
+  left: calc((100% - 20px - min(46vw, 760px)) / 2);
+  width: min(520px, calc(100% - 20px - min(46vw, 760px) - 36px));
+}
+@media (max-width: 900px) {
+  .threat-dialog { left: 50%; width: min(560px, calc(100% - 36px)); }
+}
+
+/* the spider that is closing in, shown rather than only described */
+.threat-dialog-spider {
+  display: block;
+  width: clamp(96px, 26%, 148px);
+  height: auto;
+  margin: 6px 0 -6px;
+  filter: drop-shadow(0 10px 20px rgba(23, 66, 55, .28));
+}
