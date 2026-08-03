@@ -696,3 +696,40 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
   margin: 6px 0 -6px;
   filter: drop-shadow(0 10px 20px rgba(23, 66, 55, .28));
 }
+
+/* ---- the world ends where the HUD begins -----------------------------------
+   Root cause of several bugs: .arena-wrap spanned the full width with the HUD
+   laid over its right side, so anything positioned inside the world could sit
+   underneath the panel. The fly could fly behind it, the snack popup was cut in
+   half, the threat dialog's third option was unreachable, and the movement dock
+   centred on the wrong midpoint.
+
+   Bounding the world to the strip that is actually visible fixes all of them at
+   once, because every child is then laid out inside the region the player can
+   see. The moss stops at the panel edge, which is invisible: the panel is
+   opaque and was covering that ground anyway. */
+.arena-wrap {
+  right: calc(20px + min(46vw, 760px));
+}
+
+/* the dock and dialog now centre on their own parent, so their bespoke
+   corrections are no longer needed and would double-count */
+.controls.in-world { left: 50%; }
+.threat-dialog {
+  left: 50%;
+  width: min(520px, calc(100% - 36px));
+}
+
+@media (max-width: 900px) {
+  /* the HUD stacks rather than overlays, so the world takes the full width */
+  .arena-wrap { right: 0; }
+}
+/* the ground stays full bleed behind the HUD; only the playable field is bounded */
+.arena-panel { background-size: cover; background-position: center; }
+/* the field inherits the ground from its parent, so the texture survives the
+   bounding. .arena-wrap:before already inherits from here for its soft edge. */
+.arena-wrap { background-image: inherit; background-size: cover; background-position: center; }
+/* telemetry sits with the cell identity it describes, not at the far foot */
+.hud-telemetry { margin-top: 10px; border-top: 1px solid rgb(var(--holo-line, 196 228 255) / .10); }
+.hud-telemetry .hud-row { padding: 6px 0 7px; }
+.hud-telemetry .hud-row:last-child { border-bottom: 0; }
