@@ -421,7 +421,10 @@ test("shows signed simulated speed measured from displacement on ground and in a
   assert.match(page, /if \(spiderIsDue\(\)\) \{/);
   // The arena spider is an animated gait, not a still image.
   assert.match(page, /const SPIDER_FRAME_COUNT = 24/);
-  assert.match(page, /src=\{SPIDER_WALK_ASSETS\[spiderFrame\]\}/);
+  assert.match(page, /spiderPose\.moving \? SPIDER_WALK_ASSETS\[spiderFrame\] : SPIDER_WALK_ASSETS\[0\]/);
+  assert.match(page, /--spider-facing/);
+  assert.match(page, /const SPIDER_CHASE_SPEED = 0\.24/);
+  assert.match(css, /rotate\(var\(--spider-facing/);
   // .neuron-render-stage img absolutely positions every image in the stage;
   // the thrust panel has to opt out or its frame is stretched over the whole
   // stage and never seen.
