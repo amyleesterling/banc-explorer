@@ -999,7 +999,7 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 .neuron-color-key { top: auto !important; bottom: 10px; }
 
 @media (prefers-reduced-motion: reduce) { .hud-gauge .gauge-pointer { transition: none; } }
-@media (max-width: 900px) { .hud-instruments { inset: 8px 10px auto 10px; } .hud-gauge { width: 62px; } }
+@media (max-width: 900px) { .hud-instruments { inset: 8px 10px auto 10px; } .hud-gauge { width: 62px; } .hud-drive-inset { width: 124px; } }
 
 /* ---- one chip per named cell type ------------------------------------------
    The pip colour is the anatomical class, taken from the same LEGEND the colour
@@ -1115,16 +1115,17 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 .hud-instrument-group { display: flex; align-items: flex-start; gap: 10px; }
 
 .hud-drive-inset {
-  position: relative; width: clamp(78px, 7vw, 104px); padding: 8px 10px 6px;
-  display: grid; justify-items: center; gap: 4px;
+  position: relative; width: clamp(168px, 15.5vw, 248px); padding: 9px 11px 7px;
+  display: grid; justify-items: center; gap: 5px;
   --gauge-accent: #70d8ce;
 }
 .hud-drive-inset > img {
   position: static; inset: auto;
-  width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; display: block;
-  opacity: calc(.5 + var(--drive-level, 0) * .5);
-  filter: brightness(calc(1 + var(--drive-level, 0) * .5))
-    drop-shadow(0 0 calc(6px + var(--drive-level, 0) * 13px) rgba(112,216,206,.6));
+  width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: contain; display: block;
+  opacity: calc(.62 + var(--drive-level, 0) * .38);
+  filter: brightness(calc(1.15 + var(--drive-level, 0) * .55))
+    saturate(1.15)
+    drop-shadow(0 0 calc(8px + var(--drive-level, 0) * 16px) rgba(112,216,206,.7));
 }
 .hud-drive-inset-label {
   display: flex; gap: 6px; align-items: baseline;

@@ -314,6 +314,12 @@ export default function Home() {
   const resolutionTimerRef = useRef<number | null>(null);
   const takeoffTimerRef = useRef<number | null>(null);
   const dodgeTurnTargetRef = useRef<number | null>(null);
+  // The spider ambush is the scripted first meal. Later visits to the fruit
+  // still light the feeding circuit, but they do not summon it again.
+  const ambushedRef = useRef(false);
+  // Feeding fires when the fly crosses INTO the fruit, not on every frame it
+  // spends inside, so standing on the peach does not retrigger endlessly.
+  const insideFoodRef = useRef(false);
   const headingTimerRef = useRef<number | null>(null);
   const landingTimerRef = useRef<number | null>(null);
   const groomTimerRef = useRef<number | null>(null);
@@ -483,6 +489,8 @@ export default function Home() {
     velocityRef.current = 0;
     flightMotionRef.current = 0;
     driveLevelRef.current = DEFAULT_DRIVE_LEVEL;
+    ambushedRef.current = false;
+    insideFoodRef.current = false;
     boostRef.current = false;
     actionRef.current = "rest";
     worldStateRef.current = "seeking";
@@ -580,7 +588,10 @@ export default function Home() {
   }, [resetExperience, startTakeoff]);
 
   const triggerEating = useCallback(() => {
-    if (worldStateRef.current !== "seeking") return;
+    // Any grounded state the player controls can walk into the fruit: seeking,
+    // or perched and grooming after a landing.
+    const state = worldStateRef.current;
+    if (state !== "seeking" && state !== "groom-head") return;
     worldStateRef.current = "eating";
     setWorldState("eating");
     setCircuitMode("eat");
@@ -588,6 +599,13 @@ export default function Home() {
     if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
     warningTimerRef.current = window.setTimeout(() => {
       if (worldStateRef.current !== "eating") return;
+      if (ambushedRef.current) {
+        worldStateRef.current = "seeking";
+        setWorldState("seeking");
+        setCircuitMode("walk");
+        return;
+      }
+      ambushedRef.current = true;
       worldStateRef.current = "threat";
       keysRef.current.clear();
       actionRef.current = "rest";
@@ -920,9 +938,9 @@ export default function Home() {
         setFlightThrottle(throttleCommand);
         lastVelocityUiRef.current = time;
       }
-      if (worldStateRef.current === "seeking" && isInsideEllipse(fly, FOOD_TARGET, FOOD_CONTACT_BOUNDARY)) {
-        triggerEating();
-      }
+      const insideFood = isInsideEllipse(fly, FOOD_TARGET, FOOD_CONTACT_BOUNDARY);
+      if (insideFood && !insideFoodRef.current) triggerEating();
+      insideFoodRef.current = insideFood;
       const currentFlowerTarget = FLOWER_TARGETS[flowerIndexRef.current];
       const flowerDistance = Math.hypot(fly.x - currentFlowerTarget.x, fly.y - currentFlowerTarget.y);
       if (worldStateRef.current === "heading" && flowerDistance <= FLOWER_CONTACT_RADIUS) {

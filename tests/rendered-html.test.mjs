@@ -410,6 +410,11 @@ test("shows signed simulated speed measured from displacement on ground and in a
   assert.match(page, /const FLIGHT_POWER_DIR = "banc-flight-power-dng02"/);
   assert.match(page, /\{showFlightPower && \(/);
   assert.match(page, /hud-drive-inset/);
+  // Walking into the fruit works from any grounded state, fires on entry rather
+  // than every frame inside it, and only the first meal summons the spider.
+  assert.match(page, /if \(insideFood && !insideFoodRef\.current\) triggerEating\(\);/);
+  assert.match(page, /state !== "seeking" && state !== "groom-head"/);
+  assert.match(page, /if \(ambushedRef\.current\) \{/);
   // .neuron-render-stage img absolutely positions every image in the stage;
   // the thrust panel has to opt out or its frame is stretched over the whole
   // stage and never seen.
