@@ -487,9 +487,18 @@ export default function Home() {
       : worldState === "relaunch"
         ? { title: "NEW TARGET", detail: "FLOWER DETECTED" }
         : { title: "RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
-  const missionCopy = worldState === "heading" || worldState === "relaunch" || worldState === "scent"
-    ? { kicker: "FLIGHT OBJECTIVE", title: worldState === "relaunch" ? "NEW FLOWER DETECTED" : "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
-    : { kicker: "FORAGING OBJECTIVE", title: "FIND THE RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
+  // An objective the player has just met says so, rather than continuing to ask
+  // for something already done. The title is kept so it is clear WHAT was
+  // completed, and the detail becomes the confirmation.
+  const objectiveMet = worldState === "eating"
+    || worldState === "landing" || worldState === "groom-head";
+  const missionCopy = worldState === "eating"
+    ? { kicker: "OBJECTIVE COMPLETE", title: "THE RIPE FRUIT", detail: "FOUND, AND WORTH IT" }
+    : worldState === "landing" || worldState === "groom-head"
+      ? { kicker: "OBJECTIVE COMPLETE", title: "LANDED IN THE GLOW", detail: "TIME TO CLEAN UP" }
+    : worldState === "heading" || worldState === "relaunch" || worldState === "scent"
+      ? { kicker: "FLIGHT OBJECTIVE", title: worldState === "relaunch" ? "NEW FLOWER DETECTED" : "FLY TO THE FLOWER", detail: "LAND IN THE GLOW" }
+      : { kicker: "FORAGING OBJECTIVE", title: "FIND THE RIPE FRUIT", detail: "FOLLOW THE YEASTY SCENT" };
 
   useEffect(() => {
     if (!viewerOpen) return;
@@ -1366,8 +1375,8 @@ export default function Home() {
           </header>
           <div className="circuit-canvas-wrap">
             <div className="hud-head">
-              <div className="hud-objective">
-                <span>{missionCopy.kicker}</span>
+              <div className={`hud-objective${objectiveMet ? " met" : ""}`}>
+                <span>{objectiveMet && <i className="hud-objective-tick" aria-hidden="true" />}{missionCopy.kicker}</span>
                 <strong>{missionCopy.title}</strong>
                 <em>{missionCopy.detail}</em>
               </div>
