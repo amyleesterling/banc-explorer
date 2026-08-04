@@ -73,6 +73,16 @@ const WALK_SPEED_ASSETS = Array.from(
 // first, so all 24 play.
 const SPIDER_FRAME_COUNT = 24;
 const SPIDER_FPS = 24;
+// The spider is an animal in the world, not a decoration pinned to a corner. It
+// holds still while the question is on screen, and the walk cycle plays only
+// while it is actually covering ground.
+const SPIDER_SPAWN = { x: 0.16, y: 0.24 };
+const SPIDER_WALK_SPEED = 0.12;          // world units per second
+const SPIDER_CHASE_SPEED = 0.24;         // twice that, when it runs the fly down
+const SPIDER_CATCH_RADIUS = 0.06;
+// The sprite is drawn facing the top of the screen, so a heading of 0 radians
+// (pointing along +x) needs a quarter turn to line the artwork up with it.
+const SPIDER_SPRITE_OFFSET_DEG = 90;
 const SPIDER_WALK_ASSETS = Array.from(
   { length: SPIDER_FRAME_COUNT },
   (_, index) => `${assetBase}/spider-walk/frame-${String(index).padStart(2, "0")}.webp`,
@@ -349,6 +359,9 @@ export default function Home() {
   const [walkSpeedFrame, setWalkSpeedFrame] = useState(0);
   const [sequenceFrame, setSequenceFrame] = useState(0);
   const [spiderFrame, setSpiderFrame] = useState(0);
+  const spiderRef = useRef({ x: SPIDER_SPAWN.x, y: SPIDER_SPAWN.y, angle: 0, moving: false, phase: 0 });
+  const [spiderPose, setSpiderPose] = useState({ x: SPIDER_SPAWN.x, y: SPIDER_SPAWN.y, angle: 0, moving: false });
+  const lastSpiderUiRef = useRef(0);
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [freezeCountdown, setFreezeCountdown] = useState(3);
   const [steps, setSteps] = useState(0);
@@ -772,7 +785,8 @@ export default function Home() {
   }, [activeSequence, showFlightPower]);
 
   useEffect(() => {
-    if (!spiderOnScreen) return;
+    // A standing spider holds one pose. Only a walking one cycles its legs.
+    if (!spiderOnScreen || !spiderPose.moving) return;
     const started = performance.now();
     const frameDuration = 1000 / SPIDER_FPS;
     let animationFrame = 0;
@@ -782,7 +796,7 @@ export default function Home() {
     };
     animationFrame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(animationFrame);
-  }, [spiderOnScreen]);
+  }, [spiderOnScreen, spiderPose.moving]);
 
   useEffect(() => {
     void Promise.all(SPIDER_WALK_ASSETS.map((src) => fetch(src, { cache: "force-cache" }))).catch(() => {});
@@ -904,6 +918,56 @@ export default function Home() {
         nextAction = "right";
       }
       const currentState = worldStateRef.current;
+      // ---- the spider, as an animal rather than a CSS keyframe ----------------
+      // It faces the fly whenever it is interested in the fly, and it turns its
+      // back only when it is leaving. The walk cycle is driven by whether it
+      // actually moved this frame, so a spider standing still holds one pose.
+      {
+        const sp = spiderRef.current;
+        const toFly = Math.atan2(fly.y - sp.y, fly.x - sp.x);
+        let speed = 0;
+        let facing = toFly;
+        if (currentState === "threat") {
+          // The question is on screen. It waits, watching.
+          sp.phase = 0;
+        } else if (currentState === "run") {
+          // A fleeing fly is worth running down: twice the walking speed.
+          speed = SPIDER_CHASE_SPEED;
+        } else if (currentState === "freeze") {
+          // Walk in, lose interest, turn around and leave. phase 0 approaches
+          // until it is close, phase 1 walks away on the reciprocal heading.
+          if (sp.phase === 0) {
+            speed = SPIDER_WALK_SPEED;
+            if (Math.hypot(fly.x - sp.x, fly.y - sp.y) < 0.2) { sp.phase = 1; sp.angle = toFly + Math.PI; }
+          } else {
+            speed = SPIDER_WALK_SPEED;
+            facing = sp.angle;
+          }
+        } else if (currentState === "dodge" || currentState === "takeoff") {
+          // The fly is airborne and out of reach, so the spider walks off.
+          if (sp.phase !== 2) { sp.phase = 2; sp.angle = toFly + Math.PI; }
+          speed = SPIDER_WALK_SPEED;
+          facing = sp.angle;
+        } else if (currentState === "caught") {
+          speed = 0;
+          sp.phase = 0;
+        } else {
+          sp.x = SPIDER_SPAWN.x; sp.y = SPIDER_SPAWN.y; sp.phase = 0;
+        }
+        if (speed > 0) {
+          sp.angle = facing;
+          sp.x += Math.cos(facing) * speed * dt;
+          sp.y += Math.sin(facing) * speed * dt;
+        } else if (currentState === "threat" || currentState === "caught") {
+          sp.angle = toFly;
+        }
+        sp.moving = speed > 0;
+        if (time - lastSpiderUiRef.current > 50) {
+          lastSpiderUiRef.current = time;
+          setSpiderPose({ x: sp.x, y: sp.y, angle: sp.angle, moving: sp.moving });
+        }
+      }
+
       if (currentState === "run") {
         fly.x += Math.cos(fly.angle) * dt * 0.15;
         fly.y += Math.sin(fly.angle) * dt * 0.2;
@@ -1228,8 +1292,12 @@ export default function Home() {
             )}
             {(worldState === "threat" || worldState === "freeze" || worldState === "run" || worldState === "caught" || worldState === "dodge" || worldState === "takeoff") && (
               <img
-                className={`spider-threat ${worldState}${worldState === "dodge" || worldState === "takeoff" ? " retreating" : ""}`}
-                src={SPIDER_WALK_ASSETS[spiderFrame]}
+                className={`spider-threat ${worldState}${spiderPose.moving ? " walking" : ""}`}
+                style={{
+                  ...toScreenPosition(spiderPose),
+                  "--spider-facing": `${(spiderPose.angle * 180) / Math.PI + SPIDER_SPRITE_OFFSET_DEG}deg`,
+                } as CSSProperties}
+                src={spiderPose.moving ? SPIDER_WALK_ASSETS[spiderFrame] : SPIDER_WALK_ASSETS[0]}
                 alt=""
                 aria-hidden="true"
               />
