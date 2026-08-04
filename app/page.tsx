@@ -68,6 +68,16 @@ const WALK_SPEED_ASSETS = Array.from(
 // the render side already uses (APP_LAYERS in banc_layer_stats.py), so a layer
 // cannot be named one thing in the renders and another in the app. dodge and
 
+// The arena spider walks rather than sliding along as a still image. 24 frames
+// at 24fps is a one second gait cycle, and the last frame is not a copy of the
+// first, so all 24 play.
+const SPIDER_FRAME_COUNT = 24;
+const SPIDER_FPS = 24;
+const SPIDER_WALK_ASSETS = Array.from(
+  { length: SPIDER_FRAME_COUNT },
+  (_, index) => `${assetBase}/spider-walk/frame-${String(index).padStart(2, "0")}.webp`,
+);
+
 const GROOM_FRAME_COUNT = 16;
 const GROOM_NEURAL_SOURCE_FPS = 24;
 // Replay the explanatory render at one tenth of its encoded rate so the
@@ -338,6 +348,7 @@ export default function Home() {
   const [controlsUsed, setControlsUsed] = useState(false);
   const [walkSpeedFrame, setWalkSpeedFrame] = useState(0);
   const [sequenceFrame, setSequenceFrame] = useState(0);
+  const [spiderFrame, setSpiderFrame] = useState(0);
   const [worldState, setWorldState] = useState<WorldState>("seeking");
   const [freezeCountdown, setFreezeCountdown] = useState(3);
   const [steps, setSteps] = useState(0);
@@ -404,6 +415,9 @@ export default function Home() {
   const driveNeuronLabel = isFlightDriveMode ? "DNg02 · WING DRIVE" : "DNg100 · WALK DRIVE";
   const speedOutputLabel = isFlightDriveMode ? "AIR SPEED" : "GROUND SPEED";
   const walkDrivePlaybackFps = 5 + effectiveDriveLevel * 11;
+  const spiderOnScreen = worldState === "threat" || worldState === "freeze"
+    || worldState === "run" || worldState === "caught"
+    || worldState === "dodge" || worldState === "takeoff";
   const activeSequence = LAYER_SEQUENCE_ASSETS[circuitMode];
   const showFlightPower = isFlightCockpit && appliedDriveLevel > 0.01;
   const worldCopy = worldState === "eating"
@@ -756,6 +770,23 @@ export default function Home() {
     const wanted = [...(activeSequence ?? []), ...(showFlightPower ? FLIGHT_POWER_ASSETS : [])];
     void Promise.all(wanted.map((src) => fetch(src, { cache: "force-cache" }))).catch(() => {});
   }, [activeSequence, showFlightPower]);
+
+  useEffect(() => {
+    if (!spiderOnScreen) return;
+    const started = performance.now();
+    const frameDuration = 1000 / SPIDER_FPS;
+    let animationFrame = 0;
+    const advance = (time: number) => {
+      setSpiderFrame(Math.floor((time - started) / frameDuration) % SPIDER_FRAME_COUNT);
+      animationFrame = requestAnimationFrame(advance);
+    };
+    animationFrame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [spiderOnScreen]);
+
+  useEffect(() => {
+    void Promise.all(SPIDER_WALK_ASSETS.map((src) => fetch(src, { cache: "force-cache" }))).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isWalkSpeedPulse) return;
@@ -1198,7 +1229,7 @@ export default function Home() {
             {(worldState === "threat" || worldState === "freeze" || worldState === "run" || worldState === "caught" || worldState === "dodge" || worldState === "takeoff") && (
               <img
                 className={`spider-threat ${worldState}${worldState === "dodge" || worldState === "takeoff" ? " retreating" : ""}`}
-                src={`${assetBase}/mint-spider.webp`}
+                src={SPIDER_WALK_ASSETS[spiderFrame]}
                 alt=""
                 aria-hidden="true"
               />
