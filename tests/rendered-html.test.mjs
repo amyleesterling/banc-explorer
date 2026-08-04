@@ -414,7 +414,11 @@ test("shows signed simulated speed measured from displacement on ground and in a
   // than every frame inside it, and only the first meal summons the spider.
   assert.match(page, /if \(insideFood && !insideFoodRef\.current\) triggerEating\(\);/);
   assert.match(page, /state !== "seeking" && state !== "groom-head"/);
-  assert.match(page, /if \(ambushedRef\.current\) \{/);
+  // The spider is scheduled: first interaction, then every third. A flower
+  // landing counts as an interaction just as a fruit visit does.
+  assert.match(page, /interactionsRef\.current === 1 \|\| interactionsRef\.current % 3 === 0/);
+  assert.match(page, /if \(!spiderIsDue\(\)\) \{/);
+  assert.match(page, /if \(spiderIsDue\(\)\) \{/);
   // .neuron-render-stage img absolutely positions every image in the stage;
   // the thrust panel has to opt out or its frame is stretched over the whole
   // stage and never seen.
