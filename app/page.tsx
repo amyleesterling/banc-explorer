@@ -314,9 +314,13 @@ export default function Home() {
   const resolutionTimerRef = useRef<number | null>(null);
   const takeoffTimerRef = useRef<number | null>(null);
   const dodgeTurnTargetRef = useRef<number | null>(null);
-  // The spider ambush is the scripted first meal. Later visits to the fruit
-  // still light the feeding circuit, but they do not summon it again.
-  const ambushedRef = useRef(false);
+  // The spider is on a schedule rather than a one-off. Every visit to a target,
+  // fruit or flower, counts as one interaction; the ambush fires on the first
+  // (it is how the player learns the threat exists) and on every third after
+  // that. A predator at every snack wears thin, and a predator only once means
+  // the mechanic is seen and never again.
+  const interactionsRef = useRef(0);
+  const spiderIsDue = () => interactionsRef.current === 1 || interactionsRef.current % 3 === 0;
   // Feeding fires when the fly crosses INTO the fruit, not on every frame it
   // spends inside, so standing on the peach does not retrigger endlessly.
   const insideFoodRef = useRef(false);
@@ -489,7 +493,7 @@ export default function Home() {
     velocityRef.current = 0;
     flightMotionRef.current = 0;
     driveLevelRef.current = DEFAULT_DRIVE_LEVEL;
-    ambushedRef.current = false;
+    interactionsRef.current = 0;
     insideFoodRef.current = false;
     boostRef.current = false;
     actionRef.current = "rest";
@@ -592,6 +596,7 @@ export default function Home() {
     // or perched and grooming after a landing.
     const state = worldStateRef.current;
     if (state !== "seeking" && state !== "groom-head") return;
+    interactionsRef.current += 1;
     worldStateRef.current = "eating";
     setWorldState("eating");
     setCircuitMode("eat");
@@ -599,13 +604,12 @@ export default function Home() {
     if (threatTimerRef.current) window.clearTimeout(threatTimerRef.current);
     warningTimerRef.current = window.setTimeout(() => {
       if (worldStateRef.current !== "eating") return;
-      if (ambushedRef.current) {
+      if (!spiderIsDue()) {
         worldStateRef.current = "seeking";
         setWorldState("seeking");
         setCircuitMode("walk");
         return;
       }
-      ambushedRef.current = true;
       worldStateRef.current = "threat";
       keysRef.current.clear();
       actionRef.current = "rest";
@@ -617,6 +621,7 @@ export default function Home() {
 
   const triggerLanding = useCallback(() => {
     if (worldStateRef.current !== "heading") return;
+    interactionsRef.current += 1;
     worldStateRef.current = "landing";
     keysRef.current.clear();
     actionRef.current = "rest";
@@ -631,6 +636,15 @@ export default function Home() {
       setCircuitMode("groom-head");
       groomTimerRef.current = window.setTimeout(() => {
         if (worldStateRef.current !== "groom-head") return;
+        if (spiderIsDue()) {
+          keysRef.current.clear();
+          actionRef.current = "rest";
+          setAction("rest");
+          worldStateRef.current = "threat";
+          setWorldState("threat");
+          setCircuitMode("threat");
+          return;
+        }
         const nextFlowerIndex = (flowerIndexRef.current + 1) % FLOWER_TARGETS.length;
         flowerIndexRef.current = nextFlowerIndex;
         setFlowerIndex(nextFlowerIndex);
