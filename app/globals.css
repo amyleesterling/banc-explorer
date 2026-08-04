@@ -1101,12 +1101,12 @@ footer { min-height: 80px; margin: 0 var(--page-gutter); display: flex; justify-
 /* the spider arriving, in its own window on the card */
 .threat-dialog-spider-stage {
   width: min(232px, 62%); margin: 10px 0 4px;
-  aspect-ratio: 450 / 253; overflow: hidden;
+  aspect-ratio: 16 / 9; overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--threat-accent) 40%, transparent);
   border-radius: 8px;
   box-shadow: 0 10px 26px rgba(12,48,39,.26), inset 0 0 0 1px rgba(255,255,245,.5);
 }
-.threat-dialog-spider-clip { display: block; width: 100%; height: 100%; object-fit: cover; }
+.threat-dialog-spider-clip { display: block; width: 100%; height: 100%; object-fit: contain; background: #0d1a1e; }
 
 /* ---- the DNg02 thrust animation, beside the velocity dial -------------------
    It used to be drawn full-stage over the EPG ring, and the two populations

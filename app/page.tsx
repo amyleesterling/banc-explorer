@@ -1243,7 +1243,7 @@ export default function Home() {
               <section className="threat-dialog choice" role="alertdialog" aria-modal="true" aria-labelledby="threat-dialog-title">
                 <span className="threat-dialog-kicker"><i /> PREDATOR PROTOCOL</span>
                 <div className="threat-dialog-spider-stage" aria-hidden="true">
-                  <video className="threat-dialog-spider-clip" src={`${assetBase}/spider-approach.mp4`}
+                  <video className="threat-dialog-spider-clip" src={`${assetBase}/spider-threat-loop.mp4`}
                     autoPlay loop muted playsInline
                     poster={`${assetBase}/mint-spider.webp`} />
                 </div>
